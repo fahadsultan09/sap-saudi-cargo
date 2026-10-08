@@ -45,6 +45,17 @@ and a guard rejects a POST amount outside [PO value, invoice total]. Any failure
 The AI Core client calls `{deployment_url}/chat/completions` with a bearer token and `AI-Resource-Group` header (OpenAI-style deployment). It is tested only against a mocked server.
 Orchestration-mode deployments use a different path and body, so adapt `llm.py` if yours is one.
 
+### Testing your real model
+    cd backend
+    AGENT_MODE=aicore AICORE_SERVICE_KEY='{...}' AICORE_DEPLOYMENT_URL='<deployment url>' python scripts/agent_smoke.py
+It runs two sample cases and prints the evidence and every tool call. Exit code 1 means the model's answers were discarded and the rule-based fallback was used.
+
+### What the runner enforces (tests/test_agent_robustness.py)
+JSON found inside prose or code fences; no answer before at least one lookup; tools limited to this case's PO and vendor; repeated calls skipped;
+tool results marked as data (prompt injection cannot force a post, and the amount guard still applies); evidence must trace to case data or tool results
+(ids and numbers of 100 or more, sums and differences allowed, a heuristic and not proof); schema and amount checks; retry on network errors, 429 and 5xx, not on 401/403;
+step and time limits. Any failure falls back to the rule-based recommendation and says why in the trace.
+
 ## Demo
 Samples are in `samples/` (PDFs for Document AI, .txt for stub mode): clean, 900 SAR over PO (agent finds the approved surcharge), and goods receipt missing (agent holds).
 Reset between runs by deleting `backend/ap.db`. Demo order: log in as aisha, upload, run checks, confirm. Switch to omar, approve, post, press Post again, open Audit trail.

@@ -24,7 +24,7 @@ def run_fake(*replies):
     db.init(); c = db.connect(); inv = {"vendor": "V100", "inv_no": "X", "net": "10782.61", "vat": "1617.39", "po": "4500012345"}; po = sap.read_po(inv["po"])
     R = rules.run(inv, po, sap.read_vendor("V100"), []); out = agent_runner.advise(c, inv, po, R, llm=Fake(*replies)); c.close(); return out
 def test_write_tool_is_refused_and_bad_amount_discarded():
-    j, tr = run_fake(json.dumps({"tool": "post_to_sap", "args": {}}), json.dumps({"final": {"action": "POST", "amount": "99999", "summary": "x", "evidence": ["e"], "confidence": 0.9}}))
+    j, tr = run_fake(json.dumps({"tool": "post_to_sap", "args": {}}), json.dumps({"tool": "get_po", "args": {"po": "4500012345"}}), json.dumps({"final": {"action": "POST", "amount": "99999", "summary": "x", "evidence": ["e"], "confidence": 0.9}}))
     assert any("REFUSED" in x for x in tr) and j["source"] == "rules (agent fallback)" and "guard" in tr[-1]
 def test_garbage_reply_falls_back():
     j, tr = run_fake("hello", "still not json", "nope", "nope", "nope", "nope"); assert j["source"] == "rules (agent fallback)"

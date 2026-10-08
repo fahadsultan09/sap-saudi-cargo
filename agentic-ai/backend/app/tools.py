@@ -8,3 +8,5 @@ def vendor_history(c, vendor): return sap.VENDOR_HISTORY.get(vendor, [])
 def find_similar_cases(c, vendor):
     return [dict(r) for r in c.execute("SELECT inv_no,status FROM ap_case WHERE vendor=? AND status IN ('CLOSED','REJECTED') LIMIT 5", (vendor,))]
 TOOLS = {"get_po": get_po, "get_goods_receipts": get_goods_receipts, "vendor_history": vendor_history, "find_similar_cases": find_similar_cases}
+
+SCOPE = {"get_po": ("po", "po"), "get_goods_receipts": ("po", "po"), "vendor_history": ("vendor", "vendor"), "find_similar_cases": ("vendor", "vendor")}  # tool -> (argument, case field it must equal)

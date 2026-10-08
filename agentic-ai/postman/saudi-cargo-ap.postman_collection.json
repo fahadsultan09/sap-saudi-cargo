@@ -1,0 +1,633 @@
+{
+  "info": {
+    "name": "Saudi Cargo AP Agentic",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 - Agent runtime alone (mock gateway)",
+      "item": [
+        {
+          "name": "Runtime health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{runtime_url}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Investigate: 900 SAR over PO (expect POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Service-Key",
+                "value": "{{runtime_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{runtime_url}}/v1/investigate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case\": {\n    \"vendor\": \"V100\",\n    \"inv_no\": \"INV-7782\",\n    \"net\": \"10782.61\",\n    \"vat\": \"1617.39\",\n    \"po\": \"4500012345\",\n    \"gross\": \"12400.0\",\n    \"rules\": {\n      \"DUPLICATE\": \"PASS (no match in SAP)\",\n      \"VENDOR_ACTIVE\": \"PASS (Gulf Aviation Fuel Co)\",\n      \"VAT_15\": \"PASS\",\n      \"PO_EXISTS\": \"PASS\",\n      \"GR_MATCH\": \"FAIL (gr=11500 gross=12400.00)\",\n      \"TOLERANCE_2PCT\": \"FAIL (deviation 7.8%)\"\n    }\n  },\n  \"token\": \"any-token-works-with-the-mock-gateway\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('no error', () => pm.expect(j.error).to.eql(null));",
+                  "pm.test('has a final answer', () => pm.expect(j.final).to.be.an('object'));",
+                  "pm.test('expected action POST', () => pm.expect(j.final.action).to.eql('POST'));",
+                  "pm.test('has evidence', () => pm.expect(j.final.evidence.length).to.be.above(0));",
+                  "console.log(JSON.stringify(j, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Investigate: goods receipt missing (expect HOLD)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Service-Key",
+                "value": "{{runtime_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{runtime_url}}/v1/investigate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case\": {\n    \"vendor\": \"V200\",\n    \"inv_no\": \"INV-9001\",\n    \"net\": \"6956.52\",\n    \"vat\": \"1043.48\",\n    \"po\": \"4500012346\",\n    \"gross\": \"8000.0\",\n    \"rules\": {\n      \"DUPLICATE\": \"PASS\",\n      \"VENDOR_ACTIVE\": \"PASS\",\n      \"VAT_15\": \"PASS\",\n      \"PO_EXISTS\": \"PASS\",\n      \"GR_MATCH\": \"UNKNOWN (No goods receipt posted yet)\",\n      \"TOLERANCE_2PCT\": \"PASS (deviation 0.0%)\"\n    }\n  },\n  \"token\": \"any-token-works-with-the-mock-gateway\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('no error', () => pm.expect(j.error).to.eql(null));",
+                  "pm.test('has a final answer', () => pm.expect(j.final).to.be.an('object'));",
+                  "pm.test('expected action HOLD', () => pm.expect(j.final.action).to.eql('HOLD'));",
+                  "pm.test('has evidence', () => pm.expect(j.final.evidence.length).to.be.above(0));",
+                  "console.log(JSON.stringify(j, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong service key (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Service-Key",
+                "value": "wrong"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{runtime_url}}/v1/investigate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case\": {\n    \"vendor\": \"V100\",\n    \"inv_no\": \"INV-7782\",\n    \"net\": \"10782.61\",\n    \"vat\": \"1617.39\",\n    \"po\": \"4500012345\",\n    \"gross\": \"12400.0\",\n    \"rules\": {\n      \"DUPLICATE\": \"PASS (no match in SAP)\",\n      \"VENDOR_ACTIVE\": \"PASS (Gulf Aviation Fuel Co)\",\n      \"VAT_15\": \"PASS\",\n      \"PO_EXISTS\": \"PASS\",\n      \"GR_MATCH\": \"FAIL (gr=11500 gross=12400.00)\",\n      \"TOLERANCE_2PCT\": \"FAIL (deviation 7.8%)\"\n    }\n  },\n  \"token\": \"any-token-works-with-the-mock-gateway\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 - Backend + agent (full flow, runtime must point at the backend)",
+      "item": [
+        {
+          "name": "Create case (INV over PO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/cases",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendor\": \"V100\",\n  \"inv_no\": \"{{inv_no}}\",\n  \"net\": \"10782.61\",\n  \"vat\": \"1617.39\",\n  \"po\": \"4500012345\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('inv_no', 'INV-' + (Date.now() % 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('case_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Decide (rules, then agent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/cases/{{case_id}}/decide"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('awaiting confirm', () => pm.expect(j.status).to.eql('AWAITING_CONFIRM'));",
+                  "pm.test('agent answered, not the fallback', () => pm.expect(j.judgement.source).to.eql('agent'));",
+                  "pm.test('POST at 12400.00', () => { pm.expect(j.judgement.act).to.eql('POST'); pm.expect(j.judgement.amount).to.eql('12400.00'); });",
+                  "console.log(JSON.stringify(j.judgement, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get case",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/cases/{{case_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Audit trail after decide",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/events?case_id={{case_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const e = pm.response.json();",
+                  "pm.test('has rule results', () => pm.expect(e.some(x => x.kind === 'RULE_RESULT')).to.be.true);",
+                  "pm.test('has agent tool calls', () => pm.expect(e.some(x => x.kind === 'MODEL_JUDGEMENT' && x.text.includes('get_po'))).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm (processor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/cases/{{case_id}}/confirm"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('awaiting approval', () => pm.expect(pm.response.json().status).to.eql('AWAITING_APPROVAL'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve as processor (expect 403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/cases/{{case_id}}/approve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve (approver)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_appr}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_appr}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/cases/{{case_id}}/approve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ready to post', () => pm.expect(pm.response.json().status).to.eql('READY_TO_POST'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Post (the only SAP writer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_appr}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_appr}}"
+              }
+            ],
+            "url": "{{core_url}}/internal/v1/dispatch/{{case_id}}/post"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('SAP document returned', () => pm.expect(pm.response.json().doc).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Post again (expect 409, no second document)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_appr}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_appr}}"
+              }
+            ],
+            "url": "{{core_url}}/internal/v1/dispatch/{{case_id}}/post"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reconcile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_appr}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_appr}}"
+              }
+            ],
+            "url": "{{core_url}}/internal/v1/dispatch/{{case_id}}/reconcile"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('closed', () => pm.expect(pm.response.json().status).to.eql('CLOSED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Audit trail at the end",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/events?case_id={{case_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('full trail', () => pm.expect(pm.response.json().length).to.be.above(10));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 - Gateway security checks",
+      "item": [
+        {
+          "name": "Gateway without token (expect 422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{core_url}}/internal/v1/tools/get_po",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"po\": \"4500012345\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Gateway with junk token (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer junk"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{core_url}}/internal/v1/tools/get_po",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"po\": \"4500012345\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Upload an invoice (choose a file in Postman first)",
+      "item": [
+        {
+          "name": "Upload invoice (pick a .pdf, or a .txt in stub mode)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User",
+                "value": "{{user_proc}}"
+              },
+              {
+                "key": "X-Role",
+                "value": "{{role_proc}}"
+              }
+            ],
+            "url": "{{core_url}}/api/v1/cases/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('case_id', j.id);",
+                  "console.log(j.status, JSON.stringify(j.extraction, null, 2));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "runtime_url",
+      "value": "http://localhost:8100"
+    },
+    {
+      "key": "core_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "runtime_api_key",
+      "value": "change-me"
+    },
+    {
+      "key": "user_proc",
+      "value": "aisha"
+    },
+    {
+      "key": "role_proc",
+      "value": "processor"
+    },
+    {
+      "key": "user_appr",
+      "value": "omar"
+    },
+    {
+      "key": "role_appr",
+      "value": "approver"
+    },
+    {
+      "key": "case_id",
+      "value": ""
+    },
+    {
+      "key": "inv_no",
+      "value": "INV-1001"
+    }
+  ]
+}

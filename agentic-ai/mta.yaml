@@ -1,6 +1,6 @@
 _schema-version: "3.2"
 ID: ap-agentic
-version: 0.1.0
+version: 0.2.0
 modules:
   - name: ap-core
     type: python
@@ -9,6 +9,10 @@ modules:
     provides:
       - { name: srv-api, properties: { url: "${default-url}" } }
     requires: [{ name: ap-uaa }]
+  - name: ap-agent-runtime
+    type: python
+    path: agent-runtime
+    parameters: { memory: 512M, buildpack: python_buildpack, command: "uvicorn agent_app.main:app --host 0.0.0.0 --port $PORT" }
   - name: ap-approuter
     type: approuter.nodejs
     path: approuter
@@ -17,4 +21,6 @@ modules:
       - { name: srv-api, group: destinations, properties: { name: ap-core, url: "~{url}", forwardAuthToken: true } }
 resources:
   - { name: ap-uaa, type: org.cloudfoundry.managed-service, parameters: { service: xsuaa, service-plan: application, path: ./xs-security.json } }
-# Not wired yet: HANA Cloud (hdbcli in db.py), Document Management Service, Event Mesh, SAP AI Core, BPA.
+# ap-core and ap-agent-runtime need each other's URLs (AGENT_RUNTIME_URL, AP_CORE_URL) plus RUNTIME_API_KEY and TOOL_TOKEN_SECRET.
+# They cannot be wired with requires/provides without a circular dependency, so set them with `cf set-env` or a user-provided service.
+# Make the runtime reachable only from ap-core (internal route or network policy). Not yet wired: HANA Cloud, DMS, Event Mesh, AI Core binding, BPA.

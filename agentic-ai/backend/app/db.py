@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS work_event(seq INTEGER PRIMARY KEY AUTOINCREMENT, cas
 CREATE TABLE IF NOT EXISTS sap_doc(doc TEXT PRIMARY KEY, vendor TEXT, inv_no TEXT, amount TEXT);
 CREATE TABLE IF NOT EXISTS document(case_id INTEGER, filename TEXT, sha256 TEXT, mime TEXT, data BLOB);
 CREATE TABLE IF NOT EXISTS extraction(case_id INTEGER, field TEXT, value TEXT, confidence REAL);
+CREATE TABLE IF NOT EXISTS tool_call(jti TEXT, case_id INTEGER, name TEXT, args TEXT, result TEXT);
 CREATE TABLE IF NOT EXISTS post_command(key TEXT PRIMARY KEY, doc TEXT);
 """
 def connect():
