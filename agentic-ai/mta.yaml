@@ -1,0 +1,20 @@
+_schema-version: "3.2"
+ID: ap-agentic
+version: 0.1.0
+modules:
+  - name: ap-core
+    type: python
+    path: backend
+    parameters: { memory: 512M, buildpack: python_buildpack, command: "uvicorn app.main:app --host 0.0.0.0 --port $PORT" }
+    provides:
+      - { name: srv-api, properties: { url: "${default-url}" } }
+    requires: [{ name: ap-uaa }]
+  - name: ap-approuter
+    type: approuter.nodejs
+    path: approuter
+    requires:
+      - { name: ap-uaa }
+      - { name: srv-api, group: destinations, properties: { name: ap-core, url: "~{url}", forwardAuthToken: true } }
+resources:
+  - { name: ap-uaa, type: org.cloudfoundry.managed-service, parameters: { service: xsuaa, service-plan: application, path: ./xs-security.json } }
+# Not wired yet: HANA Cloud (hdbcli in db.py), Document Management Service, Event Mesh, SAP AI Core, BPA.

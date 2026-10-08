@@ -1,0 +1,16 @@
+{
+  "name": "saudi-cargo-ap",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx @ui5/cli serve -o index.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@ui5/cli": "^4.0.70",
+    "ui5-middleware-livereload": "^3.4.0"
+  }
+}

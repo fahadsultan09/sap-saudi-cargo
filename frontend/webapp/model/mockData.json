@@ -1,0 +1,156 @@
+{
+    "currentUser": {
+        "role": "AP Processor",
+        "name": "Faizan Saleem"
+    },
+    "kpis": {
+        "total": 154,
+        "pending": 12,
+        "approved": 90,
+        "posted": 52
+    },
+    "recentActivity": [
+        {
+            "id": "INV-2026-0912",
+            "vendor": "Saudi Cargo Ground Handling",
+            "status": "Review Required",
+            "state": "Warning",
+            "date": "2026-10-07 09:15"
+        },
+        {
+            "id": "INV-2026-0911",
+            "vendor": "Riyadh Aviation Logistics",
+            "status": "Approved",
+            "state": "Success",
+            "date": "2026-10-07 08:40"
+        },
+        {
+            "id": "INV-2026-0910",
+            "vendor": "Middle East Fuel Co.",
+            "status": "Posted",
+            "state": "Success",
+            "date": "2026-10-06 16:30"
+        },
+        {
+            "id": "INV-2026-0909",
+            "vendor": "Gulf Air Cargo Services",
+            "status": "Pending",
+            "state": "Information",
+            "date": "2026-10-06 14:10"
+        }
+    ],
+    "selectedInvoice": {
+        "id": "INV-2026-0912",
+        "vendor": "Saudi Cargo Ground Handling Ltd.",
+        "invoiceDate": "2026-10-02",
+        "poNumber": "PO-882190",
+        "amount": "45,200.00",
+        "vat": "6,780.00",
+        "currency": "SAR",
+        "recommendation": "APPROVE",
+        "riskScore": 12,
+        "confidenceState": "Success",
+        "reasons": [
+            {
+                "text": "Vendor recognized in S/4HANA Master Data (BUPA-2091)"
+            },
+            {
+                "text": "Invoice totals and VAT match Purchase Order PO-882190"
+            },
+            {
+                "text": "No duplicate invoice detected across 365 days"
+            }
+        ],
+        "extractedFields": [
+            {
+                "field": "Vendor Name",
+                "value": "Saudi Cargo Ground Handling Ltd.",
+                "confidence": "99%",
+                "state": "Success"
+            },
+            {
+                "field": "Invoice Number",
+                "value": "INV-2026-0912",
+                "confidence": "98%",
+                "state": "Success"
+            },
+            {
+                "field": "Invoice Date",
+                "value": "2026-10-02",
+                "confidence": "97%",
+                "state": "Success"
+            },
+            {
+                "field": "PO Number",
+                "value": "PO-882190",
+                "confidence": "99%",
+                "state": "Success"
+            },
+            {
+                "field": "Total Amount",
+                "value": "45,200.00 SAR",
+                "confidence": "96%",
+                "state": "Success"
+            },
+            {
+                "field": "VAT Amount",
+                "value": "6,780.00 SAR",
+                "confidence": "94%",
+                "state": "Success"
+            }
+        ]
+    },
+    "approvals": [
+        {
+            "id": "INV-2026-0912",
+            "vendor": "Saudi Cargo Ground Handling",
+            "amount": "45,200.00 SAR",
+            "recommendation": "APPROVE",
+            "status": "Pending Approval",
+            "state": "Warning"
+        },
+        {
+            "id": "INV-2026-0915",
+            "vendor": "Aero Parts KSA",
+            "amount": "12,400.00 SAR",
+            "recommendation": "APPROVE",
+            "status": "Pending Approval",
+            "state": "Warning"
+        },
+        {
+            "id": "INV-2026-0918",
+            "vendor": "Global Freight Logistics",
+            "amount": "180,000.00 SAR",
+            "recommendation": "REVIEW REQUIRED",
+            "status": "High Risk Flagged",
+            "state": "Error"
+        }
+    ],
+    "auditTrail": [
+        {
+            "time": "10:01 AM",
+            "title": "Document Uploaded",
+            "description": "PDF uploaded via web console by AP Processor"
+        },
+        {
+            "time": "10:02 AM",
+            "title": "Document AI Extracted",
+            "description": "SAP Document Information Extraction engine completed OCR & field identification"
+        },
+        {
+            "time": "10:03 AM",
+            "title": "Rules Validated",
+            "description": "Business Rules Engine run: 0 exceptions, Risk Score calculated at 12/100"
+        },
+        {
+            "time": "10:04 AM",
+            "title": "Approved",
+            "description": "Invoice approved by AP Approver Manager"
+        },
+        {
+            "time": "10:05 AM",
+            "title": "Posted",
+            "description": "Posted directly into SAP S/4HANA (Document ID: 19000218)"
+        }
+    ]
+}

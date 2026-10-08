@@ -1,0 +1,48 @@
+{
+    "_version": "1.59.0",
+    "sap.app": {
+        "id": "saudicargo.ap.automation",
+        "type": "application",
+        "title": "Saudi Cargo - AP Automation",
+        "description": "AP Automation Prototype"
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": false
+        }
+    },
+    "sap.ui5": {
+        "resources": {
+            "css": [
+                {
+                    "uri": "css/style.css"
+                }
+            ]
+        },
+        "rootView": {
+            "viewName": "saudicargo.ap.automation.view.App",
+            "type": "XML",
+            "async": true,
+            "id": "appView"
+        },
+        "dependencies": {
+            "minUI5Version": "1.120.0",
+            "libs": {
+                "sap.ui.core": {},
+                "sap.m": {},
+                "sap.f": {},
+                "sap.uxap": {},
+                "sap.ui.layout": {}
+            }
+        },
+        "models": {
+            "apData": {
+                "type": "sap.ui.model.json.JSONModel",
+                "uri": "model/mockData.json"
+            }
+        }
+    }
+}

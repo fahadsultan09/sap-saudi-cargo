@@ -1,0 +1,5 @@
+Vendor: Dammam Ground Equip.
+Invoice No: INV-9001
+Net: 6956.52
+VAT: 1043.48
+PO: 4500012346

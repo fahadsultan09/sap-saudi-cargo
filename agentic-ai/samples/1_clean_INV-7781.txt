@@ -1,0 +1,5 @@
+Vendor: Gulf Aviation Fuel Co
+Invoice No: INV-7781
+Net: 10000.00
+VAT: 1500.00
+PO: 4500012345

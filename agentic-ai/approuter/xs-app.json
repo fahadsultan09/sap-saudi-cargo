@@ -1,0 +1,3 @@
+{"authenticationMethod":"route","routes":[
+ {"source":"^/api/(.*)$","target":"/api/$1","destination":"ap-core","authenticationType":"xsuaa"},
+ {"source":"^/(.*)$","target":"$1","localDir":"resources","authenticationType":"xsuaa"}]}

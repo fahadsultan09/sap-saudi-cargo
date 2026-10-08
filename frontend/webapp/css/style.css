@@ -1,0 +1,58 @@
+/* ==========================================================================
+   Saudi Cargo Fiori Horizon Header Branding
+   ========================================================================== */
+
+.saudiCargoHeaderBar {
+    height: 64px !important;
+    background: #ffffff !important;
+    border-bottom: 3px solid #C49A45 !important; /* Saudi Cargo Gold Accent */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Logo Alignment */
+.saudiCargoHeaderLogo {
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+/* Brand Title */
+.saudiCargoBrandTitle {
+    color: #002B49 !important; /* Saudi Cargo Navy Blue */
+    font-weight: 800 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: 0.8px !important;
+}
+
+/* Subtitle */
+.saudiCargoSubTitle {
+    color: #556B7D !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+}
+
+/* System Tag */
+.saudiCargoTag .sapMObjStatusText {
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: #EBF3FA;
+}
+
+/* User Profile Styling */
+.saudiCargoUserName {
+    color: #002B49 !important;
+    font-weight: 700 !important;
+    font-size: 0.875rem !important;
+}
+
+.saudiCargoUserRole {
+    color: #6A6D70 !important;
+    font-size: 0.75rem !important;
+}
+
+/* Avatar Styling */
+.saudiCargoAvatar {
+    border: 2px solid #C49A45 !important;
+}

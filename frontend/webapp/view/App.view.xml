@@ -1,0 +1,329 @@
+<mvc:View
+    controllerName="saudicargo.ap.automation.controller.App"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:l="sap.ui.layout"
+	xmlns:uxap="sap.uxap"
+	xmlns:core="sap.ui.core">
+	<Shell id="shell">
+		<App id="app">
+			<pages>
+				<!-- <Page title="Saudi Cargo — Accounts Payable Automation" titleAlignment="Start"> -->
+				<Page id="mainPage" titleAlignment="Start">
+					<!-- <headerContent><ObjectStatus text="{apData>/currentUser/name} ({apData>/currentUser/role})" state="Information"/></headerContent> -->
+<customHeader>
+    <Bar design="Header">
+
+        <contentLeft>
+            <HBox alignItems="Center">
+
+                <Avatar
+                    src="sap-icon://shipping-status"
+                    displayShape="Square"
+                    displaySize="S"
+                    backgroundColor="Accent6"
+                    class="sapUiTinyMarginEnd"/>
+
+                <VBox>
+                    <Title
+                        text="Accounts Payable Automation"
+                        level="H4"/>
+
+                    <Text
+                        text="Saudi Cargo"
+                        wrapping="false"/>
+                </VBox>
+
+            </HBox>
+        </contentLeft>
+
+        <contentMiddle>
+            <ToolbarSpacer/>
+
+            <ObjectStatus
+                text="AI-Powered Invoice Processing"
+                icon="sap-icon://ai"
+                state="Information"/>
+
+            <ToolbarSpacer/>
+        </contentMiddle>
+
+        <contentRight>
+
+            <OverflowToolbar>
+
+                <ObjectStatus
+                    text="Demo"
+                    state="Success"/>
+
+                <Button
+                    icon="sap-icon://notification-2"
+                    type="Transparent"/>
+
+                <Button
+                    icon="sap-icon://action-settings"
+                    type="Transparent"/>
+
+                <Avatar
+                    initials="FS"
+                    displaySize="S" />
+				
+            </OverflowToolbar>
+
+        </contentRight>
+
+    </Bar>
+</customHeader>
+					<content>
+						<IconTabBar id="idIconTabBar" headerBackgroundDesign="Solid" expandable="false">
+							<items>
+								<!-- Screen 1 — Dashboard -->
+								<IconTabFilter key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard">
+									<VBox class="sapUiMediumMargin">
+										<Title text="Key Performance Indicators" level="H3" class="sapUiSmallMarginBottom"/>
+										<HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+											<GenericTile header="Total Invoices" class="sapUiTinyMarginEnd">
+												<tileContent>
+													<TileContent>
+														<content>
+															<NumericContent
+value="{apData>/kpis/total}"
+valueColor="Neutral" />
+														</content>
+													</TileContent>
+												</tileContent>
+											</GenericTile>
+											<GenericTile header="Pending" class="sapUiTinyMarginEnd">
+												<tileContent>
+													<TileContent>
+														<content>
+															<NumericContent
+value="{apData>/kpis/pending}"
+valueColor="Critical" />
+														</content>
+													</TileContent>
+												</tileContent>
+											</GenericTile>
+											<GenericTile header="Approved" class="sapUiTinyMarginEnd">
+												<tileContent>
+													<TileContent>
+														<content>
+															<NumericContent
+value="{apData>/kpis/approved}"
+valueColor="Good" />
+														</content>
+													</TileContent>
+												</tileContent>
+											</GenericTile>
+											<GenericTile header="Posted" class="sapUiTinyMarginEnd">
+												<tileContent>
+													<TileContent>
+														<content>
+															<NumericContent
+value="{apData>/kpis/posted}"
+valueColor="Good" />
+														</content>
+													</TileContent>
+												</tileContent>
+											</GenericTile>
+										</HBox>
+										<Table headerText="Recent Activity" items="{apData>/recentActivity}">
+											<columns>
+												<Column>
+													<Text text="Invoice" />
+												</Column>
+												<Column>
+													<Text text="Vendor" />
+												</Column>
+												<Column>
+													<Text text="Status" />
+												</Column>
+												<Column>
+													<Text text="Created Date" />
+												</Column>
+											</columns>
+											<items>
+												<ColumnListItem>
+													<cells>
+														<ObjectIdentifier title="{apData>id}" />
+														<Text text="{apData>vendor}" />
+														<ObjectStatus text="{apData>status}" state="{apData>state}" />
+														<Text text="{apData>date}" />
+													</cells>
+												</ColumnListItem>
+											</items>
+										</Table>
+									</VBox>
+								</IconTabFilter>
+								<!-- Screen 2 — Invoice Upload -->
+								<IconTabFilter key="upload" text="Invoice Upload" icon="sap-icon://upload">
+									<VBox class="sapUiLargeMargin" alignItems="Center">
+										<Title text="Invoice Processing" level="H2" class="sapUiMediumMarginBottom" />
+										<UploadCollection 
+                                            id="UploadCollection" 
+                                            multiple="false" 
+                                            uploadButtonInvisible="false"
+                                            change="onUploadChange" 
+                                            noDataDescription="Drag &amp; drop PDF invoice files here or click to upload" />
+										<VBox id="processingSection" visible="false" class="sapUiLargeMarginTop" width="60%">
+											<Text text="Processing status:" class="sapUiTinyMarginBottom" />
+											<ProgressIndicator id="uploadProgress" percentValue="0" displayValue="Step 1/3: Document Received" state="Information"/>
+										</VBox>
+									</VBox>
+								</IconTabFilter>
+								<!-- Screen 3 — Invoice Review (Hero Screen) -->
+								<IconTabFilter key="review" text="Invoice Review" icon="sap-icon://inspect">
+									<l:Splitter height="700px">
+										<!-- Left Side: PDF Preview -->
+										<VBox class="sapUiSmallMargin">
+											<layoutData>
+												<l:SplitterLayoutData size="45%" minSize="300px"/>
+											</layoutData>
+											<Title text="Invoice Preview (PDF)" level="H4" class="sapUiSmallMarginBottom"/>
+											<Panel headerText="INV-2026-0912.pdf" height="600px" backgroundDesign="Solid">
+												<VBox alignItems="Center" justifyContent="Center" class="sapUiLargeMarginTop">
+													<core:Icon src="sap-icon://pdf-attachment" size="5rem" color="#0a6ed1"/>
+													<Text text="Document: INV-2026-0912.pdf" class="sapUiSmallMarginTop"/>
+													<Text text="Supplier: Saudi Cargo Ground Handling Ltd." />
+													<Text text="Amount: SAR 45,200.00" class="sapUiSmallMarginBottom"/>
+													<Button text="Open Full PDF" icon="sap-icon://doc-attachment" type="Emphasized"/>
+												</VBox>
+											</Panel>
+										</VBox>
+										<!-- Right Side: Object Page Layout -->
+										<VBox class="sapUiSmallMargin">
+											<layoutData>
+												<l:SplitterLayoutData size="55%" minSize="300px"/>
+											</layoutData>
+											<uxap:ObjectPageLayout id="ObjectPageLayout" showTitleInHeaderContent="true">
+												<uxap:headerTitle>
+													<uxap:ObjectPageDynamicHeaderTitle>
+														<uxap:expandedHeading>
+															<Title text="{apData>/selectedInvoice/vendor}" wrapping="true"/>
+														</uxap:expandedHeading>
+														<uxap:snappedHeading>
+															<Title text="{apData>/selectedInvoice/vendor}" wrapping="true"/>
+														</uxap:snappedHeading>
+														<uxap:expandedContent>
+															<Text text="Invoice #: {apData>/selectedInvoice/id}"/>
+														</uxap:expandedContent>
+														<uxap:actions>
+															<Button text="Approve" type="Success" press="onApproveInvoice"/>
+															<Button text="Reject" type="Reject" press="onRejectInvoice"/>
+														</uxap:actions>
+													</uxap:ObjectPageDynamicHeaderTitle>
+												</uxap:headerTitle>
+												<uxap:sections>
+													<uxap:ObjectPageSection title="AI Recommendation &amp; Risk">
+														<uxap:subSections>
+															<uxap:ObjectPageSubSection>
+																<VBox class="sapUiSmallMargin">
+																	<HBox class="sapUiSmallMarginBottom" alignItems="Center">
+																		<ObjectStatus title="Recommendation" text="{apData>/selectedInvoice/recommendation}" state="{apData>/selectedInvoice/confidenceState}" class="sapUiLargeMarginEnd"/>
+																		<ObjectStatus title="Risk Score" text="{apData>/selectedInvoice/riskScore} / 100" state="{apData>/selectedInvoice/confidenceState}"/>
+																	</HBox>
+																	<Title text="Reasoning" level="H5" class="sapUiTinyMarginBottom"/>
+																	<List items="{apData>/selectedInvoice/reasons}">
+																		<StandardListItem title="{apData>text}" icon="sap-icon://accept" iconColor="Positive" />
+																	</List>
+																</VBox>
+															</uxap:ObjectPageSubSection>
+														</uxap:subSections>
+													</uxap:ObjectPageSection>
+													<uxap:ObjectPageSection title="Extracted Fields">
+														<uxap:subSections>
+															<uxap:ObjectPageSubSection>
+																<Table items="{apData>/selectedInvoice/extractedFields}">
+																	<columns>
+																		<Column>
+																			<Text text="Field Name" />
+																		</Column>
+																		<Column>
+																			<Text text="Extracted Value" />
+																		</Column>
+																		<Column>
+																			<Text text="Confidence Score" />
+																		</Column>
+																	</columns>
+																	<items>
+																		<ColumnListItem>
+																			<cells>
+																				<Text text="{apData>field}" />
+																				<Text text="{apData>value}" />
+																				<ObjectStatus text="{apData>confidence}" state="{apData>state}" />
+																			</cells>
+																		</ColumnListItem>
+																	</items>
+																</Table>
+															</uxap:ObjectPageSubSection>
+														</uxap:subSections>
+													</uxap:ObjectPageSection>
+												</uxap:sections>
+											</uxap:ObjectPageLayout>
+										</VBox>
+									</l:Splitter>
+								</IconTabFilter>
+								<!-- Screen 4 — Approval Queue -->
+								<IconTabFilter key="approvals" text="Approval Queue" icon="sap-icon://approvals">
+									<VBox class="sapUiMediumMargin">
+										<Title text="Pending Approvals Worklist" level="H3" class="sapUiSmallMarginBottom"/>
+										<Table items="{apData>/approvals}">
+											<columns>
+												<Column>
+													<Text text="Invoice ID" />
+												</Column>
+												<Column>
+													<Text text="Vendor" />
+												</Column>
+												<Column>
+													<Text text="Amount" />
+												</Column>
+												<Column>
+													<Text text="AI Recommendation" />
+												</Column>
+												<Column>
+													<Text text="Status" />
+												</Column>
+												<Column>
+													<Text text="Actions" />
+												</Column>
+											</columns>
+											<items>
+												<ColumnListItem>
+													<cells>
+														<Text text="{apData>id}" />
+														<Text text="{apData>vendor}" />
+														<Text text="{apData>amount}" />
+														<ObjectStatus text="{apData>recommendation}" state="Success" />
+														<ObjectStatus text="{apData>status}" state="{apData>state}" />
+														<HBox>
+															<Button text="Approve" type="Success" class="sapUiTinyMarginEnd" press="onApproveInvoice" />
+															<Button text="Reject" type="Reject" press="onRejectInvoice" />
+														</HBox>
+													</cells>
+												</ColumnListItem>
+											</items>
+										</Table>
+									</VBox>
+								</IconTabFilter>
+								<!-- Screen 5 — Audit Trail -->
+								<IconTabFilter key="audit" text="Audit Trail" icon="sap-icon://history">
+									<VBox class="sapUiMediumMargin">
+										<Title text="Processing History &amp; Decision Audit Log" level="H3" class="sapUiMediumMarginBottom"/>
+										<List items="{apData>/auditTrail}">
+											<StandardListItem 
+                                                title="{apData>title} ({apData>time})" 
+                                                description="{apData>description}" 
+                                                icon="sap-icon://activity-items" />
+										</List>
+									</VBox>
+								</IconTabFilter>
+							</items>
+						</IconTabBar>
+					</content>
+				</Page>
+			</pages>
+		</App>
+	</Shell>
+</mvc:View>

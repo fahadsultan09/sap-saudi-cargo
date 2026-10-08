@@ -1,0 +1,106 @@
+# =========================
+# Node.js
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+coverage/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# =========================
+# SAP UI5
+# =========================
+webapp/test/reports/
+.ui5/
+coverage/
+
+# =========================
+# CAP (SAP)
+# =========================
+gen/
+.sqlite
+*.db
+default-env.json
+
+# =========================
+# Agentic AI
+# =========================
+
+# Python virtual envs
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# LangChain / LangGraph
+.langgraph/
+.checkpoints/
+checkpoints/
+
+# Vector DBs
+vector-db/
+chroma/
+chromadb/
+faiss_index/
+*.faiss
+
+# Embeddings
+embeddings/
+
+# Model files
+models/
+*.bin
+*.pt
+*.pth
+*.onnx
+*.gguf
+
+# Agent memory/runtime data
+memory/
+sessions/
+runtime/
+cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# =========================
+# Docker
+# =========================
+docker-data/
+*.tar
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# =========================
+# OS
+# =========================
+Thumbs.db
