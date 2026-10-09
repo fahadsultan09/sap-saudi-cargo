@@ -12,9 +12,8 @@ from ..clients.ai_core import AICore
 from ..clients.document_ai import DocumentAI
 from ..clients.sap import SAPClient
 from ..config import Settings
-from ..enums import Action, CaseStatus, InvoiceField, RuleCode
+from ..enums import Action, CaseStatus, InvoiceField
 from ..errors import (
-    AICoreFailure,
     AppError,
     DocumentAIFailure,
     NotFound,
@@ -25,7 +24,7 @@ from ..errors import (
     ValidationFailure,
 )
 from ..repository import EventData, Repository
-from ..rules import evaluate
+from ..rules import RuleSet
 from ..schemas import (
     AuditEvent,
     Case,
@@ -33,12 +32,14 @@ from ..schemas import (
     Dashboard,
     DocumentMetadata,
     ExtractedField,
+    GoodsReceipts,
     InformRequest,
     Invoice,
     PostingPackage,
     Recommendation,
     RejectRequest,
     ReviewRequest,
+    SapFacts,
 )
 from ..state import require_status, transition
 from ..utils import package_hash, safe_filename, utc_now
@@ -55,12 +56,14 @@ class CaseService:
         ai_core: AICore,
         sap: SAPClient,
         settings: Settings,
+        rules: RuleSet,
     ) -> None:
         self.repository = repository
         self.document_ai = document_ai
         self.ai_core = ai_core
         self.sap = sap
         self.settings = settings
+        self.rule_set = rules
 
     async def get(self, case_id: str) -> Case:
         return await asyncio.to_thread(self.repository.get, case_id)
@@ -233,76 +236,58 @@ class CaseService:
             events.append(transition(case, CaseStatus.EXTRACTED))
         return await self.save(case, actor, events)
 
-    async def _decide(self, case: Case, actor: str, events: list[EventData]) -> Case:
-        require_status(case, CaseStatus.EXTRACTED)
-        invoice = case.invoice
-        if invoice is None:
-            raise ValidationFailure("A complete reviewed invoice is required")
+    async def _facts(self, case: Case, invoice: Invoice) -> SapFacts:
         po = await self.sap.purchase_order(invoice.po_number)
         vendor = await self.sap.vendor(invoice.vendor)
-        sap_duplicate = await self.sap.duplicate(invoice.vendor, invoice.invoice_number)
-        case_duplicate = await asyncio.to_thread(
+        duplicate_in_sap = await self.sap.duplicate(
+            invoice.vendor, invoice.invoice_number
+        )
+        duplicate_in_open_case = await asyncio.to_thread(
             self.repository.other_case_duplicate,
             case.id,
             invoice.vendor,
             invoice.invoice_number,
         )
-        duplicate_sources = []
-        if sap_duplicate:
-            duplicate_sources.append("SAP ledger")
-        if case_duplicate:
-            duplicate_sources.append("other case")
-        duplicate = sap_duplicate or case_duplicate
-        case.rules = evaluate(invoice, po, vendor, duplicate_sources, self.settings)
+        return SapFacts(
+            purchase_order=po,
+            goods_receipts=(
+                GoodsReceipts(gross=po.goods_receipt_gross)
+                if po is not None and po.goods_receipt_gross is not None
+                else None
+            ),
+            vendor=vendor,
+            duplicate_in_sap=duplicate_in_sap,
+            duplicate_in_open_case=duplicate_in_open_case,
+        )
+
+    async def _decide(self, case: Case, actor: str, events: list[EventData]) -> Case:
+        require_status(case, CaseStatus.EXTRACTED)
+        invoice = case.invoice
+        if invoice is None:
+            raise ValidationFailure("A complete reviewed invoice is required")
+        facts = await self._facts(case, invoice)
+        decision = await self.ai_core.evaluate(invoice, self.rule_set, facts)
+        case.rules = decision.results
+        case.recommendation = Recommendation(
+            **decision.recommendation.model_dump(), source="agent"
+        )
+        case.rules_version = self.rule_set.version
+        events.append(("sap_observed", facts.model_dump(mode="json")))
+        events.extend(("rule_evaluated", rule.model_dump()) for rule in case.rules)
         events.append(
             (
-                "sap_observed",
+                "recommendation_created",
                 {
-                    "po": po.model_dump(mode="json") if po else None,
-                    "vendor": vendor.model_dump() if vendor else None,
-                    "duplicate": duplicate,
-                    "duplicate_sources": duplicate_sources,
+                    **case.recommendation.model_dump(mode="json"),
+                    "rules_version": case.rules_version,
+                    "duplicate_in_sap": facts.duplicate_in_sap,
+                    "duplicate_in_open_case": facts.duplicate_in_open_case,
                 },
             )
         )
-        events.extend(("rule_evaluated", rule.model_dump()) for rule in case.rules)
-        failed = [rule.code for rule in case.rules if not rule.passed]
-        action = (
-            Action.POST
-            if not failed
-            else (Action.HOLD if failed == [RuleCode.GR_MISSING] else Action.REJECT)
-        )
-        if failed:
-            try:
-                advice = await self.ai_core.advise(invoice, case.rules)
-                if advice.action != action:
-                    raise AICoreFailure(
-                        "Agent advice conflicts with deterministic controls"
-                    )
-                case.recommendation = advice
-            except AICoreFailure as exc:
-                events.append(
-                    ("agent_failed", {"code": exc.code, "message": exc.message})
-                )
-                case.recommendation = Recommendation(
-                    action=action,
-                    source="safe_fallback",
-                    reason="Rule failures require human handling",
-                    evidence=failed,
-                )
-        else:
-            case.recommendation = Recommendation(
-                action=Action.POST,
-                source="rules",
-                reason="All deterministic controls passed",
-                evidence=[rule.code for rule in case.rules],
-            )
-        events.append(
-            ("recommendation_created", case.recommendation.model_dump(mode="json"))
-        )
         target = (
             CaseStatus.WAITING_EXTERNAL
-            if action == Action.HOLD
+            if case.recommendation.action == Action.HOLD
             else CaseStatus.AWAITING_CONFIRM
         )
         events.append(transition(case, target))
@@ -323,11 +308,7 @@ class CaseService:
         ]
         if recommendation.action == Action.REJECT:
             events.append(transition(case, CaseStatus.REJECTED))
-        elif (
-            recommendation.action == Action.POST
-            and all(rule.passed for rule in case.rules)
-            and case.rules
-        ):
+        elif recommendation.action == Action.POST:
             case.package = PostingPackage(
                 case_id=case.id,
                 invoice=case.invoice,
@@ -337,7 +318,7 @@ class CaseService:
             events.append(transition(case, CaseStatus.AWAITING_APPROVAL))
         else:
             raise ValidationFailure(
-                "Only a passing POST recommendation can create a posting package"
+                "Only a POST recommendation can create a posting package"
             )
         return await self.save(case, actor, events)
 

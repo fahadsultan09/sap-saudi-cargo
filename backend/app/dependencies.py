@@ -11,6 +11,7 @@ from .clients.sap import SAPClient
 from .config import Settings
 from .errors import AuthenticationFailure, ConfigurationFailure
 from .repository import Repository
+from .rules import RuleSet
 from .services.case_service import CaseService
 from .services.dispatch_service import DispatchService
 
@@ -35,6 +36,10 @@ def sap_dependency(request: Request) -> SAPClient:
     return request.app.state.sap
 
 
+def rules_dependency(request: Request) -> RuleSet:
+    return request.app.state.rules
+
+
 def actor_dependency(
     settings: Annotated[Settings, Depends(settings_dependency)],
     user: Annotated[
@@ -42,7 +47,6 @@ def actor_dependency(
     ] = None,
     proxy_token: Annotated[str | None, Header(alias="X-Proxy-Token")] = None,
 ) -> str:
-    # Require a valid printable human identity header.
     if (
         user is None
         or not user.strip()
@@ -85,8 +89,9 @@ def case_service_dependency(
     ai_core: Annotated[AICore, Depends(ai_dependency)],
     sap: Annotated[SAPClient, Depends(sap_dependency)],
     settings: Annotated[Settings, Depends(settings_dependency)],
+    rules: Annotated[RuleSet, Depends(rules_dependency)],
 ) -> CaseService:
-    return CaseService(repository, document_ai, ai_core, sap, settings)
+    return CaseService(repository, document_ai, ai_core, sap, settings, rules)
 
 
 def dispatch_service_dependency(

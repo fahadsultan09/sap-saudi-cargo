@@ -61,9 +61,9 @@ class DocumentAIFailure(AppError):
     code = "document_ai_failure"
 
 
-class AICoreFailure(AppError):
+class AgentFailure(AppError):
     status_code = 502
-    code = "ai_core_failure"
+    code = "agent_failed"
 
 
 class SAPUnavailable(AppError):

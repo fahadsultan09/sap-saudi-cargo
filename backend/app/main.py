@@ -14,6 +14,7 @@ from .config import get_settings
 from .errors import register_handlers
 from .repository import Repository
 from .routers import cases, dashboard, dispatch, events
+from .rules import load_rules
 from .schemas import ErrorResponse, Health
 
 ERROR_RESPONSES = {
@@ -25,10 +26,12 @@ ERROR_RESPONSES = {
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
+    rules = load_rules(settings.rules_path)
     repository = Repository(settings.database_path)
     await asyncio.to_thread(repository.initialize)
     async with httpx.AsyncClient(timeout=settings.http_timeout) as http:
         application.state.settings = settings
+        application.state.rules = rules
         application.state.repository = repository
         application.state.document_ai = SAPDocumentAI(http, settings)
         application.state.ai_core = SAPAICore(http, settings)

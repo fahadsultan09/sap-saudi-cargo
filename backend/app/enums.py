@@ -34,15 +34,3 @@ class InvoiceField(StrEnum):
     NET = "net"
     VAT = "vat"
     CURRENCY = "currency"
-
-
-class RuleCode(StrEnum):
-    DUPLICATE = "DUPLICATE"
-    VENDOR_ACTIVE = "VENDOR_ACTIVE"
-    VAT = "VAT"
-    PO_EXISTS = "PO_EXISTS"
-    PO_VENDOR = "PO_VENDOR"
-    CURRENCY = "CURRENCY"
-    PO_TOLERANCE = "PO_TOLERANCE"
-    GR_MISSING = "GR_MISSING"
-    GR_COVERAGE = "GR_COVERAGE"

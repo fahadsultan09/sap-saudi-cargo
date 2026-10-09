@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "code": "DUPLICATE",
+      "description": "Pass only when duplicate_in_sap and duplicate_in_open_case are both false. The open-case flag considers only older cases and excludes REJECTED and POST_FAILED. Identify SAP ledger and/or other case matches in evidence.",
+      "params": {}
+    },
+    {
+      "code": "VENDOR_ACTIVE",
+      "description": "Pass only when vendor master data exists and vendor.active is true. A missing or inactive vendor fails.",
+      "params": {}
+    },
+    {
+      "code": "VAT",
+      "description": "Calculate expected VAT as invoice.net multiplied by rate, rounded to decimal_places using rounding. Pass when abs(invoice.vat - expected VAT) is less than or equal to tolerance. Use exact decimal arithmetic.",
+      "params": {
+        "rate": 0.15,
+        "tolerance": 0.02,
+        "decimal_places": 2,
+        "rounding": "ROUND_HALF_EVEN"
+      }
+    },
+    {
+      "code": "PO_EXISTS",
+      "description": "Pass only when purchase_order is not null; otherwise fail.",
+      "params": {}
+    },
+    {
+      "code": "PO_VENDOR",
+      "description": "When purchase_order exists, pass only when purchase_order.vendor equals invoice.vendor. If no PO exists, report passed=true with not-applicable evidence; PO_EXISTS covers the missing PO.",
+      "params": {}
+    },
+    {
+      "code": "CURRENCY",
+      "description": "When purchase_order exists, pass only when purchase_order.currency equals invoice.currency. If no PO exists, report passed=true with not-applicable evidence; PO_EXISTS covers the missing PO.",
+      "params": {}
+    },
+    {
+      "code": "PO_TOLERANCE",
+      "description": "When purchase_order exists, calculate invoice gross as invoice.net + invoice.vat. Fail when PO gross is zero; otherwise pass when abs(invoice gross - purchase_order.gross) / purchase_order.gross is less than or equal to tolerance. Use exact decimal arithmetic. If no PO exists, report passed=true with not-applicable evidence.",
+      "params": {
+        "tolerance": 0.02
+      }
+    },
+    {
+      "code": "GR_MISSING",
+      "description": "When purchase_order exists, pass only when goods_receipts is not null. A null balance means no posted goods receipt and fails; a zero balance is present. If no PO exists, report passed=true with not-applicable evidence.",
+      "params": {}
+    },
+    {
+      "code": "GR_COVERAGE",
+      "description": "When purchase_order exists and goods_receipts is not null, pass only when goods_receipts.gross is greater than or equal to invoice.net + invoice.vat. If the PO or receipt is missing, report passed=true with not-applicable evidence; PO_EXISTS or GR_MISSING covers the missing fact.",
+      "params": {}
+    }
+  ]
+}

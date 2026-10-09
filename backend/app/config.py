@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -13,6 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     database_path: Path
     storage_path: Path
+    rules_path: Path = Path("app/rules.json")
     port: int = Field(default=8000, ge=1, le=65535)
     auth_mode: Literal["local", "trusted_header"] = "local"
     trusted_proxy_token: SecretStr = SecretStr("")
@@ -34,9 +34,6 @@ class Settings(BaseSettings):
     http_timeout: float = Field(default=30, gt=0)
     max_upload_bytes: int = Field(default=10485760, ge=1)
     confidence_threshold: float = Field(default=0.85, ge=0, le=1)
-    vat_rate: Decimal = Field(default=Decimal("0.15"), ge=0, le=1)
-    vat_tolerance: Decimal = Field(default=Decimal("0.02"), ge=0)
-    po_tolerance: Decimal = Field(default=Decimal("0.02"), ge=0, le=1)
     sse_poll_interval: float = Field(default=1, gt=0)
     sse_heartbeat_seconds: float = Field(default=15, gt=0)
 

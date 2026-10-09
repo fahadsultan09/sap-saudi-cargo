@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from .enums import Action, CaseStatus, InvoiceField, RuleCode
+from .enums import Action, CaseStatus, InvoiceField
 
 Text = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
@@ -43,16 +43,23 @@ class ReviewRequest(Model):
 
 
 class RuleResult(Model):
-    code: RuleCode
-    passed: bool
+    code: str
+    passed: bool = Field(strict=True)
     evidence: str
 
 
-class Recommendation(Model):
+class AgentRecommendation(Model):
     action: Action
-    source: Literal["rules", "agent", "safe_fallback"]
-    reason: Text
-    evidence: list[RuleCode]
+    reason: str = Field(min_length=1, max_length=200)
+
+
+class Recommendation(AgentRecommendation):
+    source: Literal["agent"]
+
+
+class AgentDecision(Model):
+    results: list[RuleResult]
+    recommendation: AgentRecommendation
 
 
 class PostingPackage(Model):
@@ -78,6 +85,7 @@ class Case(Model):
     invoice: Invoice | None = None
     document: DocumentMetadata | None = None
     rules: list[RuleResult] = Field(default_factory=list)
+    rules_version: str | None = None
     recommendation: Recommendation | None = None
     confirmed_by: str | None = None
     approved_by: str | None = None
@@ -138,6 +146,18 @@ class PurchaseOrder(Model):
 class Vendor(Model):
     id: str
     active: bool
+
+
+class GoodsReceipts(Model):
+    gross: Money
+
+
+class SapFacts(Model):
+    purchase_order: PurchaseOrder | None
+    goods_receipts: GoodsReceipts | None
+    vendor: Vendor | None
+    duplicate_in_sap: bool
+    duplicate_in_open_case: bool
 
 
 class SapDocument(Model):
