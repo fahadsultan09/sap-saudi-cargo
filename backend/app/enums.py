@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class CaseStatus(StrEnum):
+    RECEIVED = "RECEIVED"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+    EXTRACTED = "EXTRACTED"
+    WAITING_EXTERNAL = "WAITING_EXTERNAL"
+    AWAITING_CONFIRM = "AWAITING_CONFIRM"
+    AWAITING_APPROVAL = "AWAITING_APPROVAL"
+    READY_TO_POST = "READY_TO_POST"
+    POSTING = "POSTING"
+    POST_UNKNOWN = "POST_UNKNOWN"
+    POST_FAILED = "POST_FAILED"
+    POSTED = "POSTED"
+    RECONCILIATION_FAILED = "RECONCILIATION_FAILED"
+    RECONCILED = "RECONCILED"
+    INFORMED = "INFORMED"
+    REJECTED = "REJECTED"
+
+
+class Action(StrEnum):
+    POST = "POST"
+    HOLD = "HOLD"
+    REJECT = "REJECT"
+
+
+class InvoiceField(StrEnum):
+    VENDOR = "vendor"
+    INVOICE_NUMBER = "invoice_number"
+    PO_NUMBER = "po_number"
+    NET = "net"
+    VAT = "vat"
+    CURRENCY = "currency"
+
+
+class RuleCode(StrEnum):
+    DUPLICATE = "DUPLICATE"
+    VENDOR_ACTIVE = "VENDOR_ACTIVE"
+    VAT = "VAT"
+    PO_EXISTS = "PO_EXISTS"
+    PO_VENDOR = "PO_VENDOR"
+    CURRENCY = "CURRENCY"
+    PO_TOLERANCE = "PO_TOLERANCE"
+    GR_MISSING = "GR_MISSING"
+    GR_COVERAGE = "GR_COVERAGE"

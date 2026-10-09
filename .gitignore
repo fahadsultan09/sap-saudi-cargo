@@ -104,3 +104,8 @@ docker-data/
 # OS
 # =========================
 Thumbs.db
+backend/.env
+backend/data/
+backend/.venv/
+__pycache__/
+.ruff_cache/
