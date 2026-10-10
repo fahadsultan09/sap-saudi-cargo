@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     internal_api_token: SecretStr = SecretStr("")
     document_ai_url: str = ""
     document_ai_token: SecretStr = SecretStr("")
-    document_ai_client_id: str = "c_00"
+    document_ai_client_id: str = "default"
     document_ai_poll_interval: float = Field(default=1, gt=0)
     document_ai_poll_attempts: int = Field(default=60, ge=1)
     agent_runtime_url: str = ""

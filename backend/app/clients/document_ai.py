@@ -14,7 +14,7 @@ from ..errors import DocumentAIFailure
 from ..schemas import ExtractedField
 
 FIELD_NAMES = {
-    "senderId": InvoiceField.VENDOR,
+    "senderName": InvoiceField.VENDOR,
     "documentNumber": InvoiceField.INVOICE_NUMBER,
     "purchaseOrderNumber": InvoiceField.PO_NUMBER,
     "netAmount": InvoiceField.NET,
