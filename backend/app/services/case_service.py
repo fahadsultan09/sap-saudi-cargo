@@ -8,12 +8,11 @@ from uuid import uuid4
 from fastapi import UploadFile
 from pydantic import ValidationError
 
-from ..clients.ai_core import AICore
 from ..clients.document_ai import DocumentAI
-from ..clients.sap import SAPClient
 from ..config import Settings
-from ..enums import Action, CaseStatus, InvoiceField
+from ..enums import Action, CaseStatus, InvoiceField, RecommendationSource
 from ..errors import (
+    AgentFailure,
     AppError,
     DocumentAIFailure,
     NotFound,
@@ -24,24 +23,23 @@ from ..errors import (
     ValidationFailure,
 )
 from ..repository import EventData, Repository
-from ..rules import RuleSet
 from ..schemas import (
     AuditEvent,
     Case,
+    ConfirmRequest,
     CaseList,
     Dashboard,
     DocumentMetadata,
     ExtractedField,
-    GoodsReceipts,
     InformRequest,
     Invoice,
     PostingPackage,
     Recommendation,
     RejectRequest,
     ReviewRequest,
-    SapFacts,
 )
 from ..state import require_status, transition
+from .agent_service import AgentService
 from ..utils import package_hash, safe_filename, utc_now
 
 UPLOAD_CHUNK_BYTES = 65536
@@ -53,17 +51,13 @@ class CaseService:
         self,
         repository: Repository,
         document_ai: DocumentAI,
-        ai_core: AICore,
-        sap: SAPClient,
+        agent: AgentService,
         settings: Settings,
-        rules: RuleSet,
     ) -> None:
         self.repository = repository
         self.document_ai = document_ai
-        self.ai_core = ai_core
-        self.sap = sap
+        self.agent = agent
         self.settings = settings
-        self.rule_set = rules
 
     async def get(self, case_id: str) -> Case:
         return await asyncio.to_thread(self.repository.get, case_id)
@@ -236,43 +230,32 @@ class CaseService:
             events.append(transition(case, CaseStatus.EXTRACTED))
         return await self.save(case, actor, events)
 
-    async def _facts(self, case: Case, invoice: Invoice) -> SapFacts:
-        po = await self.sap.purchase_order(invoice.po_number)
-        vendor = await self.sap.vendor(invoice.vendor)
-        duplicate_in_sap = await self.sap.duplicate(
-            invoice.vendor, invoice.invoice_number
-        )
-        duplicate_in_open_case = await asyncio.to_thread(
-            self.repository.other_case_duplicate,
-            case.id,
-            invoice.vendor,
-            invoice.invoice_number,
-        )
-        return SapFacts(
-            purchase_order=po,
-            goods_receipts=(
-                GoodsReceipts(gross=po.goods_receipt_gross)
-                if po is not None and po.goods_receipt_gross is not None
-                else None
-            ),
-            vendor=vendor,
-            duplicate_in_sap=duplicate_in_sap,
-            duplicate_in_open_case=duplicate_in_open_case,
-        )
-
     async def _decide(self, case: Case, actor: str, events: list[EventData]) -> Case:
         require_status(case, CaseStatus.EXTRACTED)
         invoice = case.invoice
         if invoice is None:
             raise ValidationFailure("A complete reviewed invoice is required")
-        facts = await self._facts(case, invoice)
-        decision = await self.ai_core.evaluate(invoice, self.rule_set, facts)
-        case.rules = decision.results
+        try:
+            finding, report = await self.agent.investigate(case, invoice)
+        except AgentFailure as exc:
+            # Without an agent answer the case goes to a human to decide.
+            case.rules = []
+            case.rules_version = None
+            case.recommendation = None
+            events.append(("agent_unavailable", {"reason": exc.message}))
+            events.append(transition(case, CaseStatus.AWAITING_CONFIRM))
+            return await self.save(case, actor, events)
+        case.rules = finding.rule_results
+        case.rules_version = self.agent.rule_set.version
         case.recommendation = Recommendation(
-            **decision.recommendation.model_dump(), source="agent"
+            action=finding.action,
+            reason=finding.summary,
+            source=RecommendationSource.AGENT,
+            amount=finding.amount if finding.action == Action.POST else None,
+            evidence=finding.evidence,
+            confidence=finding.confidence,
         )
-        case.rules_version = self.rule_set.version
-        events.append(("sap_observed", facts.model_dump(mode="json")))
+        events.append(("agent_investigated", {"trace": report.trace, "steps": report.steps}))
         events.extend(("rule_evaluated", rule.model_dump()) for rule in case.rules)
         events.append(
             (
@@ -280,8 +263,6 @@ class CaseService:
                 {
                     **case.recommendation.model_dump(mode="json"),
                     "rules_version": case.rules_version,
-                    "duplicate_in_sap": facts.duplicate_in_sap,
-                    "duplicate_in_open_case": facts.duplicate_in_open_case,
                 },
             )
         )
@@ -296,15 +277,37 @@ class CaseService:
     async def decide(self, case_id: str, actor: str) -> Case:
         return await self._decide(await self.get(case_id), actor, [])
 
-    async def confirm(self, case_id: str, actor: str) -> Case:
+    async def confirm(
+        self, case_id: str, request: ConfirmRequest | None, actor: str
+    ) -> Case:
         case = await self.get(case_id)
         require_status(case, CaseStatus.AWAITING_CONFIRM)
+        if case.invoice is None:
+            raise ValidationFailure("A complete invoice is required")
+        if case.recommendation is None:
+            if request is None:
+                raise ValidationFailure(
+                    "No agent recommendation; supply an action and reason"
+                )
+            case.recommendation = Recommendation(
+                action=request.action,
+                reason=request.reason,
+                source=RecommendationSource.MANUAL,
+            )
+        elif request is not None:
+            raise ValidationFailure(
+                "The agent recommendation is confirmed as is; omit the request body"
+            )
         recommendation = case.recommendation
-        if recommendation is None or case.invoice is None:
-            raise ValidationFailure("Decision and invoice are required")
         case.confirmed_by = actor
         events: list[EventData] = [
-            ("recommendation_confirmed", {"action": recommendation.action.value})
+            (
+                "recommendation_confirmed",
+                {
+                    "action": recommendation.action.value,
+                    "source": recommendation.source.value,
+                },
+            )
         ]
         if recommendation.action == Action.REJECT:
             events.append(transition(case, CaseStatus.REJECTED))
@@ -317,9 +320,7 @@ class CaseService:
             events.append(("package_created", case.package.model_dump(mode="json")))
             events.append(transition(case, CaseStatus.AWAITING_APPROVAL))
         else:
-            raise ValidationFailure(
-                "Only a POST recommendation can create a posting package"
-            )
+            events.append(transition(case, CaseStatus.WAITING_EXTERNAL))
         return await self.save(case, actor, events)
 
     async def approve(self, case_id: str, actor: str) -> Case:

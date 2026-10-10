@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from .enums import Action, CaseStatus, InvoiceField
+from .enums import Action, CaseStatus, InvoiceField, RecommendationSource
 
 Text = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
@@ -17,6 +17,12 @@ Currency = Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")]
 
 class Model(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class AgentModel(BaseModel):
+    """Agent replies may carry fields this backend does not use."""
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class Invoice(Model):
@@ -42,24 +48,58 @@ class ReviewRequest(Model):
     currency: Currency | None = None
 
 
-class RuleResult(Model):
+class RuleResult(AgentModel):
     code: str
     passed: bool = Field(strict=True)
     evidence: str
 
 
-class AgentRecommendation(Model):
+class Recommendation(Model):
     action: Action
-    reason: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1)
+    source: RecommendationSource
+    amount: Money | None = None
+    evidence: list[str] = Field(default_factory=list)
+    confidence: float | None = Field(default=None, ge=0, le=1)
 
 
-class Recommendation(AgentRecommendation):
-    source: Literal["agent"]
+class ConfirmRequest(Model):
+    action: Action
+    reason: Text
 
 
-class AgentDecision(Model):
-    results: list[RuleResult]
-    recommendation: AgentRecommendation
+class AgentCase(Model):
+    case_id: str
+    vendor: str
+    inv_no: str
+    po: str
+    net: Decimal
+    vat: Decimal
+    gross: Decimal
+    currency: str
+    rules_version: str
+    rules: list[dict[str, object]]
+
+
+class AgentRequest(Model):
+    case: AgentCase
+    token: str
+
+
+class AgentFinding(AgentModel):
+    action: Action
+    amount: Money | None = None
+    summary: str = Field(min_length=1)
+    evidence: list[str] = Field(default_factory=list)
+    confidence: float = Field(ge=0, le=1)
+    rule_results: list[RuleResult] = Field(default_factory=list)
+
+
+class AgentReport(AgentModel):
+    final: AgentFinding | None = None
+    trace: list[str] = Field(default_factory=list)
+    steps: int = 0
+    error: str | None = None
 
 
 class PostingPackage(Model):
@@ -148,16 +188,62 @@ class Vendor(Model):
     active: bool
 
 
-class GoodsReceipts(Model):
-    gross: Money
+class PoChange(Model):
+    date: date
+    note: str
 
 
-class SapFacts(Model):
-    purchase_order: PurchaseOrder | None
-    goods_receipts: GoodsReceipts | None
-    vendor: Vendor | None
-    duplicate_in_sap: bool
-    duplicate_in_open_case: bool
+class GoodsReceiptPosting(Model):
+    date: date
+    amount: Money
+
+
+class DeliveryNote(Model):
+    date: date
+    note: str
+
+
+class GoodsReceiptDetail(Model):
+    posted: list[GoodsReceiptPosting]
+    delivery_notes: list[DeliveryNote]
+
+
+class VendorHistoryEntry(Model):
+    inv_no: str
+    variance: str
+    reason: str
+
+
+class ToolPurchaseOrder(Model):
+    po: str
+    vendor: str
+    amount: Money
+    currency: Currency
+    gr_total: Money | None
+    change_log: list[PoChange]
+
+
+class SimilarCase(Model):
+    inv_no: str
+    status: CaseStatus
+
+
+class DuplicateCheck(Model):
+    in_sap: bool
+    in_open_case: bool
+
+
+class ToolClaims(Model):
+    jti: str
+    case_id: str
+    po: str
+    vendor: str
+    invoice_number: str
+    exp: int
+
+
+class ToolResponse(Model):
+    result: object
 
 
 class SapDocument(Model):

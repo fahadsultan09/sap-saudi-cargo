@@ -14,10 +14,24 @@ from .errors import (
     SapPostingRejected,
     StorageFailure,
 )
-from .schemas import AuditEvent, Case, CaseList, Dashboard, PostingPackage, SapDocument
+from .schemas import (
+    AuditEvent,
+    Case,
+    CaseList,
+    Dashboard,
+    PostingPackage,
+    SapDocument,
+    SimilarCase,
+)
 from .utils import utc_now
 
 EventData = tuple[str, dict[str, object]]
+CLOSED_STATUSES = (
+    CaseStatus.INFORMED,
+    CaseStatus.RECONCILED,
+    CaseStatus.REJECTED,
+    CaseStatus.POST_FAILED,
+)
 
 
 class Repository:
@@ -158,6 +172,12 @@ class Repository:
             self._events(connection, case.id, actor, events)
         return case
 
+    def record_event(
+        self, case_id: str, actor: str, kind: str, data: dict[str, object]
+    ) -> None:
+        with self.connection() as connection:
+            self._events(connection, case_id, actor, [(kind, data)])
+
     def list(self, status: CaseStatus | None, limit: int, offset: int) -> CaseList:
         with self.connection() as connection:
             total = connection.execute(
@@ -231,6 +251,21 @@ class Repository:
                 ),
             ).fetchone()
         return row is not None
+
+    def similar_cases(
+        self, case_id: str, vendor: str, limit: int
+    ) -> list[SimilarCase]:
+        placeholders = ",".join("?" * len(CLOSED_STATUSES))
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT invoice_number,status FROM cases WHERE vendor=? AND id<>? "
+                f"AND status IN ({placeholders}) ORDER BY rowid DESC LIMIT ?",
+                (vendor, case_id, *(status.value for status in CLOSED_STATUSES), limit),
+            ).fetchall()
+        return [
+            SimilarCase(inv_no=row["invoice_number"], status=row["status"])
+            for row in rows
+        ]
 
     def mock_post(
         self, document_id: str, package: PostingPackage, idempotency_key: str

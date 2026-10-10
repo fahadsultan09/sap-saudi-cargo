@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Query, Response, UploadFile
 
 from ..dependencies import actor_dependency, case_service_dependency
 from ..enums import CaseStatus
 from ..schemas import (
     Case,
     CaseList,
+    ConfirmRequest,
     InformRequest,
     Invoice,
     RejectRequest,
@@ -73,8 +74,13 @@ async def decide_case(id: str, service: Service, actor: Actor) -> Case:
 
 
 @router.post("/{id}/confirm", response_model=Case, status_code=200)
-async def confirm_case(id: str, service: Service, actor: Actor) -> Case:
-    return await service.confirm(id, actor)
+async def confirm_case(
+    id: str,
+    service: Service,
+    actor: Actor,
+    request: Annotated[ConfirmRequest | None, Body()] = None,
+) -> Case:
+    return await service.confirm(id, request, actor)
 
 
 @router.post("/{id}/approve", response_model=Case, status_code=200)

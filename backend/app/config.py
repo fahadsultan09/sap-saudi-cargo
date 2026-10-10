@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     database_path: Path
     storage_path: Path
-    rules_path: Path = Path("app/rules.json")
+    rules_path: Path = Path(__file__).parent / "rules.json"
     port: int = Field(default=8000, ge=1, le=65535)
     auth_mode: Literal["local", "trusted_header"] = "local"
     trusted_proxy_token: SecretStr = SecretStr("")
@@ -22,10 +22,11 @@ class Settings(BaseSettings):
     document_ai_client_id: str = "c_00"
     document_ai_poll_interval: float = Field(default=1, gt=0)
     document_ai_poll_attempts: int = Field(default=60, ge=1)
-    ai_core_url: str = ""
-    ai_core_token: SecretStr = SecretStr("")
-    ai_core_resource_group: str = "default"
-    ai_core_model: str = "gpt-4o"
+    agent_runtime_url: str = ""
+    runtime_api_key: SecretStr = SecretStr("")
+    agent_timeout: float = Field(default=70, gt=0)
+    tool_token_secret: SecretStr = SecretStr("")
+    tool_token_ttl: int = Field(default=180, ge=1)
     sap_mode: Literal["mock", "real"] = "mock"
     sap_url: str = ""
     sap_token: SecretStr = SecretStr("")

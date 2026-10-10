@@ -34,3 +34,17 @@ class InvoiceField(StrEnum):
     NET = "net"
     VAT = "vat"
     CURRENCY = "currency"
+
+
+class RecommendationSource(StrEnum):
+    AGENT = "agent"
+    MANUAL = "manual"
+
+
+class ToolName(StrEnum):
+    GET_PO = "get_po"
+    GET_GOODS_RECEIPTS = "get_goods_receipts"
+    VENDOR_HISTORY = "vendor_history"
+    FIND_SIMILAR_CASES = "find_similar_cases"
+    GET_VENDOR = "get_vendor"
+    CHECK_DUPLICATE = "check_duplicate"

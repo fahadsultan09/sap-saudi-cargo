@@ -5,15 +5,19 @@ from typing import Annotated
 
 from fastapi import Depends, Header, Request
 
-from .clients.ai_core import AICore
+from .clients.agent_runtime import AgentRuntime
 from .clients.document_ai import DocumentAI
 from .clients.sap import SAPClient
 from .config import Settings
-from .errors import AuthenticationFailure, ConfigurationFailure
+from . import tool_tokens
+from .errors import AuthenticationFailure, ConfigurationFailure, ToolTokenInvalid
 from .repository import Repository
 from .rules import RuleSet
+from .schemas import ToolClaims
+from .services.agent_service import AgentService
 from .services.case_service import CaseService
 from .services.dispatch_service import DispatchService
+from .services.tool_service import ToolService
 
 
 def settings_dependency(request: Request) -> Settings:
@@ -28,8 +32,8 @@ def document_dependency(request: Request) -> DocumentAI:
     return request.app.state.document_ai
 
 
-def ai_dependency(request: Request) -> AICore:
-    return request.app.state.ai_core
+def agent_runtime_dependency(request: Request) -> AgentRuntime:
+    return request.app.state.agent_runtime
 
 
 def sap_dependency(request: Request) -> SAPClient:
@@ -83,15 +87,38 @@ def internal_actor_dependency(
     return "internal-dispatch"
 
 
+def tool_claims_dependency(
+    settings: Annotated[Settings, Depends(settings_dependency)],
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+) -> ToolClaims:
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise ToolTokenInvalid("A Bearer tool token is required")
+    return tool_tokens.verify(settings, token.strip())
+
+
+def agent_service_dependency(
+    runtime: Annotated[AgentRuntime, Depends(agent_runtime_dependency)],
+    settings: Annotated[Settings, Depends(settings_dependency)],
+    rules: Annotated[RuleSet, Depends(rules_dependency)],
+) -> AgentService:
+    return AgentService(runtime, settings, rules)
+
+
 def case_service_dependency(
     repository: Annotated[Repository, Depends(repository_dependency)],
     document_ai: Annotated[DocumentAI, Depends(document_dependency)],
-    ai_core: Annotated[AICore, Depends(ai_dependency)],
-    sap: Annotated[SAPClient, Depends(sap_dependency)],
+    agent: Annotated[AgentService, Depends(agent_service_dependency)],
     settings: Annotated[Settings, Depends(settings_dependency)],
-    rules: Annotated[RuleSet, Depends(rules_dependency)],
 ) -> CaseService:
-    return CaseService(repository, document_ai, ai_core, sap, settings, rules)
+    return CaseService(repository, document_ai, agent, settings)
+
+
+def tool_service_dependency(
+    repository: Annotated[Repository, Depends(repository_dependency)],
+    sap: Annotated[SAPClient, Depends(sap_dependency)],
+) -> ToolService:
+    return ToolService(repository, sap)
 
 
 def dispatch_service_dependency(

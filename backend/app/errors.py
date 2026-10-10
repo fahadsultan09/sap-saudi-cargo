@@ -71,6 +71,16 @@ class SAPUnavailable(AppError):
     code = "sap_unavailable"
 
 
+class ToolTokenInvalid(AppError):
+    status_code = 401
+    code = "tool_token_invalid"
+
+
+class ToolAccessDenied(AppError):
+    status_code = 403
+    code = "tool_access_denied"
+
+
 class AuthenticationFailure(AppError):
     status_code = 401
     code = "authentication_failure"

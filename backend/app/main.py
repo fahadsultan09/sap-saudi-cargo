@@ -7,13 +7,13 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from .clients.ai_core import SAPAICore
+from .clients.agent_runtime import HttpAgentRuntime
 from .clients.document_ai import SAPDocumentAI
 from .clients.sap import MockSAPClient
 from .config import get_settings
 from .errors import register_handlers
 from .repository import Repository
-from .routers import cases, dashboard, dispatch, events
+from .routers import cases, dashboard, dispatch, events, tools
 from .rules import load_rules
 from .schemas import ErrorResponse, Health
 
@@ -34,7 +34,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         application.state.rules = rules
         application.state.repository = repository
         application.state.document_ai = SAPDocumentAI(http, settings)
-        application.state.ai_core = SAPAICore(http, settings)
+        application.state.agent_runtime = HttpAgentRuntime(http, settings)
         application.state.sap = MockSAPClient(repository, settings)
         yield
 
@@ -47,7 +47,13 @@ def create_app() -> FastAPI:
         responses=ERROR_RESPONSES,
     )
     register_handlers(application)
-    for router in (cases.router, events.router, dashboard.router, dispatch.router):
+    for router in (
+        cases.router,
+        events.router,
+        dashboard.router,
+        dispatch.router,
+        tools.router,
+    ):
         application.include_router(router)
     return application
 
