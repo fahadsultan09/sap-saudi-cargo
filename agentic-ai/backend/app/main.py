@@ -109,7 +109,12 @@ async def upload(file: UploadFile, p: Principal = Depends(principal)):
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",len(data))
     
     cid = run(core.ingest, data, file.filename or "invoice", p.user)
-    run(core.extract, cid)
+
+    try:
+        run(core.extract, cid)
+    except Exception as e:
+        run(core.mark_failed, cid, str(e))
+
     return run(lambda c: view(c, cid))
 
 

@@ -1,8 +1,9 @@
 """AP Core: owns case state. Every transition is one transaction that also writes the journal event."""
 import json, hashlib
 from . import sap, rules, agents, document, agent_runner
-from .db import emit
+from .db import emit, set_status
 import time
+
 
 class Refused(Exception):
     def __init__(s, code, msg):
@@ -32,17 +33,49 @@ def ingest(c, data, filename, actor):
         raise Refused(415, "unsupported or unsafe file type")
     sha = hashlib.sha256(data).hexdigest()
     with c:
-        cid = c.execute("INSERT INTO ap_case(status) VALUES('RECEIVED')").lastrowid
+
+        cid = c.execute(
+            """
+            INSERT INTO ap_case(
+                filename,
+                created_by,
+                status
+            )
+            VALUES(?,?,?)
+            """,
+            (
+                filename,
+                actor,
+                "PENDING",
+            ),
+        ).lastrowid
+
         c.execute(
-            "INSERT INTO document VALUES(?,?,?,?,?)", (cid, filename, sha, mime, data)
+            """
+            INSERT INTO document
+            VALUES(?,?,?,?,?)
+            """,
+            (
+                cid,
+                filename,
+                sha,
+                mime,
+                data,
+            ),
         )
-        emit(c, cid, "FACT", actor, f"file {filename} received")
+
         emit(
             c,
             cid,
-            "SYSTEM_ACTION",
-            "ap-worker-intake",
-            f"original stored, sha256 {sha[:16]}, type check passed",
+            "FACT",
+            actor,
+            f"file {filename} received",
+        )
+
+        set_status(
+            c,
+            cid,
+            "PENDING",
         )
     return cid
 
@@ -53,31 +86,29 @@ COLS = ("vendor", "inv_no", "net", "vat", "po")
 def extract(c, cid):
     cs = get(c, cid)
 
-    d = c.execute(
-        "SELECT * FROM document WHERE case_id=?",
-        (cid,)
-    ).fetchone()
+    d = c.execute("SELECT * FROM document WHERE case_id=?", (cid,)).fetchone()
 
     if not d:
         raise Refused(409, "no document on this case")
 
-    if cs["status"] != "RECEIVED":
+    if cs["status"] != "PENDING":
         raise Refused(409, "already extracted")
 
     try:
-        raw = document.get_extractor().extract(
-            d["data"],
-            d["filename"],
-            d["mime"]
+
+        set_status(
+            c,
+            cid,
+            "EXTRACTING",
         )
+
+        raw = document.get_extractor().extract(d["data"], d["filename"], d["mime"])
 
         # print("RAW RESULT =", raw)
         # print("RAW TYPE =", type(raw))
 
         if raw is None:
-            raise Exception(
-                "Document AI returned None. Check SAP response logs."
-            )
+            raise Exception("Document AI returned None. Check SAP response logs.")
 
     except Exception as e:
         print("DOC AI ERROR =", repr(e))
@@ -109,11 +140,7 @@ def extract(c, cid):
     low = [
         k
         for k in COLS
-        if (
-            k not in f
-            or not f[k]["value"]
-            or f[k]["confidence"] < document.MIN_CONF
-        )
+        if (k not in f or not f[k]["value"] or f[k]["confidence"] < document.MIN_CONF)
     ]
     with c:
         for k in COLS:
@@ -138,10 +165,18 @@ def extract(c, cid):
             "Document AI fields: "
             + ", ".join(f"{k}={f[k]['confidence']:.2f}" for k in COLS if k in f),
         )
-        c.execute(
-            "UPDATE ap_case SET status=? WHERE id=?",
-            ("NEEDS_REVIEW" if low else "EXTRACTED", cid),
-        )
+        if low:
+            set_status(
+                c,
+                cid,
+                "NEEDS_REVIEW",
+            )
+        else:
+            set_status(
+                c,
+                cid,
+                "EXTRACTED",
+            )
         if low:
             emit(
                 c,
@@ -150,6 +185,7 @@ def extract(c, cid):
                 "ap-core",
                 "low confidence or missing: " + ", ".join(low),
             )
+
 
 def review(c, cid, user, fix):
     cs = get(c, cid)
@@ -165,11 +201,16 @@ def review(c, cid, user, fix):
         )
     with c:
         c.execute(
-            "UPDATE ap_case SET "
-            + ",".join(f"{k}=?" for k in COLS)
-            + ", status='EXTRACTED' WHERE id=?",
+            "UPDATE ap_case SET " + ",".join(f"{k}=?" for k in COLS) + " WHERE id=?",
             (*merged.values(), cid),
         )
+
+        set_status(
+            c,
+            cid,
+            "EXTRACTED",
+        )
+
         emit(
             c,
             cid,
@@ -181,20 +222,30 @@ def review(c, cid, user, fix):
 
 def decide(c, cid, actor):
     inv = dict(get(c, cid))
+
     if inv["status"] == "NEEDS_REVIEW":
         raise Refused(409, "extraction needs human review first")
-    if (
-        inv["status"] == "RECEIVED"
-        and c.execute("SELECT 1 FROM document WHERE case_id=?", (cid,)).fetchone()
-    ):
+
+    if inv["status"] == "PENDING":
         raise Refused(409, "run extraction first")
-    if inv["status"] not in ("RECEIVED", "EXTRACTED"):
+
+    if inv["status"] != "EXTRACTED":
         raise Refused(409, "already decided")
+
     po, v = sap.read_po(inv["po"]), sap.read_vendor(inv["vendor"])
+    
     posted = [dict(r) for r in c.execute("SELECT * FROM sap_doc")]
     R = rules.run(inv, po, v, posted)
     j, tr = agent_runner.advise(c, inv, po, R, case_id=cid)
-    status = "WAITING_EXTERNAL" if j["act"] == "HOLD" else "AWAITING_CONFIRM"
+    status = "WAITING_EXTERNAL" 
+    
+    if j["act"] == "HOLD":
+        status = "WAITING_EXTERNAL"
+    elif j["act"] == "REJECT":
+        status = "AWAITING_CONFIRM"
+    else:
+        status = "AWAITING_CONFIRM"
+    
     with c:
         emit(
             c,
@@ -216,8 +267,21 @@ def decide(c, cid, actor):
             f"[{j['source']}] recommends {j['act']} (advice only)",
         )
         c.execute(
-            "UPDATE ap_case SET status=?, judgement=? WHERE id=?",
-            (status, json.dumps(j), cid),
+            """
+            UPDATE ap_case
+            SET judgement=?
+            WHERE id=?
+            """,
+            (
+                json.dumps(j),
+                cid,
+            ),
+        )
+
+        set_status(
+            c,
+            cid,
+            status,
         )
 
 
@@ -230,9 +294,11 @@ def confirm(c, cid, user):
         emit(c, cid, "HUMAN_DECISION", user, f"confirmed {j['act']}")
         if j["act"] == "REJECT":
             c.execute(
-                "UPDATE ap_case SET status='REJECTED', confirmed_by=? WHERE id=?",
+                "UPDATE ap_case SET confirmed_by=? WHERE id=?",
                 (user, cid),
             )
+
+            set_status(c, cid, "REJECTED")
             return
         pkg = json.dumps(
             {
@@ -245,8 +311,23 @@ def confirm(c, cid, user):
             sort_keys=True,
         )
         c.execute(
-            "UPDATE ap_case SET status='AWAITING_APPROVAL', confirmed_by=?, pkg=? WHERE id=?",
-            (user, pkg, cid),
+            """
+            UPDATE ap_case
+            SET confirmed_by=?,
+                pkg=?
+            WHERE id=?
+            """,
+            (
+                user,
+                pkg,
+                cid,
+            ),
+        )
+
+        set_status(
+            c,
+            cid,
+            "AWAITING_APPROVAL",
         )
 
 
@@ -260,6 +341,21 @@ def approve(c, cid, user):
     with c:
         emit(c, cid, "HUMAN_DECISION", user, f"approved frozen package {h[:12]}")
         c.execute(
-            "UPDATE ap_case SET status='READY_TO_POST', approved_by=?, pkg_hash=? WHERE id=?",
-            (user, h, cid),
+            """
+            UPDATE ap_case
+            SET approved_by=?,
+                pkg_hash=?
+            WHERE id=?
+            """,
+            (
+                user,
+                h,
+                cid,
+            ),
+        )
+
+        set_status(
+            c,
+            cid,
+            "READY_TO_POST",
         )

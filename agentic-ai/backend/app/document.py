@@ -4,6 +4,7 @@ import os, json, time, re
 from decimal import Decimal, InvalidOperation
 import httpx
 import requests
+from .db import emit, set_status
 
 
 
@@ -108,9 +109,142 @@ class SapDocumentAI:
 
         return r.json()["access_token"]
     
+    # def extract(self, data, filename, mime):
+
+    #     h = {"Authorization": "Bearer " + self._token()}
+
+    #     opts = {
+    #         "schemaName": os.getenv("DOC_AI_SCHEMA", "SAP_invoice_schema"),
+    #         "clientId": os.getenv("DOC_AI_CLIENT", "default"),
+    #         "documentType": "invoice",
+    #     }
+
+    #     print("Uploading document to SAP Document AI...")
+    #     print("Schema:", opts["schemaName"])
+
+    #     r = self.http.post(
+    #         f"{self.base}/document/jobs",
+    #         headers=h,
+    #         files={"file": (filename, data, mime)},
+    #         data={"options": json.dumps(opts)},
+    #     )
+
+    #     print("CREATE JOB STATUS =", r.status_code)
+    #     print("CREATE JOB RESPONSE =", r.text)
+
+    #     r.raise_for_status()
+
+    #     job_json = r.json()
+
+    #     if "id" not in job_json:
+    #         raise ExtractionError(f"Job creation failed. Response: {job_json}")
+
+    #     job = job_json["id"]
+
+    #     print("JOB ID =", job)
+
+    #     max_polls = int(os.getenv("DOC_AI_POLLS", "30"))
+
+    #     for i in range(max_polls):
+
+    #         print(f"Polling SAP Document AI ({i + 1}/{max_polls})...")
+
+    #         g = self.http.get(f"{self.base}/document/jobs/{job}", headers=h)
+
+
+    #         print("POLL RESPONSE =", g.text)
+            
+    #         print("POLL STATUS =", g.status_code)
+
+    #         print("POLL RESPONSE =", g.text)
+
+    #         g.raise_for_status()
+
+    #         j = g.json()
+
+    #         status = j.get("status") or j.get("state") or ""
+
+    #         print("JOB STATUS =", status)
+
+    #         # SAP versions differ
+    #         # if status in ("DONE", "SUCCEEDED", "SUCCESS", "COMPLETED"):
+
+    #         #     extraction = j.get("extraction") or j.get("result") or {}
+
+    #         #     header_fields = extraction.get("headerFields", [])
+
+    #         #     print("HEADER FIELDS =", json.dumps(header_fields, indent=2))
+
+    #         #     result = {}
+
+    #         #     for field in header_fields:
+
+    #         #         name = field.get("name")
+
+    #         #         if name in FIELD_MAP:
+
+    #         #             result[FIELD_MAP[name]] = {
+    #         #                 "value": field.get("value"),
+    #         #                 "confidence": float(field.get("confidence", 0)),
+    #         #             }
+
+    #         #     print("FINAL EXTRACTION =", json.dumps(result, indent=2))
+
+    #         #     return result
+
+
+    #         if status in ("DONE", "SUCCEEDED", "SUCCESS", "COMPLETED"):
+
+    #             # print("FULL SAP RESPONSE")
+    #             # print(json.dumps(j, indent=2))
+
+    #             extraction = j.get("extraction") or j.get("result") or {}
+
+    #             # print("EXTRACTION OBJECT")
+    #             # print(json.dumps(extraction, indent=2))
+
+    #             header_fields = extraction.get("headerFields", [])
+
+    #             # print("HEADER FIELDS")
+    #             # print(json.dumps(header_fields, indent=2))
+
+    #             result = {}
+
+    #             for field in header_fields:
+
+    #                 # print("FIELD =", field)
+
+    #                 name = field.get("name")
+
+    #                 if name in FIELD_MAP:
+
+    #                     result[FIELD_MAP[name]] = {
+    #                         "value": field.get("value"),
+    #                         "confidence": float(field.get("confidence", 0)),
+    #                     }
+
+    #             # print("FINAL RESULT")
+    #             # print(json.dumps(result, indent=2))
+
+    #             return result
+            
+            
+    #         if status in ("FAILED", "ERROR"):
+    #             raise ExtractionError(
+    #                 f"Document AI job failed: {json.dumps(j)}"
+    #             )
+
+    #         time.sleep(2)
+
+    #     raise ExtractionError(
+    #         f"Document AI job {job} timed out after {max_polls} polls"
+    #     )
+
     def extract(self, data, filename, mime):
 
-        h = {"Authorization": "Bearer " + self._token()}
+        h = {
+            "Authorization": "Bearer " + self._token()
+        }
 
         opts = {
             "schemaName": os.getenv("DOC_AI_SCHEMA", "SAP_invoice_schema"),
@@ -124,8 +258,12 @@ class SapDocumentAI:
         r = self.http.post(
             f"{self.base}/document/jobs",
             headers=h,
-            files={"file": (filename, data, mime)},
-            data={"options": json.dumps(opts)},
+            files={
+                "file": (filename, data, mime)
+            },
+            data={
+                "options": json.dumps(opts)
+            },
         )
 
         print("CREATE JOB STATUS =", r.status_code)
@@ -136,82 +274,65 @@ class SapDocumentAI:
         job_json = r.json()
 
         if "id" not in job_json:
-            raise ExtractionError(f"Job creation failed. Response: {job_json}")
+            raise ExtractionError(
+                f"Job creation failed. Response: {job_json}"
+            )
 
         job = job_json["id"]
 
         print("JOB ID =", job)
 
-        max_polls = int(os.getenv("DOC_AI_POLLS", "30"))
+        max_polls = int(
+            os.getenv("DOC_AI_POLLS", "30")
+        )
 
         for i in range(max_polls):
 
-            print(f"Polling SAP Document AI ({i + 1}/{max_polls})...")
+            print(
+                f"Polling SAP Document AI ({i + 1}/{max_polls})..."
+            )
 
-            g = self.http.get(f"{self.base}/document/jobs/{job}", headers=h)
+            g = self.http.get(
+                f"{self.base}/document/jobs/{job}",
+                headers=h,
+            )
 
-
-            print("POLL RESPONSE =", g.text)
-            
             print("POLL STATUS =", g.status_code)
-
             print("POLL RESPONSE =", g.text)
 
             g.raise_for_status()
 
             j = g.json()
 
-            status = j.get("status") or j.get("state") or ""
+            status = (
+                j.get("status")
+                or j.get("state")
+                or ""
+            )
 
             print("JOB STATUS =", status)
 
-            # SAP versions differ
-            # if status in ("DONE", "SUCCEEDED", "SUCCESS", "COMPLETED"):
+            if status in (
+                "DONE",
+                "SUCCEEDED",
+                "SUCCESS",
+                "COMPLETED",
+            ):
 
-            #     extraction = j.get("extraction") or j.get("result") or {}
+                extraction = (
+                    j.get("extraction")
+                    or j.get("result")
+                    or {}
+                )
 
-            #     header_fields = extraction.get("headerFields", [])
-
-            #     print("HEADER FIELDS =", json.dumps(header_fields, indent=2))
-
-            #     result = {}
-
-            #     for field in header_fields:
-
-            #         name = field.get("name")
-
-            #         if name in FIELD_MAP:
-
-            #             result[FIELD_MAP[name]] = {
-            #                 "value": field.get("value"),
-            #                 "confidence": float(field.get("confidence", 0)),
-            #             }
-
-            #     print("FINAL EXTRACTION =", json.dumps(result, indent=2))
-
-            #     return result
-
-
-            if status in ("DONE", "SUCCEEDED", "SUCCESS", "COMPLETED"):
-
-                # print("FULL SAP RESPONSE")
-                # print(json.dumps(j, indent=2))
-
-                extraction = j.get("extraction") or j.get("result") or {}
-
-                # print("EXTRACTION OBJECT")
-                # print(json.dumps(extraction, indent=2))
-
-                header_fields = extraction.get("headerFields", [])
-
-                # print("HEADER FIELDS")
-                # print(json.dumps(header_fields, indent=2))
+                header_fields = extraction.get(
+                    "headerFields",
+                    [],
+                )
 
                 result = {}
 
                 for field in header_fields:
-
-                    # print("FIELD =", field)
 
                     name = field.get("name")
 
@@ -219,25 +340,26 @@ class SapDocumentAI:
 
                         result[FIELD_MAP[name]] = {
                             "value": field.get("value"),
-                            "confidence": float(field.get("confidence", 0)),
+                            "confidence": float(
+                                field.get("confidence", 0)
+                            ),
                         }
 
-                # print("FINAL RESULT")
-                # print(json.dumps(result, indent=2))
+                print("FINAL RESULT =", result)
 
                 return result
-            
-            
+
             if status in ("FAILED", "ERROR"):
-                raise ExtractionError(f"Document AI job failed: {json.dumps(j)}")
+
+                raise ExtractionError(
+                    f"Document AI job failed: {json.dumps(j)}"
+                )
 
             time.sleep(2)
 
         raise ExtractionError(
             f"Document AI job {job} timed out after {max_polls} polls"
         )
-
-
 def get_extractor():
     return (
         SapDocumentAI()
