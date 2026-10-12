@@ -69,7 +69,7 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS ix_approval_queue ON approval_requests(status, created_at);
         CREATE TABLE IF NOT EXISTS approval_decisions (
             id TEXT PRIMARY KEY,
-            approval_request_id TEXT NOT NULL REFERENCES approval_requests(id),
+            approval_request_id TEXT REFERENCES approval_requests(id),
             case_id TEXT NOT NULL REFERENCES ap_cases(id),
             decision TEXT NOT NULL,
             actor_id TEXT NOT NULL,

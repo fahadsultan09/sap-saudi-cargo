@@ -5,6 +5,7 @@ import os
 import uuid
 from pathlib import Path
 from typing import Any
+from agents.review_policy import decide_review
 
 from .config import AGENT_MODE, SAP_PROCESSING_ENABLED
 from .database import audit, connect, json_dump, row_to_case, utc_now
@@ -75,15 +76,89 @@ def process_case(case_id: str) -> None:
         fields["line_items"] = result.get("line_items", [])
         fields["document_type"] = result.get("document_type")
         fields["invoice_type"] = result.get("invoice_type")
-        validation = agent_result.validation
+        
+        validation = dict(agent_result.validation)
         validation["agent_mode"] = AGENT_MODE
+
         if AGENT_MODE == "mock":
-            validation.setdefault("blocking", []).append("MOCK_AGENT_MODE_NOT_FOR_PRODUCTION")
-        reason = result.get("review_reason") or (
-            "Classification and extraction completed. Vendor, PO, tax and duplicate checks "
-            "still require trusted business-data integration or explicit review."
+            validation.setdefault("blocking", []).append(
+                "MOCK_AGENT_MODE_NOT_FOR_PRODUCTION"
+            )
+
+        # Read the actual outputs from classification and finance triage.
+        checks = validation.get("checks") or {}
+        missing_fields = (
+            result.get("missing_fields")
+            or validation.get("missing_fields")
+            or []
         )
-        _set_status(case_id, "NEEDS_REVIEW", reason=reason, extracted=fields, validation=validation)
+
+        # Only explicitly successful checks count as passed.
+        duplicate_status = str(
+            checks.get("duplicate", "not_checked")
+        ).strip().lower()
+
+        duplicate_check_passed = duplicate_status in {
+            "passed",
+            "pass",
+            "clear",
+            "no_duplicate",
+        }
+
+        # The current orchestrator does not expose field-level confidence
+        # scores. Keep this False until those scores are implemented.
+        critical_fields_confident = False
+
+        # Do not assume unimplemented vendor, PO, or tax checks succeeded.
+        required_checks = ("vendor", "po", "tax", "duplicate")
+        business_checks_passed = all(
+            str(checks.get(name, "not_checked")).strip().lower()
+            in {"passed", "pass", "valid", "clear", "no_duplicate"}
+            for name in required_checks
+        )
+
+        validation_passed = (
+            not validation.get("blocking")
+            and not result.get("review_required", False)
+            and business_checks_passed
+        )
+
+        review_decision = decide_review(
+            classification=classification.get("document_type"),
+            confidence=classification.get("confidence"),
+            validation_passed=validation_passed,
+            required_fields_complete=not bool(missing_fields),
+            critical_fields_confident=critical_fields_confident,
+            duplicate_check_passed=duplicate_check_passed,
+        )
+
+        # Persist the decision so the UI and reviewers can explain the route.
+        validation["review_decision"] = review_decision.to_dict()
+
+        reason = result.get("review_reason") or (
+            "Classification and extraction completed. "
+            "Review the extracted fields and complete finance checks."
+        )
+
+        if review_decision.manual_review_required:
+            status = "NEEDS_REVIEW"
+            reason = (
+                "Manual review required: "
+                + "; ".join(review_decision.reasons)
+            )
+        else:
+            # This is a routing state only, not an approval or SAP posting.
+            status = "READY_FOR_APPROVAL"
+            reason = "Automatic eligibility checks passed; awaiting approval."
+
+        _set_status(
+            case_id,
+            status,
+            reason=reason,
+            extracted=fields,
+            validation=validation,
+        )
+
     except Exception as exc:
         logger.exception("SAP processing failed for case %s", case_id)
         _set_status(case_id, "PROCESSING_ERROR", reason=f"Processing failed: {type(exc).__name__}. Check server logs.",

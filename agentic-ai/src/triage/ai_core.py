@@ -117,11 +117,21 @@ def _result_dict(c: AICoreClassification, status: str) -> dict[str, Any]:
     }
 
 
+
 def _aggregate_pages(page_results: list[dict[str, Any]]) -> dict[str, Any]:
-    """Confidence-weighted vote over per-page classifications."""
-    valid = [r for r in page_results if r.get("document_type")]
+    """Aggregate page classifications while recognizing mixed-document packets."""
+
+    valid = [
+        r for r in page_results
+        if r.get("document_type")
+    ]
+
     if not valid:
-        errors = [r.get("error") for r in page_results if r.get("error")]
+        errors = [
+            r.get("error")
+            for r in page_results
+            if r.get("error")
+        ]
         return {
             "document_type": None,
             "document_types_found": [],
@@ -131,29 +141,111 @@ def _aggregate_pages(page_results: list[dict[str, Any]]) -> dict[str, Any]:
             "error": errors[0] if errors else "no page could be classified",
         }
 
-    scores: dict[str, float] = defaultdict(float)
-    for r in valid:
-        scores[r["document_type"]] += float(r.get("confidence") or 0.5)
-    winner = max(scores, key=lambda t: scores[t])  # ties -> first seen
-    winners = [r for r in valid if r["document_type"] == winner]
-    confs = [float(r.get("confidence") or 0.0) for r in winners]
-    best = max(winners, key=lambda r: float(r.get("confidence") or 0.0))
-    types_found = list(dict.fromkeys(r["document_type"] for r in valid))
-
-    reason = best.get("reason")
-    if len(types_found) > 1:
-        note = f"pages disagree: {', '.join(types_found)}"
-        reason = f"{reason} ({note})" if reason else note
-
-    all_ok = len(valid) == len(page_results) and all(
-        r.get("ai_parse_status") == "ok" for r in valid
+    types_found = list(
+        dict.fromkeys(r["document_type"] for r in valid)
     )
+
+    def confidence(result: dict[str, Any]) -> float:
+        try:
+            return float(result.get("confidence") or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    # Aggregate confidence by document type.
+    scores: dict[str, float] = defaultdict(float)
+    for result in valid:
+        scores[result["document_type"]] += confidence(result)
+
+    # A confidently identified invoice or credit note can be the
+    # primary document in a packet containing delivery notes, POs,
+    # and contractual attachments.
+    primary_types = {"invoice", "credit_note"}
+    primary_pages = [
+        r for r in valid
+        if r["document_type"] in primary_types
+        and confidence(r) >= 0.85
+    ]
+
+    primary_kinds = {
+        r["document_type"] for r in primary_pages
+    }
+
+    if len(primary_kinds) > 1:
+        # Conflicting financial document types: require human review.
+        winner = max(
+            primary_kinds,
+            key=lambda kind: max(
+                confidence(r)
+                for r in primary_pages
+                if r["document_type"] == kind
+            ),
+        )
+        best = max(
+            (r for r in primary_pages if r["document_type"] == winner),
+            key=confidence,
+        )
+        reason = (
+            "Mixed packet contains confidently classified invoice "
+            "and credit-note pages; primary type is uncertain and "
+            "requires review."
+        )
+        review_required = True
+
+    elif primary_pages:
+        # Use the primary financial document instead of letting
+        # supporting pages outvote it.
+        winner = next(iter(primary_kinds))
+        matching_pages = [
+            r for r in primary_pages
+            if r["document_type"] == winner
+        ]
+        best = max(matching_pages, key=confidence)
+
+        if len(types_found) > 1:
+            reason = (
+                f"Primary document classified as {winner}; "
+                f"the packet also contains: "
+                f"{', '.join(t for t in types_found if t != winner)}. "
+                "Supporting pages are retained for review."
+            )
+        else:
+            reason = best.get("reason")
+
+        review_required = False
+
+    else:
+        # No confidently identified invoice or credit note:
+        # preserve the original confidence-weighted vote.
+        winner = max(scores, key=scores.get)
+        best = max(
+            (r for r in valid if r["document_type"] == winner),
+            key=confidence,
+        )
+        reason = best.get("reason")
+
+        if len(types_found) > 1:
+            reason = (
+                f"{reason} (pages disagree: {', '.join(types_found)})"
+                if reason
+                else f"Pages disagree: {', '.join(types_found)}"
+            )
+
+        review_required = False
+
+    all_ok = (
+        len(valid) == len(page_results)
+        and all(r.get("ai_parse_status") == "ok" for r in valid)
+    )
+
     return {
         "document_type": winner,
         "document_types_found": types_found,
-        "confidence": sum(confs) / len(confs) if confs else 0.0,
+        "confidence": confidence(best),
         "reason": reason,
         "ai_parse_status": "ok" if all_ok else "repaired",
+        "mixed_document_packet": len(types_found) > 1,
+        "primary_document_review_required": review_required,
+        "page_results": page_results,
     }
 
 
