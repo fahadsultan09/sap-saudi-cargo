@@ -14,15 +14,32 @@ coverage/
 .next/
 out/
 
-# Environment files
-.env
-.env.local
-.env.*
-!.env.example
+.venv/
+vEnv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
 
-# Logs
-logs/
-*.log
+# Secrets and local config (copy from the *.example templates)
+.env
+config/.env
+config/ai_core_cred.json
+config/sap_credentials.json
+
+# Run output (logs, CSV, results) and sample documents
+output/
+invoice_samples/*
+!invoice_samples/.gitkeep
+
+# Approval API runtime data, uploaded documents and local database
+runtime_data/
+uploads/
+*.sqlite3
+*.db
 
 # =========================
 # SAP UI5
@@ -115,3 +132,6 @@ backend/data/
 backend/.venv/
 __pycache__/
 .ruff_cache/
+
+
+node_modules/

@@ -1,3 +1,0 @@
-{"xsappname":"ap-agentic","tenant-mode":"dedicated",
- "scopes":[{"name":"$XSAPPNAME.processor","description":"AP processor"},{"name":"$XSAPPNAME.approver","description":"Posting approver"}],
- "role-templates":[{"name":"APProcessor","scope-references":["$XSAPPNAME.processor"]},{"name":"PostingApprover","scope-references":["$XSAPPNAME.approver"]}]}
