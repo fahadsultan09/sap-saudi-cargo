@@ -1,0 +1,6 @@
+{
+    "apiBaseUrl": "http://127.0.0.1:8000",
+    "userId": "demo-user",
+    "useMocks": false,
+    "selectedCaseId": null
+}
