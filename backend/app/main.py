@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .clients.agent_runtime import HttpAgentRuntime
 from .clients.document_ai import SAPDocumentAI
@@ -16,6 +17,13 @@ from .repository import Repository
 from .routers import cases, dashboard, dispatch, events, tools
 from .rules import load_rules
 from .schemas import ErrorResponse, Health
+
+CORS_ORIGINS = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 ERROR_RESPONSES = {
     status: {"model": ErrorResponse}
@@ -45,6 +53,13 @@ def create_app() -> FastAPI:
         version="1.0.0",
         lifespan=lifespan,
         responses=ERROR_RESPONSES,
+    )
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     register_handlers(application)
     for router in (
