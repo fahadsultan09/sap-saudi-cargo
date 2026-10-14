@@ -1,0 +1,27 @@
+# SACC-POC-Triage dependencies (installed by setup.bat)
+
+# Config loading
+python-dotenv>=1.0.0
+
+# LLM response validation / result models
+pydantic>=2.5.0
+
+# Email intake (Microsoft Graph)
+httpx>=0.27.0
+
+# SAP AI Core (classification) + SAP Document AI (extraction)
+# AI Core needs requests + pymupdf (PDF-to-image for vision)
+requests>=2.31.0
+pymupdf>=1.24.0
+
+# Optional: MSAL for Microsoft Graph auth
+# msal>=1.28.0
+
+# Testing
+pytest>=8.0.0
+
+# Approval workflow API
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+PyJWT>=2.8.0

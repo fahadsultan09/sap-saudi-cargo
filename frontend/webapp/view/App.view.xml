@@ -76,7 +76,7 @@
     </Bar>
 </customHeader>
 					<content>
-						<IconTabBar id="idIconTabBar" headerBackgroundDesign="Solid" expandable="false">
+						<IconTabBar id="idIconTabBar" headerBackgroundDesign="Solid" expandable="false" select="onTabSelect">
 							<items>
 								<!-- Screen 1 — Dashboard -->
 								<IconTabFilter key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard">
@@ -144,7 +144,7 @@ valueColor="Good" />
 												</Column>
 											</columns>
 											<items>
-												<ColumnListItem>
+												<ColumnListItem type="Navigation" press="onRecentActivityPress">
 													<cells>
 														<ObjectIdentifier title="{apData>id}" />
 														<Text text="{apData>vendor}" />
@@ -181,13 +181,13 @@ valueColor="Good" />
 												<l:SplitterLayoutData size="45%" minSize="300px"/>
 											</layoutData>
 											<Title text="Invoice Preview (PDF)" level="H4" class="sapUiSmallMarginBottom"/>
-											<Panel headerText="INV-2026-0912.pdf" height="600px" backgroundDesign="Solid">
+											<Panel headerText="{apData>/selectedInvoice/documentFilename}" height="600px" backgroundDesign="Solid">
 												<VBox alignItems="Center" justifyContent="Center" class="sapUiLargeMarginTop">
 													<core:Icon src="sap-icon://pdf-attachment" size="5rem" color="#0a6ed1"/>
-													<Text text="Document: INV-2026-0912.pdf" class="sapUiSmallMarginTop"/>
-													<Text text="Supplier: Saudi Cargo Ground Handling Ltd." />
-													<Text text="Amount: SAR 45,200.00" class="sapUiSmallMarginBottom"/>
-													<Button text="Open Full PDF" icon="sap-icon://doc-attachment" type="Emphasized"/>
+													<Text text="Document: {apData>/selectedInvoice/documentFilename}" class="sapUiSmallMarginTop"/>
+													<Text text="Supplier: {apData>/selectedInvoice/vendor}" />
+													<Text text="Amount: {apData>/selectedInvoice/currency} {apData>/selectedInvoice/amount}" class="sapUiSmallMarginBottom"/>
+													<Button text="Open Full PDF" icon="sap-icon://doc-attachment" type="Emphasized" press="onOpenDocument" enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
 												</VBox>
 											</Panel>
 										</VBox>

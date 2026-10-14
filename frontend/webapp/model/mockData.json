@@ -98,7 +98,11 @@
                 "confidence": "94%",
                 "state": "Success"
             }
-        ]
+        ],
+        "documentFilename": "INV-2026-0912.pdf",
+        "documentUrl": "",
+        "caseId": "",
+        "status": "Review Required"
     },
     "approvals": [
         {

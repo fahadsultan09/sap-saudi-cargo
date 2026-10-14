@@ -42,6 +42,10 @@
             "apData": {
                 "type": "sap.ui.model.json.JSONModel",
                 "uri": "model/mockData.json"
+            },
+            "config": {
+                "type": "sap.ui.model.json.JSONModel",
+                "uri": "model/config.json"
             }
         }
     }

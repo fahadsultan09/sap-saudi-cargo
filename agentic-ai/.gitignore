@@ -1,0 +1,26 @@
+.venv/
+vEnv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Secrets and local config (copy from the *.example templates)
+.env
+config/.env
+config/ai_core_cred.json
+config/sap_credentials.json
+
+# Run output (logs, CSV, results) and sample documents
+output/
+invoice_samples/*
+!invoice_samples/.gitkeep
+
+# Approval API runtime data, uploaded documents and local database
+runtime_data/
+uploads/
+*.sqlite3
+*.db
