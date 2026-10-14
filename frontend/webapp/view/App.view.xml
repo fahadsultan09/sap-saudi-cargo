@@ -29,7 +29,7 @@
 								<Label text="Signed in as" labelFor="userSelect"/>
 								<Select id="userSelect" selectedKey="{config>/currentUserId}" items="{config>/users}"
 									enabled="{= !${apData>/busy} }"
-									change="onUserChange" width="14rem">
+									change="onUserChange" width="15rem">
 									<core:Item key="{config>id}" text="{config>name} ({config>role})"/>
 								</Select>
 							</contentRight>
@@ -52,11 +52,20 @@
 													</TileContent>
 												</tileContent>
 											</GenericTile>
-											<GenericTile header="Pending" class="sapUiTinyMarginEnd">
+											<GenericTile header="In Progress" class="sapUiTinyMarginEnd">
 												<tileContent>
 													<TileContent>
 														<content>
-															<NumericContent value="{apData>/kpis/pending}" valueColor="Critical" withMargin="false"/>
+															<NumericContent value="{apData>/kpis/processing}" valueColor="Neutral" withMargin="false"/>
+														</content>
+													</TileContent>
+												</tileContent>
+											</GenericTile>
+											<GenericTile header="Needs Review" class="sapUiTinyMarginEnd">
+												<tileContent>
+													<TileContent>
+														<content>
+															<NumericContent value="{apData>/kpis/review}" valueColor="Critical" withMargin="false"/>
 														</content>
 													</TileContent>
 												</tileContent>
@@ -66,15 +75,6 @@
 													<TileContent>
 														<content>
 															<NumericContent value="{apData>/kpis/approved}" valueColor="Good" withMargin="false"/>
-														</content>
-													</TileContent>
-												</tileContent>
-											</GenericTile>
-											<GenericTile header="Posted" class="sapUiTinyMarginEnd">
-												<tileContent>
-													<TileContent>
-														<content>
-															<NumericContent value="{apData>/kpis/posted}" valueColor="Good" withMargin="false"/>
 														</content>
 													</TileContent>
 												</tileContent>
@@ -95,7 +95,7 @@
 													<Title text="Cases" level="H3"/>
 													<ToolbarSpacer/>
 													<Select selectedKey="{apData>/statusFilter}" items="{apData>/statusOptions}"
-														change="onRefreshCases" width="14rem">
+														change="onStatusFilterChange" width="14rem">
 														<core:Item key="{apData>key}" text="{apData>text}"/>
 													</Select>
 													<Button icon="sap-icon://refresh" tooltip="Refresh" press="onRefreshCases"/>
@@ -103,8 +103,8 @@
 											</headerToolbar>
 											<columns>
 												<Column><Text text="Invoice"/></Column>
-												<Column><Text text="Vendor"/></Column>
-												<Column><Text text="Gross"/></Column>
+												<Column><Text text="Supplier"/></Column>
+												<Column><Text text="Amount"/></Column>
 												<Column><Text text="Status"/></Column>
 												<Column><Text text="Created"/></Column>
 											</columns>
@@ -112,8 +112,8 @@
 												<ColumnListItem type="Navigation" press="onCasePress">
 													<cells>
 														<ObjectIdentifier title="{apData>id}"/>
-														<Text text="{apData>vendor}"/>
-														<Text text="{apData>gross}"/>
+														<Text text="{apData>supplier}"/>
+														<Text text="{apData>amount}"/>
 														<ObjectStatus text="{apData>status}" state="{apData>state}"/>
 														<Text text="{apData>date}"/>
 													</cells>
@@ -131,7 +131,7 @@
 											buttonText="Choose invoice" placeholder="Select a PDF, PNG or JPEG invoice"
 											style="Emphasized" width="30rem" change="onUploadChange"
 											enabled="{= !${apData>/busy} }"/>
-										<Text text="The invoice is uploaded and sent to SAP Document AI as soon as you select it."
+										<Text text="The invoice is uploaded and the agents (TOWER, LENS, rules) process it right away."
 											class="sapUiTinyMarginTop"/>
 										<VBox id="processingSection" visible="false" class="sapUiLargeMarginTop" width="60%">
 											<Text text="Processing status:" class="sapUiTinyMarginBottom"/>
@@ -153,16 +153,14 @@
 												<l:SplitterLayoutData size="40%" minSize="300"/>
 											</layoutData>
 											<Title text="Original document" level="H4" class="sapUiSmallMarginBottom"/>
-											<Panel headerText="{apData>/selectedInvoice/documentFilename}" backgroundDesign="Solid">
+											<Panel headerText="{apData>/selectedInvoice/fileName}" backgroundDesign="Solid">
 												<VBox alignItems="Center" justifyContent="Center" class="sapUiLargeMarginTop sapUiLargeMarginBottom">
 													<core:Icon src="sap-icon://pdf-attachment" size="5rem" color="#0a6ed1"/>
-													<Text text="Vendor: {apData>/selectedInvoice/vendor}" class="sapUiSmallMarginTop"/>
-													<Text text="Confirmed by: {apData>/selectedInvoice/confirmedBy}"/>
-													<Text text="Approved by: {apData>/selectedInvoice/approvedBy}"/>
-													<Text text="SAP document: {apData>/selectedInvoice/sapDocument}" class="sapUiSmallMarginBottom"/>
+													<Text text="Supplier: {apData>/selectedInvoice/supplier}" class="sapUiSmallMarginTop"/>
+													<Text text="Uploaded by: {apData>/selectedInvoice/createdBy}"/>
+													<Text text="Last edited by: {apData>/selectedInvoice/editedBy}" class="sapUiSmallMarginBottom"/>
 													<Button text="Open document" icon="sap-icon://doc-attachment" type="Emphasized"
-														press="onOpenDocument" enabled="{= !!${apData>/selectedInvoice/documentUrl} }"
-														visible="{apData>/selectedInvoice/hasDocument}"/>
+														press="onOpenDocument" enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
 												</VBox>
 											</Panel>
 										</VBox>
@@ -171,125 +169,116 @@
 											<uxap:layoutData>
 												<l:SplitterLayoutData size="60%" minSize="300"/>
 											</uxap:layoutData>
-												<uxap:headerTitle>
-													<uxap:ObjectPageDynamicHeaderTitle>
-														<uxap:expandedHeading>
-															<Title text="{apData>/selectedInvoice/vendor}" wrapping="true"/>
-														</uxap:expandedHeading>
-														<uxap:snappedHeading>
-															<Title text="{apData>/selectedInvoice/vendor}" wrapping="true"/>
-														</uxap:snappedHeading>
-														<uxap:expandedContent>
-															<HBox alignItems="Center">
-																<Text text="Invoice #: {apData>/selectedInvoice/id}" class="sapUiMediumMarginEnd"/>
-																<ObjectStatus text="{apData>/selectedInvoice/status}"
-																	state="{apData>/selectedInvoice/statusState}" inverted="true"/>
-															</HBox>
-														</uxap:expandedContent>
-														<uxap:actions>
-															<Button text="Complete review" icon="sap-icon://complete" type="Emphasized"
-																press="onSaveCorrections" visible="{apData>/selectedInvoice/canCompleteReview}"/>
-															<Button text="Run agent" icon="sap-icon://ai" type="Emphasized" press="onDecide"
-																visible="{apData>/selectedInvoice/canDecide}"/>
-															<Button text="Confirm" type="Success" press="onConfirm"
-																visible="{apData>/selectedInvoice/canConfirm}"/>
-															<Button text="Decide manually" type="Emphasized" press="onDecideManually"
-																visible="{apData>/selectedInvoice/canDecideManually}"/>
-															<Button text="Resume" icon="sap-icon://restart" press="onResume"
-																visible="{apData>/selectedInvoice/canResume}"/>
-															<Button text="Approve" type="Success" press="onApproveInvoice"
-																visible="{apData>/selectedInvoice/canApprove}"/>
-															<Button text="Return" icon="sap-icon://undo" press="onReturnInvoice"
-																visible="{apData>/selectedInvoice/canApprove}"/>
-															<Button text="Inform vendor" icon="sap-icon://email" press="onInformVendor"
-																visible="{apData>/selectedInvoice/canInform}"/>
-															<Button text="Reject" type="Reject" press="onRejectInvoice"
-																visible="{apData>/selectedInvoice/canReject}"/>
-														</uxap:actions>
-													</uxap:ObjectPageDynamicHeaderTitle>
-												</uxap:headerTitle>
-												<uxap:sections>
-													<uxap:ObjectPageSection title="Recommendation">
-														<uxap:subSections>
-															<uxap:ObjectPageSubSection>
-																<VBox class="sapUiSmallMargin">
-																	<HBox class="sapUiSmallMarginBottom" alignItems="Center">
-																		<ObjectStatus title="Recommendation" text="{apData>/selectedInvoice/recommendation}"
-																			state="{apData>/selectedInvoice/recommendationState}" class="sapUiLargeMarginEnd"/>
-																		<ObjectStatus title="Source" text="{apData>/selectedInvoice/source}" class="sapUiLargeMarginEnd"/>
-																		<ObjectStatus title="Agent confidence" text="{apData>/selectedInvoice/confidence}"/>
-																	</HBox>
-																	<Title text="Reasoning" level="H5" class="sapUiTinyMarginBottom"/>
-																	<List items="{apData>/selectedInvoice/reasons}">
-																		<StandardListItem title="{apData>text}" icon="{apData>icon}" wrapping="true"/>
-																	</List>
-																</VBox>
-															</uxap:ObjectPageSubSection>
-														</uxap:subSections>
-													</uxap:ObjectPageSection>
-													<uxap:ObjectPageSection title="Invoice Fields">
-														<uxap:subSections>
-															<uxap:ObjectPageSubSection>
-																<Table items="{apData>/selectedInvoice/extractedFields}">
-																	<headerToolbar>
-																		<OverflowToolbar>
-																			<Text text="Fields can be corrected while the case is in review, extracted or returned."
-																				visible="{apData>/selectedInvoice/canEdit}"/>
-																			<ToolbarSpacer/>
-																			<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
-																				press="onSaveCorrections" visible="{apData>/selectedInvoice/canEdit}">
-																				<layoutData>
-																					<OverflowToolbarLayoutData priority="NeverOverflow"/>
-																				</layoutData>
-																			</Button>
-																		</OverflowToolbar>
-																	</headerToolbar>
-																	<columns>
-																		<Column><Text text="Field"/></Column>
-																		<Column><Text text="Value"/></Column>
-																		<Column><Text text="Confidence"/></Column>
-																	</columns>
-																	<items>
-																		<ColumnListItem>
-																			<cells>
-																				<Text text="{apData>field}"/>
-																				<Input value="{apData>value}" editable="{apData>/selectedInvoice/canEdit}"
-																					valueState="{= ${apData>needsConfirmation} &amp;&amp; ${apData>/selectedInvoice/canEdit} ? 'Warning' : 'None' }"
-																					valueStateText="Check this value: missing or low confidence"/>
-																				<ObjectStatus text="{apData>confidence}" state="{apData>state}"/>
-																			</cells>
-																		</ColumnListItem>
-																	</items>
-																</Table>
-															</uxap:ObjectPageSubSection>
-														</uxap:subSections>
-													</uxap:ObjectPageSection>
-												</uxap:sections>
-											</uxap:ObjectPageLayout>
+											<uxap:headerTitle>
+												<uxap:ObjectPageDynamicHeaderTitle>
+													<uxap:expandedHeading>
+														<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
+													</uxap:expandedHeading>
+													<uxap:snappedHeading>
+														<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
+													</uxap:snappedHeading>
+													<uxap:expandedContent>
+														<HBox alignItems="Center">
+															<Text text="Invoice: {apData>/selectedInvoice/id}" class="sapUiMediumMarginEnd"/>
+															<ObjectStatus text="{apData>/selectedInvoice/status}"
+																state="{apData>/selectedInvoice/statusState}" inverted="true"/>
+														</HBox>
+													</uxap:expandedContent>
+													<uxap:actions>
+														<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
+															press="onSaveCorrections" visible="{apData>/selectedInvoice/canEdit}"/>
+														<Button text="Approve" type="Success" press="onApproveInvoice"
+															visible="{apData>/selectedInvoice/canDecide}"/>
+														<Button text="Return" icon="sap-icon://undo" press="onReturnInvoice"
+															visible="{apData>/selectedInvoice/canDecide}"/>
+														<Button text="Reject" type="Reject" press="onRejectInvoice"
+															visible="{apData>/selectedInvoice/canDecide}"/>
+													</uxap:actions>
+												</uxap:ObjectPageDynamicHeaderTitle>
+											</uxap:headerTitle>
+											<uxap:sections>
+												<uxap:ObjectPageSection title="Agent Results">
+													<uxap:subSections>
+														<uxap:ObjectPageSubSection>
+															<VBox class="sapUiSmallMargin">
+																<MessageStrip text="{apData>/selectedInvoice/reviewReason}" type="Warning" showIcon="true"
+																	visible="{= !!${apData>/selectedInvoice/reviewReason} }" class="sapUiSmallMarginBottom"/>
+																<HBox class="sapUiSmallMarginBottom" wrap="Wrap">
+																	<ObjectStatus title="Document type" text="{apData>/selectedInvoice/documentType}" class="sapUiLargeMarginEnd"/>
+																	<ObjectStatus title="Classification confidence" text="{apData>/selectedInvoice/classificationConfidence}" class="sapUiLargeMarginEnd"/>
+																	<ObjectStatus title="Agent mode" text="{apData>/selectedInvoice/agentMode}"/>
+																</HBox>
+																<Title text="Checks" level="H5" class="sapUiTinyMarginBottom"/>
+																<HBox wrap="Wrap" class="sapUiSmallMarginBottom" items="{apData>/selectedInvoice/checks}">
+																	<ObjectStatus title="{apData>name}" text="{apData>value}" state="{apData>state}" class="sapUiLargeMarginEnd"/>
+																</HBox>
+																<Title text="Agent steps" level="H5" class="sapUiTinyMarginBottom"/>
+																<List items="{apData>/selectedInvoice/agentTrace}" noDataText="No agent steps recorded">
+																	<StandardListItem title="{apData>title}" description="{apData>description}"
+																		icon="sap-icon://ai" wrapping="true"/>
+																</List>
+																<Title text="Findings" level="H5" class="sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+																<List items="{apData>/selectedInvoice/findings}" noDataText="No findings">
+																	<StandardListItem title="{apData>text}" icon="{apData>icon}" wrapping="true"/>
+																</List>
+															</VBox>
+														</uxap:ObjectPageSubSection>
+													</uxap:subSections>
+												</uxap:ObjectPageSection>
+												<uxap:ObjectPageSection title="Invoice Fields">
+													<uxap:subSections>
+														<uxap:ObjectPageSubSection>
+															<Table items="{apData>/selectedInvoice/fields}" fixedLayout="false">
+																<headerToolbar>
+																	<OverflowToolbar>
+																		<Text text="Fields can be corrected while the case needs review, was returned or failed processing."
+																			visible="{apData>/selectedInvoice/canEdit}"/>
+																	</OverflowToolbar>
+																</headerToolbar>
+																<columns>
+																	<Column><Text text="Field"/></Column>
+																	<Column><Text text="Value"/></Column>
+																</columns>
+																<items>
+																	<ColumnListItem>
+																		<cells>
+																			<Text text="{apData>field}"/>
+																			<Input value="{apData>value}" editable="{apData>/selectedInvoice/canEdit}"
+																				valueState="{= ${apData>needsAttention} ? 'Warning' : 'None' }"
+																				valueStateText="Required before approval"/>
+																		</cells>
+																	</ColumnListItem>
+																</items>
+															</Table>
+														</uxap:ObjectPageSubSection>
+													</uxap:subSections>
+												</uxap:ObjectPageSection>
+											</uxap:sections>
+										</uxap:ObjectPageLayout>
 									</l:Splitter>
 								</IconTabFilter>
 								<!-- Screen 4 — Approval Queue -->
 								<IconTabFilter key="approvals" text="Approval Queue" icon="sap-icon://approvals"
 									count="{= ${apData>/approvals}.length }">
 									<VBox class="sapUiMediumMargin">
-										<Title text="Invoices awaiting approval" level="H3" class="sapUiSmallMarginBottom"/>
-										<Table items="{apData>/approvals}" noDataText="No invoices awaiting approval" fixedLayout="false">
+										<Title text="Invoices awaiting a decision" level="H3" class="sapUiSmallMarginBottom"/>
+										<Table items="{apData>/approvals}" noDataText="No invoices awaiting a decision" fixedLayout="false">
 											<columns>
 												<Column hAlign="Center"><Text text="Invoice"/></Column>
-												<Column hAlign="Center"><Text text="Vendor"/></Column>
-												<Column hAlign="Center"><Text text="Gross"/></Column>
-												<Column hAlign="Center"><Text text="Recommendation"/></Column>
-												<Column hAlign="Center"><Text text="Confirmed by"/></Column>
+												<Column hAlign="Center"><Text text="Supplier"/></Column>
+												<Column hAlign="Center"><Text text="Amount"/></Column>
+												<Column hAlign="Center"><Text text="Status"/></Column>
+												<Column hAlign="Center"><Text text="Last edited by"/></Column>
 												<Column visible="{apData>/permissions/approver}" hAlign="Center"><Text text="Actions"/></Column>
 											</columns>
 											<items>
 												<ColumnListItem type="Navigation" press="onCasePress">
 													<cells>
 														<ObjectIdentifier title="{apData>id}"/>
-														<Text text="{apData>vendor}"/>
-														<Text text="{apData>gross}"/>
-														<Text text="{apData>recommendation}"/>
-														<Text text="{apData>confirmedBy}"/>
+														<Text text="{apData>supplier}"/>
+														<Text text="{apData>amount}"/>
+														<ObjectStatus text="{apData>status}" state="{apData>state}"/>
+														<Text text="{apData>editedBy}"/>
 														<HBox justifyContent="Center" wrap="NoWrap">
 															<Button text="Approve" type="Success" class="sapUiTinyMarginEnd" press="onApproveInvoice"/>
 															<Button text="Return" class="sapUiTinyMarginEnd" press="onReturnInvoice"/>
