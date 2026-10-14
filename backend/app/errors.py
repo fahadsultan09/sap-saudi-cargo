@@ -86,6 +86,11 @@ class AuthenticationFailure(AppError):
     code = "authentication_failure"
 
 
+class PermissionDenied(AppError):
+    status_code = 403
+    code = "permission_denied"
+
+
 class ConfigurationFailure(AppError):
     status_code = 503
     code = "configuration_failure"

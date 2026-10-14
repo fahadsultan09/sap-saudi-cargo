@@ -178,6 +178,17 @@ class Repository:
         with self.connection() as connection:
             self._events(connection, case_id, actor, [(kind, data)])
 
+    @staticmethod
+    def _audit_event(row: sqlite3.Row) -> AuditEvent:
+        return AuditEvent(
+            id=row["id"],
+            case_id=row["case_id"],
+            timestamp=row["timestamp"],
+            kind=row["kind"],
+            actor=row["actor"],
+            data=json.loads(row["data"]),
+        )
+
     def list(self, status: CaseStatus | None, limit: int, offset: int) -> CaseList:
         with self.connection() as connection:
             total = connection.execute(
@@ -205,17 +216,14 @@ class Repository:
                 "ORDER BY id LIMIT ?",
                 (after_id, case_id, case_id, limit),
             ).fetchall()
-        return [
-            AuditEvent(
-                id=row["id"],
-                case_id=row["case_id"],
-                timestamp=row["timestamp"],
-                kind=row["kind"],
-                actor=row["actor"],
-                data=json.loads(row["data"]),
-            )
-            for row in rows
-        ]
+        return [self._audit_event(row) for row in rows]
+
+    def case_events(self, case_id: str) -> list[AuditEvent]:
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM events WHERE case_id=? ORDER BY id", (case_id,)
+            ).fetchall()
+        return [self._audit_event(row) for row in rows]
 
     def dashboard(self) -> Dashboard:
         with self.connection() as connection:

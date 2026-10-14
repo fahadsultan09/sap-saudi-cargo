@@ -26,12 +26,15 @@ from ..repository import EventData, Repository
 from ..schemas import (
     AuditEvent,
     Case,
+    CaseHistory,
     ConfirmRequest,
     CaseList,
+    CommentRequest,
     Dashboard,
     DocumentMetadata,
     ExtractedField,
     InformRequest,
+    MediaType,
     Invoice,
     PostingPackage,
     Recommendation,
@@ -44,6 +47,13 @@ from ..utils import package_hash, safe_filename, utc_now
 
 UPLOAD_CHUNK_BYTES = 65536
 PDF_TRAILER_BYTES = 1024
+PDF_MEDIA_TYPE = "application/pdf"
+# Accepted uploads: extensions (the first is used for storage) and file signature.
+DOCUMENT_TYPES: dict[str, tuple[tuple[str, ...], bytes]] = {
+    PDF_MEDIA_TYPE: ((".pdf",), b"%PDF-"),
+    "image/png": ((".png",), b"\x89PNG\r\n\x1a\n"),
+    "image/jpeg": ((".jpg", ".jpeg"), b"\xff\xd8\xff"),
+}
 
 
 class CaseService:
@@ -104,24 +114,25 @@ class CaseService:
         ]
         return await asyncio.to_thread(self.repository.create, case, actor, events)
 
-    def _document_path(self, case_id: str) -> Path:
-        return self.settings.storage_path / f"{case_id}.pdf"
+    def _document_path(self, case_id: str, media_type: MediaType) -> Path:
+        suffix = DOCUMENT_TYPES[media_type][0][0]
+        return self.settings.storage_path / f"{case_id}{suffix}"
 
-    def _store_document(self, case_id: str, data: bytes) -> None:
+    def _store_document(self, path: Path, data: bytes) -> None:
         try:
             self.settings.storage_path.mkdir(parents=True, exist_ok=True)
-            with self._document_path(case_id).open("xb") as document:
+            with path.open("xb") as document:
                 document.write(data)
         except OSError as exc:
             raise StorageFailure("Cannot store original document") from exc
 
-    def _remove_document(self, case_id: str) -> None:
+    def _remove_document(self, path: Path) -> None:
         try:
-            self._document_path(case_id).unlink(missing_ok=True)
+            path.unlink(missing_ok=True)
         except OSError as exc:
             raise StorageFailure("Cannot clean up uncommitted document") from exc
 
-    async def _read_upload(self, upload: UploadFile) -> tuple[bytes, str]:
+    async def _read_upload(self, upload: UploadFile) -> tuple[bytes, str, MediaType]:
         try:
             data = bytearray()
             while chunk := await upload.read(UPLOAD_CHUNK_BYTES):
@@ -131,26 +142,30 @@ class CaseService:
         finally:
             await upload.close()
         filename = safe_filename(upload.filename)
+        media_type = upload.content_type or ""
+        suffixes, signature = DOCUMENT_TYPES.get(media_type, ((), b""))
         if (
-            upload.content_type != "application/pdf"
-            or not filename.lower().endswith(".pdf")
-            or not data.startswith(b"%PDF-")
-            or b"%%EOF" not in data[-PDF_TRAILER_BYTES:]
+            not suffixes
+            or not filename.lower().endswith(suffixes)
+            or not data.startswith(signature)
+            or (media_type == PDF_MEDIA_TYPE and b"%%EOF" not in data[-PDF_TRAILER_BYTES:])
         ):
             raise UnsupportedDocument(
-                "A PDF extension, media type, header and EOF marker are required"
+                "Upload a PDF, PNG or JPEG whose extension, media type and content agree"
             )
-        return bytes(data), filename
+        return bytes(data), filename, media_type
 
     async def upload(self, upload: UploadFile, actor: str) -> Case:
-        content, filename = await self._read_upload(upload)
+        content, filename, media_type = await self._read_upload(upload)
         case = self._new_case()
         case.document = DocumentMetadata(
             filename=filename,
             size=len(content),
             sha256=hashlib.sha256(content).hexdigest(),
+            media_type=media_type,
         )
-        await asyncio.to_thread(self._store_document, case.id, content)
+        path = self._document_path(case.id, media_type)
+        await asyncio.to_thread(self._store_document, path, content)
         try:
             await asyncio.to_thread(
                 self.repository.create,
@@ -162,15 +177,15 @@ class CaseService:
                 ],
             )
         except AppError:
-            await asyncio.to_thread(self._remove_document, case.id)
+            await asyncio.to_thread(self._remove_document, path)
             raise
-        return await self._extract(case, content, filename, actor)
+        return await self._extract(case, content, filename, media_type, actor)
 
     async def _extract(
-        self, case: Case, content: bytes, filename: str, actor: str
+        self, case: Case, content: bytes, filename: str, media_type: MediaType, actor: str
     ) -> Case:
         try:
-            case.fields = await self.document_ai.extract(content, filename)
+            case.fields = await self.document_ai.extract(content, filename, media_type)
         except DocumentAIFailure as exc:
             await self.save(
                 case,
@@ -204,7 +219,9 @@ class CaseService:
 
     async def review(self, case_id: str, request: ReviewRequest, actor: str) -> Case:
         case = await self.get(case_id)
-        require_status(case, CaseStatus.NEEDS_REVIEW, CaseStatus.EXTRACTED)
+        require_status(
+            case, CaseStatus.NEEDS_REVIEW, CaseStatus.EXTRACTED, CaseStatus.RETURNED
+        )
         corrections = request.model_dump(exclude_unset=True)
         if not corrections or any(value is None for value in corrections.values()):
             raise ValidationFailure("Supply at least one non-null correction")
@@ -231,7 +248,7 @@ class CaseService:
         return await self.save(case, actor, events)
 
     async def _decide(self, case: Case, actor: str, events: list[EventData]) -> Case:
-        require_status(case, CaseStatus.EXTRACTED)
+        require_status(case, CaseStatus.EXTRACTED, CaseStatus.RETURNED)
         invoice = case.invoice
         if invoice is None:
             raise ValidationFailure("A complete reviewed invoice is required")
@@ -323,7 +340,7 @@ class CaseService:
             events.append(transition(case, CaseStatus.WAITING_EXTERNAL))
         return await self.save(case, actor, events)
 
-    async def approve(self, case_id: str, actor: str) -> Case:
+    async def approve(self, case_id: str, request: CommentRequest, actor: str) -> Case:
         case = await self.get(case_id)
         require_status(case, CaseStatus.AWAITING_APPROVAL)
         if actor == case.confirmed_by:
@@ -336,8 +353,30 @@ class CaseService:
             case,
             actor,
             [
-                ("package_approved", {"hash": case.package_hash}),
+                (
+                    "package_approved",
+                    {"hash": case.package_hash, "comment": request.comment},
+                ),
                 transition(case, CaseStatus.READY_TO_POST),
+            ],
+        )
+
+    async def return_case(
+        self, case_id: str, request: CommentRequest, actor: str
+    ) -> Case:
+        case = await self.get(case_id)
+        require_status(case, CaseStatus.AWAITING_APPROVAL)
+        case.package = None
+        case.confirmed_by = None
+        case.recommendation = None
+        case.rules = []
+        case.rules_version = None
+        return await self.save(
+            case,
+            actor,
+            [
+                ("case_returned", {"comment": request.comment}),
+                transition(case, CaseStatus.RETURNED),
             ],
         )
 
@@ -371,17 +410,19 @@ class CaseService:
             ],
         )
 
-    async def document(self, case_id: str) -> tuple[bytes, str]:
+    async def document(self, case_id: str) -> tuple[bytes, str, MediaType]:
         case = await self.get(case_id)
-        if case.document is None:
+        document = case.document
+        if document is None:
             raise NotFound("Case has no original document")
+        path = self._document_path(case.id, document.media_type)
         try:
-            data = await asyncio.to_thread(self._document_path(case.id).read_bytes)
+            data = await asyncio.to_thread(path.read_bytes)
         except OSError as exc:
             raise StorageFailure("Original document cannot be read") from exc
-        if hashlib.sha256(data).hexdigest() != case.document.sha256:
+        if hashlib.sha256(data).hexdigest() != document.sha256:
             raise StorageFailure("Original document integrity check failed")
-        return data, case.document.filename
+        return data, document.filename, document.media_type
 
     async def list(
         self, status: CaseStatus | None, limit: int, offset: int
@@ -394,6 +435,11 @@ class CaseService:
         if case_id is not None:
             await self.get(case_id)
         return await asyncio.to_thread(self.repository.events, case_id, after_id, limit)
+
+    async def history(self, case_id: str) -> CaseHistory:
+        await self.get(case_id)
+        events = await asyncio.to_thread(self.repository.case_events, case_id)
+        return CaseHistory(case_id=case_id, events=events)
 
     async def dashboard(self) -> Dashboard:
         return await asyncio.to_thread(self.repository.dashboard)

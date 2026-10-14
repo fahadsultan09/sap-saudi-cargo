@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, Header, Request
@@ -10,10 +11,16 @@ from .clients.document_ai import DocumentAI
 from .clients.sap import SAPClient
 from .config import Settings
 from . import tool_tokens
-from .errors import AuthenticationFailure, ConfigurationFailure, ToolTokenInvalid
+from .enums import Role
+from .errors import (
+    AuthenticationFailure,
+    ConfigurationFailure,
+    PermissionDenied,
+    ToolTokenInvalid,
+)
 from .repository import Repository
 from .rules import RuleSet
-from .schemas import ToolClaims
+from .schemas import Actor, ToolClaims
 from .services.agent_service import AgentService
 from .services.case_service import CaseService
 from .services.dispatch_service import DispatchService
@@ -49,8 +56,9 @@ def actor_dependency(
     user: Annotated[
         str | None, Header(alias="X-User-ID", min_length=1, max_length=200)
     ] = None,
+    role: Annotated[str | None, Header(alias="X-User-Role")] = None,
     proxy_token: Annotated[str | None, Header(alias="X-Proxy-Token")] = None,
-) -> str:
+) -> Actor:
     if (
         user is None
         or not user.strip()
@@ -58,6 +66,10 @@ def actor_dependency(
         or any(ord(char) < 32 for char in user)
     ):
         raise AuthenticationFailure("A printable ASCII X-User-ID is required")
+    if role is None or role.strip().upper() not in set(Role):
+        raise AuthenticationFailure(
+            f"X-User-Role must be one of {', '.join(Role)}"
+        )
     # Authenticate proxy credentials in trusted header mode.
     if settings.auth_mode == "trusted_header":
         expected = settings.trusted_proxy_token.get_secret_value()
@@ -69,7 +81,18 @@ def actor_dependency(
             proxy_token.encode(), expected.encode()
         ):
             raise AuthenticationFailure("Invalid trusted proxy credentials")
-    return user.strip().casefold()
+    return Actor(user_id=user.strip().casefold(), role=Role(role.strip().upper()))
+
+
+def require_roles(*roles: Role) -> Callable[[Actor], Actor]:
+    allowed = {*roles, Role.ADMIN}
+
+    def dependency(actor: Annotated[Actor, Depends(actor_dependency)]) -> Actor:
+        if actor.role not in allowed:
+            raise PermissionDenied(f"Role {actor.role} cannot perform this action")
+        return actor
+
+    return dependency
 
 
 # Authenticate internal dispatch independently of human identity headers.
