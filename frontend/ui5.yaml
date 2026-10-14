@@ -17,3 +17,4 @@ framework:
     - name: sap.f
     - name: sap.ui.layout
     - name: sap.uxap
+    - name: sap.ui.unified

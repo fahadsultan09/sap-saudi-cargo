@@ -1,6 +1,8 @@
 {
     "apiBaseUrl": "http://127.0.0.1:8000",
-    "userId": "demo-user",
-    "useMocks": false,
-    "selectedCaseId": null
+    "users": [
+        { "id": "faizan", "name": "Faizan", "role": "ADMIN" },
+        { "id": "fahad", "name": "Fahad", "role": "AP_PROCESSOR" }
+    ],
+    "currentUserId": "fahad"
 }
