@@ -24,8 +24,14 @@ dist/
 build/
 .pytest_cache/
 
+# Environment files
+.env.local
+.env.*
+!.env.example
+
 # Secrets and local config (copy from the *.example templates)
 .env
+!backend/.env
 config/.env
 config/ai_core_cred.json
 config/sap_credentials.json
@@ -121,13 +127,11 @@ docker-data/
 # OS
 # =========================
 Thumbs.db
-backend/.env
 backend/data/
 backend/.venv/
 __pycache__/
 .ruff_cache/
 
-backend/.env
 backend/data/
 backend/.venv/
 __pycache__/

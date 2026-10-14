@@ -19,6 +19,7 @@ class CaseStatus(StrEnum):
     RECONCILED = "RECONCILED"
     INFORMED = "INFORMED"
     REJECTED = "REJECTED"
+    RETURNED = "RETURNED"
 
 
 class Action(StrEnum):
@@ -34,6 +35,12 @@ class InvoiceField(StrEnum):
     NET = "net"
     VAT = "vat"
     CURRENCY = "currency"
+
+
+class Role(StrEnum):
+    AP_PROCESSOR = "AP_PROCESSOR"
+    AP_APPROVER = "AP_APPROVER"
+    ADMIN = "ADMIN"
 
 
 class RecommendationSource(StrEnum):

@@ -1,0 +1,28 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog id="decisionDialog" title="{dialog>/title}" contentWidth="28rem" draggable="true">
+        <VBox class="sapUiSmallMargin">
+            <Label text="Decision" visible="{dialog>/showAction}" labelFor="decisionAction"/>
+            <Select id="decisionAction" selectedKey="{dialog>/action}" visible="{dialog>/showAction}" width="100%">
+                <core:Item key="POST" text="Post - send for approval and SAP posting"/>
+                <core:Item key="REJECT" text="Reject"/>
+                <core:Item key="HOLD" text="Hold - wait for missing information"/>
+            </Select>
+            <Label text="Channel" visible="{dialog>/showChannel}" labelFor="decisionChannel"/>
+            <Select id="decisionChannel" selectedKey="{dialog>/channel}" visible="{dialog>/showChannel}" width="100%">
+                <core:Item key="email" text="Email"/>
+                <core:Item key="portal" text="Vendor portal"/>
+                <core:Item key="phone" text="Phone"/>
+            </Select>
+            <Label text="{dialog>/label}" required="true" labelFor="decisionText" class="sapUiSmallMarginTop"/>
+            <TextArea id="decisionText" value="{dialog>/text}" valueLiveUpdate="true" maxLength="200"
+                rows="4" width="100%" placeholder="{dialog>/placeholder}"/>
+        </VBox>
+        <beginButton>
+            <Button text="{dialog>/submitText}" type="Emphasized" press="onDecisionDialogSubmit"
+                enabled="{= ${dialog>/text}.trim().length > 0 }"/>
+        </beginButton>
+        <endButton>
+            <Button text="Cancel" press="onDecisionDialogCancel"/>
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>

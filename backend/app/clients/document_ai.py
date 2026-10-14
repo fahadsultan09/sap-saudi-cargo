@@ -11,10 +11,10 @@ from pydantic import ValidationError
 from ..config import Settings
 from ..enums import InvoiceField
 from ..errors import DocumentAIFailure
-from ..schemas import ExtractedField
+from ..schemas import ExtractedField, MediaType
 
 FIELD_NAMES = {
-    "senderId": InvoiceField.VENDOR,
+    "senderName": InvoiceField.VENDOR,
     "documentNumber": InvoiceField.INVOICE_NUMBER,
     "purchaseOrderNumber": InvoiceField.PO_NUMBER,
     "netAmount": InvoiceField.NET,
@@ -25,7 +25,7 @@ FIELD_NAMES = {
 
 class DocumentAI(Protocol):
     async def extract(
-        self, data: bytes, filename: str
+        self, data: bytes, filename: str, media_type: MediaType
     ) -> dict[InvoiceField, ExtractedField]: ...
 
 
@@ -64,7 +64,7 @@ class SAPDocumentAI:
             ) from exc
 
     async def extract(
-        self, data: bytes, filename: str
+        self, data: bytes, filename: str, media_type: MediaType
     ) -> dict[InvoiceField, ExtractedField]:
         token = self.settings.document_ai_token.get_secret_value()
         if not self.settings.document_ai_url or not token:
@@ -81,7 +81,7 @@ class SAPDocumentAI:
                 url,
                 headers=headers,
                 data={"options": json.dumps(options)},
-                files={"file": (filename, data, "application/pdf")},
+                files={"file": (filename, data, media_type)},
             )
             response.raise_for_status()
             job_id = response.json()["id"]

@@ -35,14 +35,11 @@
                 "sap.m": {},
                 "sap.f": {},
                 "sap.uxap": {},
-                "sap.ui.layout": {}
+                "sap.ui.layout": {},
+                "sap.ui.unified": {}
             }
         },
         "models": {
-            "apData": {
-                "type": "sap.ui.model.json.JSONModel",
-                "uri": "model/mockData.json"
-            },
             "config": {
                 "type": "sap.ui.model.json.JSONModel",
                 "uri": "model/config.json"

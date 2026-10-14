@@ -6,13 +6,14 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from .enums import Action, CaseStatus, InvoiceField, RecommendationSource
+from .enums import Action, CaseStatus, InvoiceField, RecommendationSource, Role
 
 Text = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
 ]
 Money = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=2)]
 Currency = Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")]
+MediaType = Literal["application/pdf", "image/png", "image/jpeg"]
 
 
 class Model(BaseModel):
@@ -61,6 +62,15 @@ class Recommendation(Model):
     amount: Money | None = None
     evidence: list[str] = Field(default_factory=list)
     confidence: float | None = Field(default=None, ge=0, le=1)
+
+
+class Actor(Model):
+    user_id: str
+    role: Role
+
+
+class CommentRequest(Model):
+    comment: Text
 
 
 class ConfirmRequest(Model):
@@ -112,7 +122,7 @@ class DocumentMetadata(Model):
     filename: str
     size: int
     sha256: str
-    media_type: Literal["application/pdf"] = "application/pdf"
+    media_type: MediaType = "application/pdf"
 
 
 class Case(Model):
@@ -144,6 +154,11 @@ class AuditEvent(Model):
     kind: str
     actor: str
     data: dict[str, object]
+
+
+class CaseHistory(Model):
+    case_id: str
+    events: list[AuditEvent]
 
 
 class CaseList(Model):
