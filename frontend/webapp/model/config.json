@@ -1,8 +1,8 @@
 {
     "apiBaseUrl": "http://127.0.0.1:8000",
     "users": [
-        { "id": "faizan", "name": "Faizan", "role": "ADMIN" },
-        { "id": "fahad", "name": "Fahad", "role": "AP_PROCESSOR" }
+        { "id": "fahad", "name": "Fahad", "role": "AP_PROCESSOR" },
+        { "id": "faizan", "name": "Faizan", "role": "FINANCE_MANAGER" }
     ],
     "currentUserId": "fahad"
 }

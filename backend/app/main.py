@@ -1,75 +1,45 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .clients.agent_runtime import HttpAgentRuntime
-from .clients.document_ai import SAPDocumentAI
-from .clients.sap import MockSAPClient
+from .clients.agentic_api import AgenticAPI
 from .config import get_settings
 from .errors import register_handlers
-from .repository import Repository
-from .routers import cases, dashboard, dispatch, events, tools
-from .rules import load_rules
+from .routers import proxy
 from .schemas import ErrorResponse, Health
-
-CORS_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
-ERROR_RESPONSES = {
-    status: {"model": ErrorResponse}
-    for status in (401, 403, 404, 409, 413, 415, 422, 500, 502, 503)
-}
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    rules = load_rules(settings.rules_path)
-    repository = Repository(settings.database_path)
-    await asyncio.to_thread(repository.initialize)
     async with httpx.AsyncClient(timeout=settings.http_timeout) as http:
-        application.state.settings = settings
-        application.state.rules = rules
-        application.state.repository = repository
-        application.state.document_ai = SAPDocumentAI(http, settings)
-        application.state.agent_runtime = HttpAgentRuntime(http, settings)
-        application.state.sap = MockSAPClient(repository, settings)
+        application.state.agentic_api = AgenticAPI(http, settings)
         yield
 
 
 def create_app() -> FastAPI:
+    settings = get_settings()
     application = FastAPI(
-        title="Saudi Cargo AP Agentic Automation",
-        version="1.0.0",
+        title="Saudi Cargo AP Gateway",
+        description="Routes the AP Console's /api/v1 calls to the agentic API.",
+        version="2.0.0",
         lifespan=lifespan,
-        responses=ERROR_RESPONSES,
+        responses={502: {"model": ErrorResponse}},
     )
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=CORS_ORIGINS,
+        allow_origins=settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PATCH"],
         allow_headers=["*"],
     )
     register_handlers(application)
-    for router in (
-        cases.router,
-        events.router,
-        dashboard.router,
-        dispatch.router,
-        tools.router,
-    ):
-        application.include_router(router)
+    application.include_router(proxy.router)
     return application
 
 
@@ -77,8 +47,9 @@ app = create_app()
 
 
 @app.get("/health", response_model=Health, status_code=200, tags=["health"])
-async def health() -> Health:
-    return Health()
+async def health(request: Request) -> Health:
+    reachable = await request.app.state.agentic_api.reachable()
+    return Health(agentic_api="reachable" if reachable else "unreachable")
 
 
 if __name__ == "__main__":

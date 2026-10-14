@@ -1,8 +1,7 @@
 sap.ui.define([], function () {
     "use strict";
 
-    // Single place for backend calls: adds the user headers and turns the backend
-    // error envelope {error: {code, message, details}} into a readable Error.
+    // Single place for backend calls: adds the user headers and turns error responses into a readable Error.
     function currentUser(oConfigData) {
         var aUsers = oConfigData.users || [];
         return aUsers.filter(function (oUser) {
@@ -10,21 +9,29 @@ sap.ui.define([], function () {
         })[0] || aUsers[0] || {};
     }
 
+    // Understands the gateway's {error: {message}} and the agentic API's FastAPI {detail} formats.
     function errorMessage(oBody, iStatus) {
-        var oError = oBody && oBody.error;
-        if (!oError) {
-            return "Request failed (HTTP " + iStatus + ")";
+        var vDetail = oBody && oBody.detail;
+        if (oBody && oBody.error) {
+            return oBody.error.message;
         }
-        var aDetails = (oError.details || []).map(function (oDetail) {
-            var sField = (oDetail.location || []).slice(1).join(".");
-            return (sField ? sField + ": " : "") + oDetail.message;
-        });
-        return [oError.message].concat(aDetails).join("\n");
+        if (typeof vDetail === "string") {
+            return vDetail;
+        }
+        if (Array.isArray(vDetail)) {
+            return vDetail.map(function (oItem) {
+                return (oItem.loc || []).slice(1).join(".") + ": " + oItem.msg;
+            }).join("\n");
+        }
+        if (vDetail && vDetail.message) {
+            return vDetail.message + (vDetail.fields ? ": " + vDetail.fields.join(", ") : "");
+        }
+        return "Request failed (HTTP " + iStatus + ")";
     }
 
     function send(oConfigData, sMethod, sPath, vBody) {
         var oUser = currentUser(oConfigData);
-        var mHeaders = { "X-User-ID": oUser.id || "", "X-User-Role": oUser.role || "" };
+        var mHeaders = { "X-User-Id": oUser.id || "", "X-User-Role": oUser.role || "" };
         var oOptions = { method: sMethod, headers: mHeaders };
         if (vBody instanceof FormData) {
             oOptions.body = vBody;
