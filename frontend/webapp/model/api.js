@@ -9,24 +9,9 @@ sap.ui.define([], function () {
         })[0] || aUsers[0] || {};
     }
 
-    // Understands the gateway's {error: {message}} and the agentic API's FastAPI {detail} formats.
-    function errorMessage(oBody, iStatus) {
-        var vDetail = oBody && oBody.detail;
-        if (oBody && oBody.error) {
-            return oBody.error.message;
-        }
-        if (typeof vDetail === "string") {
-            return vDetail;
-        }
-        if (Array.isArray(vDetail)) {
-            return vDetail.map(function (oItem) {
-                return (oItem.loc || []).slice(1).join(".") + ": " + oItem.msg;
-            }).join("\n");
-        }
-        if (vDetail && vDetail.message) {
-            return vDetail.message + (vDetail.fields ? ": " + vDetail.fields.join(", ") : "");
-        }
-        return "Request failed (HTTP " + iStatus + ")";
+    // The gateway turns every error into {error: {code, message}} with a message written for business users.
+    function errorMessage(oBody) {
+        return oBody && oBody.error ? oBody.error.message : "Something went wrong. Please try again.";
     }
 
     function send(oConfigData, sMethod, sPath, vBody) {
@@ -41,7 +26,7 @@ sap.ui.define([], function () {
         }
         var sBase = String(oConfigData.apiBaseUrl || "").replace(/\/$/, "");
         return fetch(sBase + sPath, oOptions).catch(function () {
-            throw new Error("Cannot reach the backend at " + sBase + ". Is it running?");
+            throw new Error("The application server cannot be reached. Check your connection and try again.");
         });
     }
 
@@ -49,7 +34,7 @@ sap.ui.define([], function () {
         return oResponse.json().catch(function () {
             return null;
         }).then(function (oBody) {
-            var oError = new Error(errorMessage(oBody, oResponse.status));
+            var oError = new Error(errorMessage(oBody));
             oError.status = oResponse.status;
             oError.body = oBody;
             throw oError;

@@ -1,0 +1,47 @@
+<mvc:View
+	controllerName="saudicargo.ap.automation.controller.Approvals"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m">
+	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
+		<VBox class="sapUiMediumMargin">
+			<Title text="Invoices awaiting a decision" level="H3" class="apSectionTitle sapUiSmallMarginBottom"/>
+			<VBox class="apCard">
+				<Table items="{apData>/approvals}" fixedLayout="false" class="apTable" updateFinished="onTableUpdateFinished">
+					<noData>
+						<IllustratedMessage illustrationType="sapIllus-NoTasks" illustrationSize="Spot"
+							title="Nothing waiting for a decision" description="Invoices that need review or were returned show up here."/>
+					</noData>
+					<columns>
+						<Column hAlign="Center" width="3rem"><Text text="#"/></Column>
+						<Column hAlign="Center"><Text text="Invoice"/></Column>
+						<Column hAlign="Center"><Text text="Supplier"/></Column>
+						<Column hAlign="Center"><Text text="Amount"/></Column>
+						<Column hAlign="Center"><Text text="Status"/></Column>
+						<Column hAlign="Center"><Text text="Last edited by"/></Column>
+						<Column visible="{apData>/permissions/approver}" hAlign="Center"><Text text="Actions"/></Column>
+					</columns>
+					<items>
+						<ColumnListItem type="Navigation" press="onCasePress">
+							<cells>
+								<Text text=""/>
+								<ObjectIdentifier title="{apData>id}"/>
+								<Text text="{apData>supplier}"/>
+								<Text text="{apData>amount}" class="apAmount"/>
+								<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"/>
+								<Text text="{apData>editedBy}"/>
+								<HBox justifyContent="Center" wrap="NoWrap" class="apActions">
+									<Button icon="sap-icon://accept" tooltip="Approve" press="onApproveInvoice"
+										class="apActionChip apActionApprove"/>
+									<Button icon="sap-icon://undo" tooltip="Return to processor" press="onReturnInvoice"
+										class="apActionChip apActionReturn"/>
+									<Button icon="sap-icon://decline" tooltip="Reject" press="onRejectInvoice"
+										class="apActionChip apActionReject"/>
+								</HBox>
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+			</VBox>
+		</VBox>
+	</Page>
+</mvc:View>

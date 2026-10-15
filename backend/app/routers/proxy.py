@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import json
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
 
 from ..clients.agentic_api import AgenticAPI
+from ..error_messages import translate
+from ..errors import error_response
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["proxy"])
 
 # Only identity, content and tracing headers reach the agentic API; host and cookies do not.
@@ -31,7 +36,10 @@ async def forward(
     request: Request,
     api: Annotated[AgenticAPI, Depends(agentic_api_dependency)],
 ) -> Response:
-    """Route every /api/v1 call unchanged to the agentic API and return its response as is."""
+    """Route every /api/v1 call unchanged to the agentic API and return its response.
+
+    Successful responses are returned as is; errors are replaced by a business-friendly message.
+    """
     headers = {
         name: value
         for name, value in request.headers.items()
@@ -40,6 +48,17 @@ async def forward(
     upstream = await api.forward(
         request.method, f"/api/v1/{path}", request.url.query, headers, await request.body()
     )
+    if upstream.is_error:
+        logger.warning(
+            "Agentic API error %s on %s /api/v1/%s: %s",
+            upstream.status_code, request.method, path, upstream.text[:1000],
+        )
+        try:
+            body = upstream.json()
+        except json.JSONDecodeError:
+            body = None
+        friendly = translate(upstream.status_code, body)
+        return error_response(upstream.status_code, friendly.code, friendly.message)
     return Response(
         content=upstream.content,
         status_code=upstream.status_code,

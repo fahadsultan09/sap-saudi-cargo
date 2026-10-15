@@ -45,6 +45,32 @@
                 "type": "sap.ui.model.json.JSONModel",
                 "uri": "model/config.json"
             }
+        },
+        "routing": {
+            "config": {
+                "routerClass": "sap.m.routing.Router",
+                "type": "View",
+                "viewType": "XML",
+                "path": "saudicargo.ap.automation.view",
+                "controlId": "sections",
+                "controlAggregation": "pages",
+                "transition": "show",
+                "async": true
+            },
+            "routes": [
+                { "name": "dashboard", "pattern": "", "target": "dashboard" },
+                { "name": "upload", "pattern": "upload", "target": "upload" },
+                { "name": "review", "pattern": "review/:caseId:", "target": "review" },
+                { "name": "approvals", "pattern": "approvals", "target": "approvals" },
+                { "name": "audit", "pattern": "audit", "target": "audit" }
+            ],
+            "targets": {
+                "dashboard": { "id": "dashboard", "name": "Dashboard" },
+                "upload": { "id": "upload", "name": "Upload" },
+                "review": { "id": "review", "name": "Review" },
+                "approvals": { "id": "approvals", "name": "Approvals" },
+                "audit": { "id": "audit", "name": "Audit" }
+            }
         }
     }
 }

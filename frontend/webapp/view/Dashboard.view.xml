@@ -1,0 +1,92 @@
+<mvc:View
+	controllerName="saudicargo.ap.automation.controller.Dashboard"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core">
+	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
+		<VBox class="sapUiMediumMargin">
+			<HBox class="apWelcome sapUiMediumMarginBottom" alignItems="Center"
+				justifyContent="SpaceBetween" wrap="Wrap">
+				<VBox>
+					<Title text="{apData>/welcome/greeting}" level="H2"/>
+					<Text text="{apData>/welcome/subtitle}" class="sapUiTinyMarginTop"/>
+				</VBox>
+				<HBox class="sapUiSmallMarginTopBottom">
+					<Button text="Upload invoice" icon="sap-icon://upload" press="onGoUpload"
+						visible="{apData>/permissions/processor}" class="apLightButton sapUiSmallMarginEnd"/>
+					<Button text="Approval queue ({= ${apData>/approvals}.length })" icon="sap-icon://approvals"
+						press="onGoQueue" visible="{apData>/permissions/approver}" class="apGhostButton"/>
+				</HBox>
+			</HBox>
+			<HBox items="{apData>/kpiCards}" wrap="Wrap" class="apKpiRow sapUiMediumMarginBottom">
+				<VBox class="apKpi">
+					<customData>
+						<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+					</customData>
+					<HBox justifyContent="SpaceBetween" alignItems="Start">
+						<VBox>
+							<Text text="{apData>label}" class="apKpiLabel"/>
+							<Text text="{apData>value}" class="apKpiValue sapUiTinyMarginTop"/>
+						</VBox>
+						<VBox class="apKpiIcon" alignItems="Center" justifyContent="Center">
+							<core:Icon src="{apData>icon}" size="1.125rem"/>
+						</VBox>
+					</HBox>
+				</VBox>
+			</HBox>
+			<VBox class="apCard">
+				<!-- Wraps instead of overflowing, so the filter stays visible on narrow screens. -->
+				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCardHeader">
+					<Title text="Cases" level="H3" class="apSectionTitle"/>
+					<HBox alignItems="Center">
+						<HBox items="{apData>/filterOptions}" wrap="Wrap" class="apFilter sapUiTinyMarginEnd">
+							<ToggleButton text="{apData>text}" pressed="{= ${apData>key} === ${apData>/statusFilter} }"
+								press="onStatusFilterPress" class="apFilterPill"/>
+						</HBox>
+						<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh" press="onRefreshCases"/>
+					</HBox>
+				</HBox>
+				<Table items="{apData>/pagedCases}" fixedLayout="false" class="apTable">
+					<noData>
+						<IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
+							title="No cases here yet" description="Upload an invoice to start, or change the status filter."/>
+					</noData>
+					<columns>
+						<Column><Text text="Invoice"/></Column>
+						<Column><Text text="Supplier"/></Column>
+						<Column hAlign="End"><Text text="Amount"/></Column>
+						<Column hAlign="Center"><Text text="Status"/></Column>
+						<Column><Text text="Created ({apData>/timeZoneLabel})"/></Column>
+					</columns>
+					<items>
+						<ColumnListItem type="Navigation" press="onCasePress">
+							<cells>
+								<ObjectIdentifier title="{apData>id}"/>
+								<Text text="{apData>supplier}"/>
+								<Text text="{apData>amount}" class="apAmount"/>
+								<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"
+									icon="{= ${apData>processing} ? 'sap-icon://synchronize' : '' }">
+									<customData>
+										<core:CustomData key="processing" value="{= String(${apData>processing}) }" writeToDom="true"/>
+									</customData>
+								</ObjectStatus>
+								<Text text="{apData>date} "/>
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+				<HBox visible="{= ${apData>/cases}.length > 0 }" alignItems="Center" justifyContent="SpaceBetween"
+					class="apPager">
+					<Text text="{apData>/page/range}" class="apTimelineMeta"/>
+					<HBox alignItems="Center">
+						<Button icon="sap-icon://navigation-left-arrow" type="Transparent" tooltip="Previous page"
+							press="onPreviousPage" enabled="{= ${apData>/page/index} > 0 }"/>
+						<Text text="{apData>/page/text}" class="apPagerText"/>
+						<Button icon="sap-icon://navigation-right-arrow" type="Transparent" tooltip="Next page"
+							press="onNextPage" enabled="{= ${apData>/page/index} &lt; ${apData>/page/count} - 1 }"/>
+					</HBox>
+				</HBox>
+			</VBox>
+		</VBox>
+	</Page>
+</mvc:View>
