@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from .error_messages import translate
 from .schemas import ErrorDetail, ErrorResponse
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ def error_response(
 
 def register_handlers(app: FastAPI) -> None:
     async def application_error(_: Request, exc: AppError) -> JSONResponse:
+        logger.warning("%s: %s", exc.code, exc.__cause__ or exc.message)
         return error_response(exc.status_code, exc.code, exc.message)
 
     async def request_error(_: Request, exc: RequestValidationError) -> JSONResponse:
@@ -51,11 +53,15 @@ def register_handlers(app: FastAPI) -> None:
         return error_response(422, "request_validation", "Invalid request", details)
 
     async def http_error(_: Request, exc: HTTPException) -> JSONResponse:
-        return error_response(exc.status_code, "http_error", str(exc.detail))
+        friendly = translate(exc.status_code, {"detail": exc.detail})
+        return error_response(exc.status_code, friendly.code, friendly.message)
 
     async def unexpected_error(_: Request, exc: Exception) -> JSONResponse:
         logger.error("Unexpected application failure", exc_info=exc)
-        return error_response(500, "internal_error", "Unexpected application failure")
+        return error_response(
+            500, "internal_error",
+            "Something went wrong. Please try again; if it keeps happening, contact IT support.",
+        )
 
     app.add_exception_handler(AppError, application_error)
     app.add_exception_handler(RequestValidationError, request_error)

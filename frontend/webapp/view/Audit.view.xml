@@ -1,0 +1,31 @@
+<mvc:View
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core">
+	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
+		<VBox class="sapUiMediumMargin">
+			<Title text="History of invoice {apData>/selectedInvoice/id}" level="H3"
+				class="apSectionTitle sapUiMediumMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
+			<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
+				illustrationType="sapIllus-NoActivities" illustrationSize="Scene"
+				title="No case selected" description="Open a case from the Dashboard to see its full history."/>
+			<VBox class="apCard sapUiSmallMarginBottom" visible="{apData>/selectedInvoice/hasCase}">
+				<List items="{apData>/auditTrail}" showSeparators="None" class="apTimeline sapUiSmallMargin">
+					<CustomListItem>
+						<VBox class="apTimelineItem">
+							<customData>
+								<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+							</customData>
+							<VBox class="apTimelineDot" alignItems="Center" justifyContent="Center">
+								<core:Icon src="{apData>icon}" size="0.75rem"/>
+							</VBox>
+							<Text text="{apData>title}" class="apTimelineTitle"/>
+							<Text text="{apData>description}" class="apTimelineText" visible="{= !!${apData>description} }"/>
+							<Text text="{apData>meta}" class="apTimelineMeta"/>
+						</VBox>
+					</CustomListItem>
+				</List>
+			</VBox>
+		</VBox>
+	</Page>
+</mvc:View>

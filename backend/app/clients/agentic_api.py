@@ -21,7 +21,7 @@ class AgenticAPI:
             return await self.http.request(method, url, headers=headers, content=body)
         except httpx.HTTPError as exc:
             raise UpstreamUnavailable(
-                f"The agentic API at {self.base_url} is unavailable"
+                "The invoice service is not available right now. Please try again in a few minutes."
             ) from exc
 
     async def reachable(self) -> bool:

@@ -1,0 +1,133 @@
+<mvc:View
+	controllerName="saudicargo.ap.automation.controller.Review"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:uxap="sap.uxap"
+	xmlns:core="sap.ui.core">
+	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
+		<Toolbar style="Clear" visible="{apData>/selectedInvoice/hasCase}">
+			<Button text="Back to cases" icon="sap-icon://nav-back" type="Transparent" press="onNavBack"
+				class="apBackLink"/>
+		</Toolbar>
+		<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
+			illustrationType="sapIllus-NoTasks" illustrationSize="Scene"
+			title="No invoice selected" description="Open a case from the Dashboard or upload an invoice to review it here."/>
+		<!-- The ObjectPage fills its parent, so it needs a container with a fixed height. -->
+		<VBox height="calc(100vh - 7.5rem)" visible="{apData>/selectedInvoice/hasCase}">
+			<uxap:ObjectPageLayout id="ObjectPageLayout" showTitleInHeaderContent="true">
+				<uxap:layoutData>
+					<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
+				</uxap:layoutData>
+				<uxap:headerTitle>
+					<uxap:ObjectPageDynamicHeaderTitle>
+						<uxap:expandedHeading>
+							<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
+						</uxap:expandedHeading>
+						<uxap:snappedHeading>
+							<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
+						</uxap:snappedHeading>
+						<uxap:expandedContent>
+							<HBox alignItems="Center">
+								<Text text="Invoice: {apData>/selectedInvoice/id}" class="sapUiMediumMarginEnd"/>
+								<ObjectStatus text="{apData>/selectedInvoice/status}"
+									state="{apData>/selectedInvoice/statusState}" inverted="true" class="sapUiMediumMarginEnd"/>
+								<Text text="Uploaded by {apData>/selectedInvoice/createdBy} · Last edited by {apData>/selectedInvoice/editedBy}"
+									class="apTimelineMeta"/>
+							</HBox>
+						</uxap:expandedContent>
+						<uxap:actions>
+							<Button text="Show PDF" icon="sap-icon://pdf-attachment" press="onOpenDocument"
+								enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
+							<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
+								press="onSaveCorrections" visible="{apData>/selectedInvoice/canEdit}"/>
+							<Button text="Approve" icon="sap-icon://accept" type="Success" press="onApproveInvoice"
+								visible="{apData>/selectedInvoice/canDecide}"/>
+							<Button text="Return" icon="sap-icon://undo" press="onReturnInvoice"
+								visible="{apData>/selectedInvoice/canDecide}"/>
+							<Button text="Reject" icon="sap-icon://decline" type="Reject" press="onRejectInvoice"
+								visible="{apData>/selectedInvoice/canDecide}"/>
+						</uxap:actions>
+					</uxap:ObjectPageDynamicHeaderTitle>
+				</uxap:headerTitle>
+				<uxap:sections>
+					<uxap:ObjectPageSection title="Agent Results">
+						<uxap:subSections>
+							<uxap:ObjectPageSubSection>
+								<VBox class="sapUiSmallMargin">
+									<VBox visible="{= ${apData>/selectedInvoice/reviewReasons}.length > 0 }"
+										class="apReasonCard sapUiSmallMarginBottom">
+										<Title text="Why this invoice needs attention" level="H5" class="apReasonTitle"/>
+										<VBox items="{apData>/selectedInvoice/reviewReasons}">
+											<HBox alignItems="Center" class="apReasonItem">
+												<core:Icon src="{apData>icon}" class="apReasonIcon"/>
+												<Text text="{apData>text}"/>
+											</HBox>
+										</VBox>
+									</VBox>
+									<HBox class="sapUiSmallMarginBottom" wrap="Wrap">
+										<ObjectStatus title="Document type" text="{apData>/selectedInvoice/documentType}" class="sapUiLargeMarginEnd"/>
+										<ObjectStatus title="Classification confidence" text="{apData>/selectedInvoice/classificationConfidence}" class="sapUiLargeMarginEnd"/>
+										<ObjectStatus title="Agent mode" text="{apData>/selectedInvoice/agentMode}"/>
+									</HBox>
+									<Title text="Checks" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+									<HBox wrap="Wrap" class="apChips sapUiSmallMarginBottom" items="{apData>/selectedInvoice/checks}">
+										<ObjectStatus text="{apData>name}: {apData>value}" state="{apData>state}" inverted="true"/>
+									</HBox>
+									<Title text="Agent steps" level="H5" class="apSectionTitle sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+									<List items="{apData>/selectedInvoice/agentTrace}" showSeparators="None" class="apTimeline"
+										noDataText="No agent steps recorded">
+										<CustomListItem>
+											<VBox class="apTimelineItem">
+												<customData>
+													<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+												</customData>
+												<VBox class="apTimelineDot" alignItems="Center" justifyContent="Center">
+													<core:Icon src="{apData>icon}" size="0.75rem"/>
+												</VBox>
+												<Text text="{apData>title}" class="apTimelineTitle"/>
+												<Text text="{apData>description}" class="apTimelineText"/>
+												<Text text="{apData>meta}" class="apTimelineMeta"/>
+											</VBox>
+										</CustomListItem>
+									</List>
+									<Title text="Findings" level="H5" class="apSectionTitle sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+									<List items="{apData>/selectedInvoice/findings}" noDataText="No findings">
+										<StandardListItem title="{apData>text}" icon="{apData>icon}" wrapping="true"/>
+									</List>
+								</VBox>
+							</uxap:ObjectPageSubSection>
+						</uxap:subSections>
+					</uxap:ObjectPageSection>
+					<uxap:ObjectPageSection title="Invoice Fields">
+						<uxap:subSections>
+							<uxap:ObjectPageSubSection>
+								<Table items="{apData>/selectedInvoice/fields}" fixedLayout="false" class="apTable apFieldsTable">
+									<headerToolbar>
+										<OverflowToolbar>
+											<Text text="Fields can be corrected while the case needs review, was returned or failed processing."
+												visible="{apData>/selectedInvoice/canEdit}"/>
+										</OverflowToolbar>
+									</headerToolbar>
+									<columns>
+										<Column><Text text="Field"/></Column>
+										<Column><Text text="Value"/></Column>
+									</columns>
+									<items>
+										<ColumnListItem>
+											<cells>
+												<Text text="{apData>field}"/>
+												<Input value="{apData>value}" editable="{apData>/selectedInvoice/canEdit}"
+													valueState="{= ${apData>needsAttention} ? 'Warning' : 'None' }"
+													valueStateText="Required before approval"/>
+											</cells>
+										</ColumnListItem>
+									</items>
+								</Table>
+							</uxap:ObjectPageSubSection>
+						</uxap:subSections>
+					</uxap:ObjectPageSection>
+				</uxap:sections>
+			</uxap:ObjectPageLayout>
+		</VBox>
+	</Page>
+</mvc:View>

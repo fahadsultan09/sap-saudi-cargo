@@ -1,0 +1,24 @@
+<mvc:View
+	controllerName="saudicargo.ap.automation.controller.Upload"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:u="sap.ui.unified">
+	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
+		<VBox class="sapUiLargeMargin" alignItems="Center">
+			<Title text="Upload an invoice" level="H2" class="apSectionTitle sapUiTinyMarginBottom"/>
+			<Text text="The agents classify it (TOWER), extract the fields (LENS) and run the finance rules."
+				class="sapUiMediumMarginBottom"/>
+			<VBox class="apDropZone" alignItems="Center">
+				<core:Icon src="sap-icon://upload-to-cloud" size="3rem" class="apDropIcon sapUiSmallMarginBottom"/>
+				<Text text="PDF, PNG or JPEG · up to 20 MB" class="sapUiSmallMarginBottom"/>
+				<u:FileUploader id="fileUploader" fileType="pdf,png,jpg,jpeg" sameFilenameAllowed="true"
+					buttonText="Choose invoice" placeholder="Select a PDF, PNG or JPEG invoice"
+					style="Emphasized" width="26rem" change="onUploadChange"
+					enabled="{= !${apData>/busy} }"/>
+			</VBox>
+			<ObjectStatus text="{apData>/upload/message}" state="{apData>/upload/state}" inverted="true"
+				visible="{apData>/upload/visible}" class="sapUiMediumMarginTop"/>
+		</VBox>
+	</Page>
+</mvc:View>
