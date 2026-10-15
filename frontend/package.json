@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "npx @ui5/cli serve -o index.html"
+    "start": "npx @ui5/cli serve -o /"
   },
   "keywords": [],
   "author": "",
