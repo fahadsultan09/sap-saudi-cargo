@@ -5,107 +5,106 @@
 	xmlns:l="sap.ui.layout"
 	xmlns:uxap="sap.uxap"
 	xmlns:core="sap.ui.core"
-	xmlns:u="sap.ui.unified">
-	<Shell id="shell">
+	xmlns:u="sap.ui.unified"
+	xmlns:tnt="sap.tnt">
+	<Shell id="shell" appWidthLimited="false">
 		<App id="app">
 			<pages>
-				<Page id="mainPage" titleAlignment="Start">
-					<customHeader>
-						<Bar design="Header">
-							<contentLeft>
-								<HBox alignItems="Center">
-									<Avatar src="sap-icon://shipping-status" displayShape="Square" displaySize="S"
-										backgroundColor="Accent6" class="sapUiTinyMarginEnd"/>
-									<VBox>
-										<Title text="Accounts Payable Automation" level="H4"/>
-										<Text text="Saudi Cargo" wrapping="false"/>
-									</VBox>
-								</HBox>
-							</contentLeft>
-							<contentMiddle>
-								<ObjectStatus text="AI-Powered Invoice Processing" icon="sap-icon://ai" state="Information"/>
-							</contentMiddle>
-							<contentRight>
-								<Label text="Signed in as" labelFor="userSelect"/>
-								<Select id="userSelect" selectedKey="{config>/currentUserId}" items="{config>/users}"
-									enabled="{= !${apData>/busy} }"
-									change="onUserChange" width="15rem">
-									<core:Item key="{config>id}" text="{config>name} ({config>role})"/>
-								</Select>
-							</contentRight>
-						</Bar>
-					</customHeader>
-					<content>
-						<IconTabBar id="idIconTabBar" headerBackgroundDesign="Solid" expandable="false" select="onTabSelect">
-							<items>
-								<!-- Screen 1 — Dashboard and case worklist -->
-								<IconTabFilter key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard">
-									<VBox class="sapUiMediumMargin">
-										<Title text="Key Performance Indicators" level="H3" class="sapUiSmallMarginBottom"/>
-										<HBox wrap="Wrap" class="sapUiSmallMarginBottom">
-											<GenericTile header="Total Invoices" class="sapUiTinyMarginEnd">
-												<tileContent>
-													<TileContent>
-														<content>
-															<NumericContent value="{apData>/kpis/total}" valueColor="Neutral" withMargin="false"/>
-														</content>
-													</TileContent>
-												</tileContent>
-											</GenericTile>
-											<GenericTile header="In Progress" class="sapUiTinyMarginEnd">
-												<tileContent>
-													<TileContent>
-														<content>
-															<NumericContent value="{apData>/kpis/processing}" valueColor="Neutral" withMargin="false"/>
-														</content>
-													</TileContent>
-												</tileContent>
-											</GenericTile>
-											<GenericTile header="Needs Review" class="sapUiTinyMarginEnd">
-												<tileContent>
-													<TileContent>
-														<content>
-															<NumericContent value="{apData>/kpis/review}" valueColor="Critical" withMargin="false"/>
-														</content>
-													</TileContent>
-												</tileContent>
-											</GenericTile>
-											<GenericTile header="Approved" class="sapUiTinyMarginEnd">
-												<tileContent>
-													<TileContent>
-														<content>
-															<NumericContent value="{apData>/kpis/approved}" valueColor="Good" withMargin="false"/>
-														</content>
-													</TileContent>
-												</tileContent>
-											</GenericTile>
-											<GenericTile header="Rejected" class="sapUiTinyMarginEnd">
-												<tileContent>
-													<TileContent>
-														<content>
-															<NumericContent value="{apData>/kpis/rejected}" valueColor="Error" withMargin="false"/>
-														</content>
-													</TileContent>
-												</tileContent>
-											</GenericTile>
+				<tnt:ToolPage id="toolPage" class="apPage">
+					<tnt:header>
+						<tnt:ToolHeader class="apHeader">
+							<Button icon="sap-icon://menu2" type="Transparent" press="onToggleSideNav"
+								tooltip="Show or hide the menu" class="apMenuButton"/>
+							<HBox alignItems="Center">
+								<VBox class="apLogo sapUiSmallMarginEnd" alignItems="Center" justifyContent="Center">
+									<core:Icon src="sap-icon://shipping-status" size="1.25rem"/>
+								</VBox>
+								<VBox>
+									<Title text="Accounts Payable Automation" level="H4" class="apBrandTitle"/>
+									<Text text="Saudi Cargo" wrapping="false" class="apBrandSubtitle"/>
+								</VBox>
+							</HBox>
+							<ToolbarSpacer/>
+							<HBox alignItems="Center">
+								<VBox alignItems="End" class="sapUiSmallMarginEnd">
+									<Text text="{apData>/currentUser/name}" wrapping="false" class="apHeaderName"/>
+									<Text text="{apData>/currentUser/roleLabel}" wrapping="false" class="apHeaderRole"/>
+								</VBox>
+								<Avatar initials="{apData>/currentUser/initials}" displaySize="XS"
+									backgroundColor="{apData>/currentUser/avatarColor}" press="onOpenProfileMenu"
+									tooltip="Profile" ariaHasPopup="Menu" class="apProfileAvatar"/>
+							</HBox>
+						</tnt:ToolHeader>
+					</tnt:header>
+					<tnt:sideContent>
+						<tnt:SideNavigation selectedKey="{apData>/section}" itemSelect="onSectionSelect" class="apSideNav">
+							<tnt:NavigationList>
+								<tnt:NavigationListItem key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard"/>
+								<tnt:NavigationListItem key="upload" text="Invoice Upload" icon="sap-icon://upload"
+									visible="{apData>/permissions/processor}"/>
+								<tnt:NavigationListItem key="review" text="Invoice Review" icon="sap-icon://inspect"/>
+								<tnt:NavigationListItem key="approvals" icon="sap-icon://approvals"
+									text="Approval Queue ({= ${apData>/approvals}.length })"/>
+								<tnt:NavigationListItem key="audit" text="Audit Trail" icon="sap-icon://history"/>
+							</tnt:NavigationList>
+						</tnt:SideNavigation>
+					</tnt:sideContent>
+					<tnt:mainContents>
+						<NavContainer id="sections" defaultTransitionName="show">
+							<!-- Screen 1 — Dashboard and case worklist -->
+							<Page id="dashboardSection" showHeader="false" backgroundDesign="Transparent" class="apSection">
+								<VBox class="sapUiMediumMargin">
+									<HBox class="apWelcome sapUiMediumMarginBottom" alignItems="Center"
+										justifyContent="SpaceBetween" wrap="Wrap">
+										<VBox>
+											<Title text="{apData>/welcome/greeting}" level="H2"/>
+											<Text text="{apData>/welcome/subtitle}" class="sapUiTinyMarginTop"/>
+										</VBox>
+										<HBox class="sapUiSmallMarginTopBottom">
+											<Button text="Upload invoice" icon="sap-icon://upload" press="onGoUpload"
+												visible="{apData>/permissions/processor}" class="apLightButton sapUiSmallMarginEnd"/>
+											<Button text="Approval queue ({= ${apData>/approvals}.length })" icon="sap-icon://approvals"
+												press="onGoQueue" visible="{apData>/permissions/approver}" class="apGhostButton"/>
 										</HBox>
-										<Table items="{apData>/cases}" noDataText="No cases found" fixedLayout="false">
-											<headerToolbar>
-												<OverflowToolbar>
-													<Title text="Cases" level="H3"/>
-													<ToolbarSpacer/>
-													<Select selectedKey="{apData>/statusFilter}" items="{apData>/statusOptions}"
-														change="onStatusFilterChange" width="14rem">
-														<core:Item key="{apData>key}" text="{apData>text}"/>
-													</Select>
-													<Button icon="sap-icon://refresh" tooltip="Refresh" press="onRefreshCases"/>
-												</OverflowToolbar>
-											</headerToolbar>
+									</HBox>
+									<HBox items="{apData>/kpiCards}" wrap="Wrap" class="apKpiRow sapUiMediumMarginBottom">
+										<VBox class="apKpi">
+											<customData>
+												<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+											</customData>
+											<HBox justifyContent="SpaceBetween" alignItems="Start">
+												<VBox>
+													<Text text="{apData>label}" class="apKpiLabel"/>
+													<Text text="{apData>value}" class="apKpiValue sapUiTinyMarginTop"/>
+												</VBox>
+												<VBox class="apKpiIcon" alignItems="Center" justifyContent="Center">
+													<core:Icon src="{apData>icon}" size="1.125rem"/>
+												</VBox>
+											</HBox>
+										</VBox>
+									</HBox>
+									<VBox class="apCard">
+										<!-- Wraps instead of overflowing, so the filter stays visible on narrow screens. -->
+										<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCardHeader">
+											<Title text="Cases" level="H3" class="apSectionTitle"/>
+											<HBox alignItems="Center">
+												<HBox items="{apData>/filterOptions}" wrap="Wrap" class="apFilter sapUiTinyMarginEnd">
+													<ToggleButton text="{apData>text}" pressed="{= ${apData>key} === ${apData>/statusFilter} }"
+														press="onStatusFilterPress" class="apFilterPill"/>
+												</HBox>
+												<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh" press="onRefreshCases"/>
+											</HBox>
+										</HBox>
+										<Table items="{apData>/cases}" fixedLayout="false" class="apTable">
+											<noData>
+												<IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
+													title="No cases here yet" description="Upload an invoice to start, or change the status filter."/>
+											</noData>
 											<columns>
 												<Column><Text text="Invoice"/></Column>
 												<Column><Text text="Supplier"/></Column>
-												<Column><Text text="Amount"/></Column>
-												<Column><Text text="Status"/></Column>
+												<Column hAlign="End"><Text text="Amount"/></Column>
+												<Column hAlign="Center"><Text text="Status"/></Column>
 												<Column><Text text="Created"/></Column>
 											</columns>
 											<items>
@@ -113,156 +112,190 @@
 													<cells>
 														<ObjectIdentifier title="{apData>id}"/>
 														<Text text="{apData>supplier}"/>
-														<Text text="{apData>amount}"/>
-														<ObjectStatus text="{apData>status}" state="{apData>state}"/>
+														<Text text="{apData>amount}" class="apAmount"/>
+														<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"/>
 														<Text text="{apData>date}"/>
 													</cells>
 												</ColumnListItem>
 											</items>
 										</Table>
 									</VBox>
-								</IconTabFilter>
-								<!-- Screen 2 — Invoice Upload -->
-								<IconTabFilter key="upload" text="Invoice Upload" icon="sap-icon://upload"
-									visible="{apData>/permissions/processor}">
-									<VBox class="sapUiLargeMargin" alignItems="Center">
-										<Title text="Invoice Processing" level="H2" class="sapUiMediumMarginBottom"/>
+								</VBox>
+							</Page>
+							<!-- Screen 2 — Invoice Upload -->
+							<Page id="uploadSection" showHeader="false" backgroundDesign="Transparent" class="apSection">
+								<VBox class="sapUiLargeMargin" alignItems="Center">
+									<Title text="Upload an invoice" level="H2" class="apSectionTitle sapUiTinyMarginBottom"/>
+									<Text text="The agents classify it (TOWER), extract the fields (LENS) and run the finance rules."
+										class="sapUiMediumMarginBottom"/>
+									<VBox class="apDropZone" alignItems="Center">
+										<core:Icon src="sap-icon://upload-to-cloud" size="3rem" class="apDropIcon sapUiSmallMarginBottom"/>
+										<Text text="PDF, PNG or JPEG · up to 20 MB" class="sapUiSmallMarginBottom"/>
 										<u:FileUploader id="fileUploader" fileType="pdf,png,jpg,jpeg" sameFilenameAllowed="true"
 											buttonText="Choose invoice" placeholder="Select a PDF, PNG or JPEG invoice"
-											style="Emphasized" width="30rem" change="onUploadChange"
+											style="Emphasized" width="26rem" change="onUploadChange"
 											enabled="{= !${apData>/busy} }"/>
-										<Text text="The invoice is uploaded and the agents (TOWER, LENS, rules) process it right away."
-											class="sapUiTinyMarginTop"/>
-										<VBox id="processingSection" visible="false" class="sapUiLargeMarginTop" width="60%">
-											<Text text="Processing status:" class="sapUiTinyMarginBottom"/>
-											<ProgressIndicator id="uploadProgress" percentValue="0" state="Information"/>
-										</VBox>
 									</VBox>
-								</IconTabFilter>
-								<!-- Screen 3 — Invoice Review -->
-								<IconTabFilter key="review" text="Invoice Review" icon="sap-icon://inspect">
-									<Toolbar style="Clear" visible="{apData>/selectedInvoice/hasCase}">
-										<Button text="Back to cases" icon="sap-icon://nav-back" type="Transparent" press="onNavBack"/>
-									</Toolbar>
-									<MessageStrip visible="{= !${apData>/selectedInvoice/hasCase} }" type="Information"
-										showIcon="true" class="sapUiMediumMargin"
-										text="Select a case on the Dashboard or upload an invoice to review it here."/>
-									<l:Splitter height="700px" visible="{apData>/selectedInvoice/hasCase}">
-										<VBox class="sapUiSmallMargin">
-											<layoutData>
-												<l:SplitterLayoutData size="40%" minSize="300"/>
-											</layoutData>
-											<Title text="Original document" level="H4" class="sapUiSmallMarginBottom"/>
-											<Panel headerText="{apData>/selectedInvoice/fileName}" backgroundDesign="Solid">
-												<VBox alignItems="Center" justifyContent="Center" class="sapUiLargeMarginTop sapUiLargeMarginBottom">
-													<core:Icon src="sap-icon://pdf-attachment" size="5rem" color="#0a6ed1"/>
-													<Text text="Supplier: {apData>/selectedInvoice/supplier}" class="sapUiSmallMarginTop"/>
-													<Text text="Uploaded by: {apData>/selectedInvoice/createdBy}"/>
-													<Text text="Last edited by: {apData>/selectedInvoice/editedBy}" class="sapUiSmallMarginBottom"/>
-													<Button text="Open document" icon="sap-icon://doc-attachment" type="Emphasized"
-														press="onOpenDocument" enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
+									<VBox visible="{apData>/upload/visible}" class="sapUiLargeMarginTop" alignItems="Center">
+										<HBox items="{apData>/uploadSteps}" class="apSteps sapUiSmallMarginBottom" wrap="Wrap">
+											<HBox class="apStep" alignItems="Center">
+												<customData>
+													<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+												</customData>
+												<VBox class="apStepDot sapUiSmallMarginEnd" alignItems="Center" justifyContent="Center">
+													<core:Icon src="{apData>icon}" size="0.875rem"/>
 												</VBox>
-											</Panel>
-										</VBox>
-										<!-- Placed directly in the Splitter: the ObjectPage fills its parent and needs a fixed height. -->
-										<uxap:ObjectPageLayout id="ObjectPageLayout" showTitleInHeaderContent="true">
-											<uxap:layoutData>
-												<l:SplitterLayoutData size="60%" minSize="300"/>
-											</uxap:layoutData>
-											<uxap:headerTitle>
-												<uxap:ObjectPageDynamicHeaderTitle>
-													<uxap:expandedHeading>
-														<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
-													</uxap:expandedHeading>
-													<uxap:snappedHeading>
-														<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
-													</uxap:snappedHeading>
-													<uxap:expandedContent>
-														<HBox alignItems="Center">
-															<Text text="Invoice: {apData>/selectedInvoice/id}" class="sapUiMediumMarginEnd"/>
-															<ObjectStatus text="{apData>/selectedInvoice/status}"
-																state="{apData>/selectedInvoice/statusState}" inverted="true"/>
-														</HBox>
-													</uxap:expandedContent>
-													<uxap:actions>
-														<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
-															press="onSaveCorrections" visible="{apData>/selectedInvoice/canEdit}"/>
-														<Button text="Approve" type="Success" press="onApproveInvoice"
-															visible="{apData>/selectedInvoice/canDecide}"/>
-														<Button text="Return" icon="sap-icon://undo" press="onReturnInvoice"
-															visible="{apData>/selectedInvoice/canDecide}"/>
-														<Button text="Reject" type="Reject" press="onRejectInvoice"
-															visible="{apData>/selectedInvoice/canDecide}"/>
-													</uxap:actions>
-												</uxap:ObjectPageDynamicHeaderTitle>
-											</uxap:headerTitle>
-											<uxap:sections>
-												<uxap:ObjectPageSection title="Agent Results">
-													<uxap:subSections>
-														<uxap:ObjectPageSubSection>
-															<VBox class="sapUiSmallMargin">
-																<MessageStrip text="{apData>/selectedInvoice/reviewReason}" type="Warning" showIcon="true"
-																	visible="{= !!${apData>/selectedInvoice/reviewReason} }" class="sapUiSmallMarginBottom"/>
-																<HBox class="sapUiSmallMarginBottom" wrap="Wrap">
-																	<ObjectStatus title="Document type" text="{apData>/selectedInvoice/documentType}" class="sapUiLargeMarginEnd"/>
-																	<ObjectStatus title="Classification confidence" text="{apData>/selectedInvoice/classificationConfidence}" class="sapUiLargeMarginEnd"/>
-																	<ObjectStatus title="Agent mode" text="{apData>/selectedInvoice/agentMode}"/>
-																</HBox>
-																<Title text="Checks" level="H5" class="sapUiTinyMarginBottom"/>
-																<HBox wrap="Wrap" class="sapUiSmallMarginBottom" items="{apData>/selectedInvoice/checks}">
-																	<ObjectStatus title="{apData>name}" text="{apData>value}" state="{apData>state}" class="sapUiLargeMarginEnd"/>
-																</HBox>
-																<Title text="Agent steps" level="H5" class="sapUiTinyMarginBottom"/>
-																<List items="{apData>/selectedInvoice/agentTrace}" noDataText="No agent steps recorded">
-																	<StandardListItem title="{apData>title}" description="{apData>description}"
-																		icon="sap-icon://ai" wrapping="true"/>
-																</List>
-																<Title text="Findings" level="H5" class="sapUiSmallMarginTop sapUiTinyMarginBottom"/>
-																<List items="{apData>/selectedInvoice/findings}" noDataText="No findings">
-																	<StandardListItem title="{apData>text}" icon="{apData>icon}" wrapping="true"/>
-																</List>
-															</VBox>
-														</uxap:ObjectPageSubSection>
-													</uxap:subSections>
-												</uxap:ObjectPageSection>
-												<uxap:ObjectPageSection title="Invoice Fields">
-													<uxap:subSections>
-														<uxap:ObjectPageSubSection>
-															<Table items="{apData>/selectedInvoice/fields}" fixedLayout="false">
-																<headerToolbar>
-																	<OverflowToolbar>
-																		<Text text="Fields can be corrected while the case needs review, was returned or failed processing."
-																			visible="{apData>/selectedInvoice/canEdit}"/>
-																	</OverflowToolbar>
-																</headerToolbar>
-																<columns>
-																	<Column><Text text="Field"/></Column>
-																	<Column><Text text="Value"/></Column>
-																</columns>
-																<items>
-																	<ColumnListItem>
-																		<cells>
-																			<Text text="{apData>field}"/>
-																			<Input value="{apData>value}" editable="{apData>/selectedInvoice/canEdit}"
-																				valueState="{= ${apData>needsAttention} ? 'Warning' : 'None' }"
-																				valueStateText="Required before approval"/>
-																		</cells>
-																	</ColumnListItem>
-																</items>
-															</Table>
-														</uxap:ObjectPageSubSection>
-													</uxap:subSections>
-												</uxap:ObjectPageSection>
-											</uxap:sections>
-										</uxap:ObjectPageLayout>
-									</l:Splitter>
-								</IconTabFilter>
-								<!-- Screen 4 — Approval Queue -->
-								<IconTabFilter key="approvals" text="Approval Queue" icon="sap-icon://approvals"
-									count="{= ${apData>/approvals}.length }">
-									<VBox class="sapUiMediumMargin">
-										<Title text="Invoices awaiting a decision" level="H3" class="sapUiSmallMarginBottom"/>
-										<Table items="{apData>/approvals}" noDataText="No invoices awaiting a decision" fixedLayout="false">
+												<VBox>
+													<Text text="{apData>title}" class="apTimelineTitle"/>
+													<Text text="{apData>text}" class="apTimelineMeta"/>
+												</VBox>
+											</HBox>
+										</HBox>
+										<ObjectStatus text="{apData>/upload/message}" state="{apData>/upload/state}" inverted="true"/>
+									</VBox>
+								</VBox>
+							</Page>
+							<!-- Screen 3 — Invoice Review -->
+							<Page id="reviewSection" showHeader="false" backgroundDesign="Transparent" class="apSection">
+								<Toolbar style="Clear" visible="{apData>/selectedInvoice/hasCase}">
+									<Button text="Back to cases" icon="sap-icon://nav-back" type="Transparent" press="onNavBack"
+										class="apBackLink"/>
+								</Toolbar>
+								<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
+									illustrationType="sapIllus-NoTasks" illustrationSize="Scene"
+									title="No invoice selected" description="Open a case from the Dashboard or upload an invoice to review it here."/>
+								<l:Splitter height="700px" visible="{apData>/selectedInvoice/hasCase}">
+									<VBox class="sapUiSmallMargin">
+										<layoutData>
+											<l:SplitterLayoutData size="38%" minSize="300"/>
+										</layoutData>
+										<Title text="Original document" level="H4" class="apSectionTitle sapUiSmallMarginBottom"/>
+										<Panel headerText="{apData>/selectedInvoice/fileName}" backgroundDesign="Solid" class="apDocPanel">
+											<VBox alignItems="Center" justifyContent="Center" class="sapUiLargeMarginTop sapUiLargeMarginBottom">
+												<core:Icon src="sap-icon://pdf-attachment" size="5rem" class="apDocIcon"/>
+												<Text text="Supplier: {apData>/selectedInvoice/supplier}" class="sapUiSmallMarginTop"/>
+												<Text text="Uploaded by: {apData>/selectedInvoice/createdBy}"/>
+												<Text text="Last edited by: {apData>/selectedInvoice/editedBy}" class="sapUiSmallMarginBottom"/>
+												<Button text="Open document" icon="sap-icon://doc-attachment" type="Emphasized"
+													press="onOpenDocument" enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
+											</VBox>
+										</Panel>
+									</VBox>
+									<!-- Placed directly in the Splitter: the ObjectPage fills its parent and needs a fixed height. -->
+									<uxap:ObjectPageLayout id="ObjectPageLayout" showTitleInHeaderContent="true">
+										<uxap:layoutData>
+											<l:SplitterLayoutData size="62%" minSize="300"/>
+										</uxap:layoutData>
+										<uxap:headerTitle>
+											<uxap:ObjectPageDynamicHeaderTitle>
+												<uxap:expandedHeading>
+													<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
+												</uxap:expandedHeading>
+												<uxap:snappedHeading>
+													<Title text="{apData>/selectedInvoice/supplier}" wrapping="true"/>
+												</uxap:snappedHeading>
+												<uxap:expandedContent>
+													<HBox alignItems="Center">
+														<Text text="Invoice: {apData>/selectedInvoice/id}" class="sapUiMediumMarginEnd"/>
+														<ObjectStatus text="{apData>/selectedInvoice/status}"
+															state="{apData>/selectedInvoice/statusState}" inverted="true"/>
+													</HBox>
+												</uxap:expandedContent>
+												<uxap:actions>
+													<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
+														press="onSaveCorrections" visible="{apData>/selectedInvoice/canEdit}"/>
+													<Button text="Approve" icon="sap-icon://accept" type="Success" press="onApproveInvoice"
+														visible="{apData>/selectedInvoice/canDecide}"/>
+													<Button text="Return" icon="sap-icon://undo" press="onReturnInvoice"
+														visible="{apData>/selectedInvoice/canDecide}"/>
+													<Button text="Reject" icon="sap-icon://decline" type="Reject" press="onRejectInvoice"
+														visible="{apData>/selectedInvoice/canDecide}"/>
+												</uxap:actions>
+											</uxap:ObjectPageDynamicHeaderTitle>
+										</uxap:headerTitle>
+										<uxap:sections>
+											<uxap:ObjectPageSection title="Agent Results">
+												<uxap:subSections>
+													<uxap:ObjectPageSubSection>
+														<VBox class="sapUiSmallMargin">
+															<MessageStrip text="{apData>/selectedInvoice/reviewReason}" type="Warning" showIcon="true"
+																visible="{= !!${apData>/selectedInvoice/reviewReason} }" class="sapUiSmallMarginBottom"/>
+															<HBox class="sapUiSmallMarginBottom" wrap="Wrap">
+																<ObjectStatus title="Document type" text="{apData>/selectedInvoice/documentType}" class="sapUiLargeMarginEnd"/>
+																<ObjectStatus title="Classification confidence" text="{apData>/selectedInvoice/classificationConfidence}" class="sapUiLargeMarginEnd"/>
+																<ObjectStatus title="Agent mode" text="{apData>/selectedInvoice/agentMode}"/>
+															</HBox>
+															<Title text="Checks" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+															<HBox wrap="Wrap" class="apChips sapUiSmallMarginBottom" items="{apData>/selectedInvoice/checks}">
+																<ObjectStatus text="{apData>name}: {apData>value}" state="{apData>state}" inverted="true"/>
+															</HBox>
+															<Title text="Agent steps" level="H5" class="apSectionTitle sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+															<List items="{apData>/selectedInvoice/agentTrace}" showSeparators="None" class="apTimeline"
+																noDataText="No agent steps recorded">
+																<CustomListItem>
+																	<VBox class="apTimelineItem">
+																		<customData>
+																			<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+																		</customData>
+																		<VBox class="apTimelineDot" alignItems="Center" justifyContent="Center">
+																			<core:Icon src="{apData>icon}" size="0.75rem"/>
+																		</VBox>
+																		<Text text="{apData>title}" class="apTimelineTitle"/>
+																		<Text text="{apData>description}" class="apTimelineText"/>
+																		<Text text="{apData>meta}" class="apTimelineMeta"/>
+																	</VBox>
+																</CustomListItem>
+															</List>
+															<Title text="Findings" level="H5" class="apSectionTitle sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+															<List items="{apData>/selectedInvoice/findings}" noDataText="No findings">
+																<StandardListItem title="{apData>text}" icon="{apData>icon}" wrapping="true"/>
+															</List>
+														</VBox>
+													</uxap:ObjectPageSubSection>
+												</uxap:subSections>
+											</uxap:ObjectPageSection>
+											<uxap:ObjectPageSection title="Invoice Fields">
+												<uxap:subSections>
+													<uxap:ObjectPageSubSection>
+														<Table items="{apData>/selectedInvoice/fields}" fixedLayout="false" class="apTable apFieldsTable">
+															<headerToolbar>
+																<OverflowToolbar>
+																	<Text text="Fields can be corrected while the case needs review, was returned or failed processing."
+																		visible="{apData>/selectedInvoice/canEdit}"/>
+																</OverflowToolbar>
+															</headerToolbar>
+															<columns>
+																<Column><Text text="Field"/></Column>
+																<Column><Text text="Value"/></Column>
+															</columns>
+															<items>
+																<ColumnListItem>
+																	<cells>
+																		<Text text="{apData>field}"/>
+																		<Input value="{apData>value}" editable="{apData>/selectedInvoice/canEdit}"
+																			valueState="{= ${apData>needsAttention} ? 'Warning' : 'None' }"
+																			valueStateText="Required before approval"/>
+																	</cells>
+																</ColumnListItem>
+															</items>
+														</Table>
+													</uxap:ObjectPageSubSection>
+												</uxap:subSections>
+											</uxap:ObjectPageSection>
+										</uxap:sections>
+									</uxap:ObjectPageLayout>
+								</l:Splitter>
+							</Page>
+							<!-- Screen 4 — Approval Queue -->
+							<Page id="approvalsSection" showHeader="false" backgroundDesign="Transparent" class="apSection">
+								<VBox class="sapUiMediumMargin">
+									<Title text="Invoices awaiting a decision" level="H3" class="apSectionTitle sapUiSmallMarginBottom"/>
+									<VBox class="apCard">
+										<Table items="{apData>/approvals}" fixedLayout="false" class="apTable">
+											<noData>
+												<IllustratedMessage illustrationType="sapIllus-NoTasks" illustrationSize="Spot"
+													title="Nothing waiting for a decision" description="Invoices that need review or were returned show up here."/>
+											</noData>
 											<columns>
 												<Column hAlign="Center"><Text text="Invoice"/></Column>
 												<Column hAlign="Center"><Text text="Supplier"/></Column>
@@ -276,36 +309,51 @@
 													<cells>
 														<ObjectIdentifier title="{apData>id}"/>
 														<Text text="{apData>supplier}"/>
-														<Text text="{apData>amount}"/>
-														<ObjectStatus text="{apData>status}" state="{apData>state}"/>
+														<Text text="{apData>amount}" class="apAmount"/>
+														<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"/>
 														<Text text="{apData>editedBy}"/>
 														<HBox justifyContent="Center" wrap="NoWrap">
-															<Button text="Approve" type="Success" class="sapUiTinyMarginEnd" press="onApproveInvoice"/>
-															<Button text="Return" class="sapUiTinyMarginEnd" press="onReturnInvoice"/>
-															<Button text="Reject" type="Reject" press="onRejectInvoice"/>
+															<Button text="Approve" icon="sap-icon://accept" type="Success" class="sapUiTinyMarginEnd" press="onApproveInvoice"/>
+															<Button text="Return" icon="sap-icon://undo" class="sapUiTinyMarginEnd" press="onReturnInvoice"/>
+															<Button text="Reject" icon="sap-icon://decline" type="Reject" press="onRejectInvoice"/>
 														</HBox>
 													</cells>
 												</ColumnListItem>
 											</items>
 										</Table>
 									</VBox>
-								</IconTabFilter>
-								<!-- Screen 5 — Audit Trail of the selected case -->
-								<IconTabFilter key="audit" text="Audit Trail" icon="sap-icon://history">
-									<VBox class="sapUiMediumMargin">
-										<Title text="History of invoice {apData>/selectedInvoice/id}" level="H3"
-											class="sapUiMediumMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
-										<List items="{apData>/auditTrail}"
-											noDataText="Select a case on the Dashboard to see its history">
-											<StandardListItem title="{apData>title}" description="{apData>description}"
-												info="{apData>actor} · {apData>time}" icon="sap-icon://activity-items" wrapping="true"/>
+								</VBox>
+							</Page>
+							<!-- Screen 5 — Audit Trail of the selected case -->
+							<Page id="auditSection" showHeader="false" backgroundDesign="Transparent" class="apSection">
+								<VBox class="sapUiMediumMargin">
+									<Title text="History of invoice {apData>/selectedInvoice/id}" level="H3"
+										class="apSectionTitle sapUiMediumMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
+									<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
+										illustrationType="sapIllus-NoActivities" illustrationSize="Scene"
+										title="No case selected" description="Open a case from the Dashboard to see its full history."/>
+									<VBox class="apCard sapUiSmallMarginBottom" visible="{apData>/selectedInvoice/hasCase}">
+										<List items="{apData>/auditTrail}" showSeparators="None" class="apTimeline sapUiSmallMargin">
+											<CustomListItem>
+												<VBox class="apTimelineItem">
+													<customData>
+														<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+													</customData>
+													<VBox class="apTimelineDot" alignItems="Center" justifyContent="Center">
+														<core:Icon src="{apData>icon}" size="0.75rem"/>
+													</VBox>
+													<Text text="{apData>title}" class="apTimelineTitle"/>
+													<Text text="{apData>description}" class="apTimelineText" visible="{= !!${apData>description} }"/>
+													<Text text="{apData>meta}" class="apTimelineMeta"/>
+												</VBox>
+											</CustomListItem>
 										</List>
 									</VBox>
-								</IconTabFilter>
-							</items>
-						</IconTabBar>
-					</content>
-				</Page>
+								</VBox>
+							</Page>
+						</NavContainer>
+					</tnt:mainContents>
+				</tnt:ToolPage>
 			</pages>
 		</App>
 	</Shell>

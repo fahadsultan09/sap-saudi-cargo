@@ -1,58 +1,679 @@
 /* ==========================================================================
-   Saudi Cargo Fiori Horizon Header Branding
+   Saudi Cargo AP Console: design tokens
    ========================================================================== */
 
-.saudiCargoHeaderBar {
-    height: 64px !important;
-    background: #ffffff !important;
-    border-bottom: 3px solid #C49A45 !important; /* Saudi Cargo Gold Accent */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+:root {
+    --ap-navy: #002B49;
+    --ap-navy-2: #0B3D63;
+    --ap-accent: #4FB6F0;
+    --ap-accent-soft: #EEF6FD;
+    --ap-bg: #F3F5F8;
+    --ap-card: #FFFFFF;
+    --ap-border: #E2E8F0;
+    --ap-text: #0F172A;
+    --ap-muted: #4B5D6E;
+    --ap-info: #1D6FDC;
+    --ap-success: #188A42;
+    --ap-warning: #B25E09;
+    --ap-error: #C62828;
+    --ap-radius: 12px;
+    --ap-radius-sm: 8px;
+    --ap-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.05);
+    --ap-shadow-hover: 0 4px 10px rgba(15, 23, 42, 0.08), 0 12px 28px rgba(15, 23, 42, 0.10);
+    --ap-fast: 150ms;
+    --ap-base: 250ms;
+    --ap-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Logo Alignment */
-.saudiCargoHeaderLogo {
-    object-fit: contain;
-    vertical-align: middle;
+/* ==========================================================================
+   Page and header
+   ========================================================================== */
+
+.apPage .sapTntToolPageMain,
+.apSection > section {
+    background: var(--ap-bg);
 }
 
-/* Brand Title */
-.saudiCargoBrandTitle {
-    color: #002B49 !important; /* Saudi Cargo Navy Blue */
-    font-weight: 800 !important;
-    font-size: 1.25rem !important;
-    letter-spacing: 0.8px !important;
+.apHeader.sapTntToolHeader {
+    background: linear-gradient(100deg, var(--ap-navy) 0%, var(--ap-navy-2) 100%);
+    border-bottom: 2px solid var(--ap-accent);
+    box-shadow: 0 2px 10px rgba(0, 43, 73, 0.25);
 }
 
-/* Subtitle */
-.saudiCargoSubTitle {
-    color: #556B7D !important;
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
+.apMenuButton .sapMBtnInner {
+    background: transparent;
+    border-color: transparent;
 }
 
-/* System Tag */
-.saudiCargoTag .sapMObjStatusText {
-    font-size: 0.65rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.5px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background-color: #EBF3FA;
+.apMenuButton:hover .sapMBtnInner {
+    background: rgba(255, 255, 255, 0.12);
 }
 
-/* User Profile Styling */
-.saudiCargoUserName {
-    color: #002B49 !important;
-    font-weight: 700 !important;
-    font-size: 0.875rem !important;
+.apHeader.sapTntToolHeader .apMenuButton.sapMBtn .sapMBtnInner.sapMBtnTransparent .sapMBtnIcon {
+    color: #FFFFFF;
 }
 
-.saudiCargoUserRole {
-    color: #6A6D70 !important;
-    font-size: 0.75rem !important;
+.apLogo {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    background: #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* Avatar Styling */
-.saudiCargoAvatar {
-    border: 2px solid #C49A45 !important;
+.apLogo .sapUiIcon {
+    color: var(--ap-navy);
+}
+
+/* The Bar gives children its full line height; the stacked title and subtitle need a normal one. */
+.apHeader .sapMFlexBox,
+.apHeader .sapMFlexItem,
+.apBrandTitle.sapMTitle,
+.apBrandSubtitle.sapMText,
+.apHeader .sapMText {
+    line-height: 1.25;
+}
+
+.apBrandTitle.sapMTitle {
+    color: #FFFFFF;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.apBrandSubtitle.sapMText {
+    color: #9CD3F5;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.apHeaderName.sapMText {
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.apHeaderRole.sapMText {
+    color: #9CD3F5;
+    font-size: 0.75rem;
+}
+
+.apProfileAvatar.sapFAvatar {
+    cursor: pointer;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
+    transition: box-shadow var(--ap-fast) var(--ap-ease), transform var(--ap-fast) var(--ap-ease);
+}
+
+.apProfileAvatar.sapFAvatar:hover,
+.apProfileAvatar.sapFAvatar:focus-visible {
+    box-shadow: 0 0 0 3px var(--ap-accent);
+    transform: scale(1.06);
+    outline: none;
+}
+
+/* Profile menu */
+
+.apProfileMenu.sapMPopover {
+    border-radius: var(--ap-radius);
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0, 43, 73, 0.25);
+}
+
+.apProfileHead {
+    padding: 1.25rem 1rem 1rem;
+    background: linear-gradient(110deg, var(--ap-navy) 0%, #0E4B7A 100%);
+}
+
+.apProfileHead .sapMTitle {
+    color: #FFFFFF;
+}
+
+.apProfileHead .sapMText {
+    color: #9CD3F5;
+    font-size: 0.8125rem;
+}
+
+.apProfileHead .sapFAvatar {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
+}
+
+.apProfileSection.sapMText {
+    display: block;
+    padding: 0.875rem 1rem 0.25rem;
+    color: var(--ap-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.apProfileList.sapMList {
+    padding: 0 0.5rem 0.5rem;
+}
+
+.apProfileList .sapMLIB {
+    border-radius: var(--ap-radius-sm);
+    transition: background var(--ap-fast) var(--ap-ease);
+}
+
+.apProfileList .sapMLIB.sapMLIBTypeActive:hover {
+    background: var(--ap-accent-soft);
+}
+
+.apProfileItem {
+    width: 100%;
+    padding: 0.5rem 0.25rem;
+}
+
+.apProfileName.sapMText {
+    color: var(--ap-text);
+    font-weight: 600;
+}
+
+.apProfileRole.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.8125rem;
+}
+
+.apProfileCheck.sapUiIcon {
+    color: var(--ap-success);
+}
+
+/* ==========================================================================
+   Side navigation and section transitions
+   ========================================================================== */
+
+.apSideNav.sapTntSideNavigation {
+    background: var(--ap-card);
+    border-right: 1px solid var(--ap-border);
+    box-shadow: 2px 0 8px rgba(15, 23, 42, 0.04);
+}
+
+/* NavContainer shows a section by un-hiding it, which replays this entrance animation. */
+.apSection .sapMPageEnableScrolling > * {
+    animation: apFadeUp var(--ap-base) var(--ap-ease) both;
+}
+
+@keyframes apFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes apPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(29, 111, 220, 0.45);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(29, 111, 220, 0);
+    }
+}
+
+/* ==========================================================================
+   Cards, welcome strip, KPIs
+   ========================================================================== */
+
+.apCard {
+    background: var(--ap-card);
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius);
+    box-shadow: var(--ap-shadow);
+    overflow: hidden;
+}
+
+.apWelcome {
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--ap-radius);
+    background:
+        radial-gradient(circle at 92% 20%, rgba(79, 182, 240, 0.28), transparent 40%),
+        linear-gradient(110deg, var(--ap-navy) 0%, #0E4B7A 100%);
+    box-shadow: var(--ap-shadow);
+}
+
+.apWelcome .sapMTitle {
+    color: #FFFFFF;
+    font-size: 1.5rem;
+}
+
+.apWelcome .sapMText {
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.apWelcome .sapMBtn .sapMBtnInner {
+    border-radius: 999px;
+    transition: transform var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease);
+}
+
+.apWelcome .sapMBtn:hover .sapMBtnInner {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+.apLightButton .sapMBtnInner {
+    background: #FFFFFF;
+    border-color: #FFFFFF;
+    color: var(--ap-navy);
+}
+
+.apLightButton .sapMBtnInner .sapMBtnIcon,
+.apLightButton .sapMBtnInner .sapMBtnContent {
+    color: var(--ap-navy);
+    font-weight: 700;
+}
+
+.apGhostButton .sapMBtnInner {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.apGhostButton .sapMBtnInner .sapMBtnIcon,
+.apGhostButton .sapMBtnInner .sapMBtnContent {
+    color: #FFFFFF;
+}
+
+/* A grid instead of the HBox flex so the KPI cards share the row width equally (5, 3 or 2 per row). */
+.apKpiRow.sapMFlexBox {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+}
+
+.apKpi {
+    position: relative;
+    box-sizing: border-box;
+    height: 100%;
+    padding: 1rem 1.125rem;
+    background: var(--ap-card);
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius);
+    box-shadow: var(--ap-shadow);
+    overflow: hidden;
+    transition: transform var(--ap-base) var(--ap-ease), box-shadow var(--ap-base) var(--ap-ease);
+    animation: apFadeUp 350ms var(--ap-ease) both;
+}
+
+/* Short coloured accent line that sweeps across the full card on hover. */
+.apKpi::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--ap-tone, var(--ap-navy));
+    transform: scaleX(0.22);
+    transform-origin: left;
+    transition: transform 400ms var(--ap-ease), height var(--ap-base) var(--ap-ease);
+}
+
+.apKpi:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--ap-shadow-hover);
+}
+
+.apKpi:hover::before {
+    height: 5px;
+    transform: scaleX(1);
+}
+
+.apKpi:hover .apKpiIcon {
+    transform: scale(1.1);
+}
+
+.apKpiRow > :nth-child(2) .apKpi { animation-delay: 60ms; }
+.apKpiRow > :nth-child(3) .apKpi { animation-delay: 120ms; }
+.apKpiRow > :nth-child(4) .apKpi { animation-delay: 180ms; }
+.apKpiRow > :nth-child(5) .apKpi { animation-delay: 240ms; }
+
+.apKpi[data-tone="navy"] { --ap-tone: var(--ap-navy); }
+.apKpi[data-tone="info"] { --ap-tone: var(--ap-info); }
+.apKpi[data-tone="warning"] { --ap-tone: var(--ap-warning); }
+.apKpi[data-tone="success"] { --ap-tone: var(--ap-success); }
+.apKpi[data-tone="error"] { --ap-tone: var(--ap-error); }
+
+.apKpiIcon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--ap-tone, var(--ap-navy)) 12%, white);
+    transition: transform var(--ap-base) var(--ap-ease);
+}
+
+.apKpiIcon .sapUiIcon {
+    color: var(--ap-tone, var(--ap-navy));
+}
+
+.apKpiValue.sapMText {
+    color: var(--ap-text);
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.apKpiLabel.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Tables and lists
+   ========================================================================== */
+
+.apTable.sapMList {
+    border-radius: var(--ap-radius);
+    overflow: hidden;
+}
+
+/* All header cells, including the navigation-arrow column, which has no sapMListTblHeaderCell class. */
+.apTable .sapMListTblHeader > th {
+    background: #F8FAFC;
+    color: var(--ap-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.4px;
+}
+
+.apTable .sapMLIB {
+    transition: background var(--ap-fast) var(--ap-ease);
+}
+
+.apTable .sapMLIB.sapMLIBTypeNavigation:hover,
+.apTable .sapMListTblRow:hover {
+    background: var(--ap-accent-soft);
+}
+
+.apTable .sapMObjectIdentifierTitle .sapMText,
+.apTable .sapMObjectIdentifierTitle {
+    color: var(--ap-navy);
+    font-weight: 700;
+}
+
+.apTable .sapMObjStatus,
+.apTable .sapMObjStatusText {
+    white-space: nowrap;
+}
+
+.apCardHeader {
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--ap-border);
+}
+
+/* Case filter: one pill per status group, the active one filled navy. */
+.apFilter {
+    gap: 0.375rem;
+}
+
+.apFilterPill.sapMBtn .sapMBtnInner {
+    border: 1px solid var(--ap-border);
+    border-radius: 999px;
+    background: var(--ap-card);
+}
+
+.apFilterPill.sapMBtn .sapMBtnInner .sapMBtnContent {
+    color: var(--ap-muted);
+    font-weight: 600;
+}
+
+.apFilterPill.sapMBtn .sapMBtnInner.sapMBtnHoverable:not(.sapMToggleBtnPressed):hover {
+    border-color: var(--ap-navy);
+    background: var(--ap-accent-soft);
+}
+
+.apFilterPill.sapMBtn .sapMBtnInner.sapMToggleBtnPressed,
+.apFilterPill.sapMBtn .sapMBtnInner.sapMBtnHoverable.sapMToggleBtnPressed:hover {
+    border-color: var(--ap-navy);
+    background: var(--ap-navy);
+    box-shadow: 0 2px 6px rgba(0, 43, 73, 0.25);
+}
+
+.apFilterPill.sapMBtn .sapMBtnInner.sapMToggleBtnPressed .sapMBtnContent,
+.apFilterPill.sapMBtn .sapMBtnInner.sapMBtnHoverable.sapMToggleBtnPressed:hover .sapMBtnContent {
+    color: #FFFFFF;
+}
+
+.apAmount.sapMText {
+    font-weight: 700;
+    color: var(--ap-text);
+}
+
+.apSectionTitle.sapMTitle {
+    color: var(--ap-navy);
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   Upload
+   ========================================================================== */
+
+.apDropZone {
+    width: 34rem;
+    max-width: 100%;
+    padding: 2rem 1.5rem;
+    border: 2px dashed #B8C4D2;
+    border-radius: var(--ap-radius);
+    background: var(--ap-card);
+    transition: border-color var(--ap-base) var(--ap-ease), background var(--ap-base) var(--ap-ease),
+        transform var(--ap-base) var(--ap-ease);
+}
+
+.apDropZone:hover,
+.apDropZone:focus-within {
+    border-color: var(--ap-info);
+    background: #F2F7FE;
+    transform: translateY(-2px);
+}
+
+.apDropIcon .sapUiIcon,
+.apDropIcon.sapUiIcon {
+    color: var(--ap-navy);
+}
+
+.apSteps {
+    gap: 0.75rem;
+}
+
+.apStep {
+    min-width: 10rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-card);
+    transition: border-color var(--ap-base) var(--ap-ease), background var(--ap-base) var(--ap-ease);
+}
+
+.apStepDot {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: #E2E8F0;
+}
+
+.apStepDot .sapUiIcon {
+    color: #FFFFFF;
+}
+
+.apStep[data-state="active"] { border-color: var(--ap-info); background: #F2F7FE; }
+.apStep[data-state="active"] .apStepDot { background: var(--ap-info); animation: apPulse 1.4s ease-in-out infinite; }
+.apStep[data-state="done"] { border-color: #BFE3CC; background: #F2FBF5; }
+.apStep[data-state="done"] .apStepDot { background: var(--ap-success); }
+.apStep[data-state="error"] { border-color: #F2C4C4; background: #FDF3F3; }
+.apStep[data-state="error"] .apStepDot { background: var(--ap-error); }
+
+/* ==========================================================================
+   Review, timelines and chips
+   ========================================================================== */
+
+.apBackLink .sapMBtnInner .sapMBtnContent,
+.apBackLink .sapMBtnInner .sapMBtnIcon {
+    color: var(--ap-navy);
+    font-weight: 600;
+}
+
+.apDocPanel.sapMPanel {
+    border-radius: var(--ap-radius);
+    overflow: hidden;
+    box-shadow: var(--ap-shadow);
+}
+
+.apDocIcon.sapUiIcon {
+    color: var(--ap-navy);
+    transition: transform var(--ap-base) var(--ap-ease);
+}
+
+.apDocPanel:hover .apDocIcon.sapUiIcon {
+    transform: scale(1.06);
+}
+
+.apChips {
+    gap: 0.5rem;
+}
+
+.apTimeline .sapMLIB {
+    position: relative;
+    border-bottom: none;
+    background: transparent;
+}
+
+.apTimelineItem {
+    position: relative;
+    padding: 0.25rem 0 1rem 2.25rem;
+}
+
+.apTimelineItem::before {
+    content: "";
+    position: absolute;
+    left: 0.6875rem;
+    top: 1.5rem;
+    bottom: -0.5rem;
+    width: 2px;
+    background: var(--ap-border);
+}
+
+.apTimeline .sapMLIB:last-child .apTimelineItem::before {
+    display: none;
+}
+
+.apTimelineDot {
+    position: absolute;
+    left: 0;
+    top: 0.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--ap-tone, var(--ap-info));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ap-tone, var(--ap-info)) 18%, white);
+}
+
+.apTimelineDot .sapUiIcon {
+    color: #FFFFFF;
+}
+
+.apTimelineItem[data-tone="info"] { --ap-tone: var(--ap-info); }
+.apTimelineItem[data-tone="success"] { --ap-tone: var(--ap-success); }
+.apTimelineItem[data-tone="warning"] { --ap-tone: var(--ap-warning); }
+.apTimelineItem[data-tone="error"] { --ap-tone: var(--ap-error); }
+
+.apTimelineTitle.sapMText {
+    color: var(--ap-text);
+    font-weight: 700;
+}
+
+.apTimelineText.sapMText {
+    color: var(--ap-text);
+}
+
+.apTimelineMeta.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.8125rem;
+}
+
+.apFieldsTable .sapMInputBaseContentWrapper {
+    border-radius: var(--ap-radius-sm);
+    transition: box-shadow var(--ap-fast) var(--ap-ease), border-color var(--ap-fast) var(--ap-ease);
+}
+
+.apFieldsTable .sapMInputBaseContentWrapper:focus-within {
+    border-color: var(--ap-info);
+    box-shadow: 0 0 0 3px rgba(29, 111, 220, 0.20);
+}
+
+/* ==========================================================================
+   Dialogs, buttons, focus, motion preferences
+   ========================================================================== */
+
+.apDialog.sapMDialog {
+    border-radius: var(--ap-radius);
+    box-shadow: 0 20px 50px rgba(0, 43, 73, 0.30);
+    overflow: hidden;
+}
+
+.apDialog .sapMDialogTitleGroup,
+.apDialog .sapMIBar.sapMHeader-CTX {
+    background: var(--ap-navy);
+}
+
+.apDialog .sapMDialogTitleGroup .sapMTitle,
+.apDialog .sapMIBar.sapMHeader-CTX .sapMTitle {
+    color: #FFFFFF;
+}
+
+.sapMBtn .sapMBtnInner {
+    transition: transform var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease),
+        background var(--ap-fast) var(--ap-ease);
+}
+
+.sapMBtn:active .sapMBtnInner {
+    transform: scale(0.97);
+}
+
+.apPage .sapMBtn:focus-visible .sapMBtnInner,
+.apPage .sapMSlt:focus-visible {
+    outline: 2px solid var(--ap-info);
+    outline-offset: 2px;
+}
+
+.sapMMessageToast {
+    border-radius: 999px;
+    background: var(--ap-navy);
+    color: #FFFFFF;
+    box-shadow: 0 10px 24px rgba(0, 43, 73, 0.35);
+}
+
+@media (max-width: 1080px) {
+    .apKpiRow.sapMFlexBox {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .apKpiRow.sapMFlexBox {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 1024px) {
+    .apStep {
+        min-width: 0;
+        flex: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+    }
 }

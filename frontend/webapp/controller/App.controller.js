@@ -22,6 +22,14 @@ sap.ui.define([
     var PROCESSOR_ROLES = ["AP_PROCESSOR", "ADMIN"];
     var APPROVER_ROLES = ["AP_APPROVER", "FINANCE_MANAGER"];
 
+    // Status groups shared by the KPI cards and the case filter on the dashboard.
+    var CASE_GROUPS = [
+        { key: "processing", label: "In progress", statuses: PROCESSING_STATUSES, icon: "sap-icon://process", tone: "info" },
+        { key: "review", label: "Needs review", statuses: REVIEW_STATUSES, icon: "sap-icon://inspect", tone: "warning" },
+        { key: "approved", label: "Approved", statuses: APPROVED_STATUSES, icon: "sap-icon://accept", tone: "success" },
+        { key: "rejected", label: "Rejected", statuses: ["REJECTED"], icon: "sap-icon://decline", tone: "error" }
+    ];
+
     var STATUS_LABELS = {
         RECEIVED: "Received",
         PROCESSING: "Agents processing",
@@ -66,6 +74,30 @@ sap.ui.define([
 
     var CHECK_LABELS = { vendor: "Vendor", po: "Purchase order", tax: "Tax", duplicate: "Duplicate" };
 
+    var ROLE_LABELS = {
+        AP_PROCESSOR: "AP Processor",
+        AP_APPROVER: "AP Approver",
+        FINANCE_MANAGER: "Finance Manager",
+        ADMIN: "Administrator"
+    };
+
+    // Timeline colour and icon per audit event type; anything else is shown as information.
+    var EVENT_TONES = {
+        FIELDS_CORRECTED: ["warning", "sap-icon://edit"],
+        APPROVAL_APPROVED: ["success", "sap-icon://accept"],
+        APPROVAL_RETURNED: ["warning", "sap-icon://undo"],
+        APPROVAL_REJECTED: ["error", "sap-icon://decline"],
+        APPROVAL_REJECTD: ["error", "sap-icon://decline"],
+        POSTING_WAITING_FOR_INTEGRATION: ["info", "sap-icon://pending"],
+        CASE_UPLOADED: ["info", "sap-icon://upload"]
+    };
+
+    var UPLOAD_STEPS = [
+        { title: "Uploaded", text: "File received", icon: "sap-icon://upload" },
+        { title: "Agents processing", text: "TOWER, LENS and rules", icon: "sap-icon://ai" },
+        { title: "Ready for review", text: "Case opened", icon: "sap-icon://inspect" }
+    ];
+
     // Readable audit-trail titles per agentic API event type.
     var EVENT_TITLES = {
         CASE_UPLOADED: "Invoice uploaded",
@@ -89,16 +121,17 @@ sap.ui.define([
 
         _emptyData: function () {
             return {
+                section: "dashboard",
                 currentUser: {},
+                profiles: [],
+                welcome: {},
                 busy: false,
+                kpiCards: [],
+                upload: { visible: false, message: "", state: "None" },
+                uploadSteps: this._uploadSteps(-1, false),
                 permissions: { processor: false, approver: false },
-                kpis: { total: 0, processing: 0, review: 0, approved: 0, rejected: 0 },
                 statusFilter: "",
-                statusOptions: [{ key: "", text: "All statuses" }].concat(
-                    Object.keys(STATUS_LABELS).map(function (sKey) {
-                        return { key: sKey, text: STATUS_LABELS[sKey] };
-                    })
-                ),
+                filterOptions: [],
                 allCases: [],
                 cases: [],
                 approvals: [],
@@ -126,17 +159,64 @@ sap.ui.define([
 
         // ---------------------------------------------------------------- users
 
-        // A user switch acts like a new sign-in: close the open case and return to the dashboard.
-        onUserChange: function () {
+        onOpenProfileMenu: function (oEvent) {
+            var that = this;
+            var oAvatar = oEvent.getSource();
+            if (this._data().getProperty("/busy")) {
+                MessageToast.show("Please wait until the current action finishes.");
+                return;
+            }
+            if (!this._profileMenu) {
+                this._profileMenu = Fragment.load({
+                    id: this.getView().getId(),
+                    name: "saudicargo.ap.automation.view.fragments.ProfileMenu",
+                    controller: this
+                }).then(function (oPopover) {
+                    that.getView().addDependent(oPopover);
+                    return oPopover;
+                });
+            }
+            this._profileMenu.then(function (oPopover) {
+                oPopover.openBy(oAvatar);
+            });
+        },
+
+        // A profile switch acts like a new sign-in: close the open case and return to the dashboard.
+        onProfileSelect: function (oEvent) {
+            var oProfile = oEvent.getParameter("listItem").getBindingContext("apData").getObject();
+            this.byId("profileMenu").close();
+            this._configModel().setProperty("/currentUserId", oProfile.id);
             this._data().setProperty("/selectedCaseId", "");
             this._revokeDocumentBlob();
-            this.byId("idIconTabBar").setSelectedKey("dashboard");
+            this._showSection("dashboard");
             this._refreshAll();
+            MessageToast.show("Switched to " + oProfile.name);
+        },
+
+        _profile: function (oUser, sCurrentId) {
+            return Object.assign({
+                initials: (oUser.name || "?").slice(0, 2).toUpperCase(),
+                avatarColor: APPROVER_ROLES.indexOf(oUser.role) >= 0 ? "Accent8" : "Accent6",
+                roleLabel: ROLE_LABELS[oUser.role] || oUser.role,
+                current: oUser.id === sCurrentId
+            }, oUser);
         },
 
         _applyCurrentUser: function () {
-            var oUser = api.currentUser(this._configModel().getData());
+            var oConfig = this._configModel().getData();
+            var oUser = this._profile(api.currentUser(oConfig), oConfig.currentUserId);
+            var iHour = new Date().getHours();
+            var sGreeting = iHour < 12 ? "Good morning" : (iHour < 18 ? "Good afternoon" : "Good evening");
             this._data().setProperty("/currentUser", oUser);
+            this._data().setProperty("/profiles", (oConfig.users || []).map(function (oItem) {
+                return this._profile(oItem, oUser.id);
+            }, this));
+            this._data().setProperty("/welcome", {
+                greeting: sGreeting + ", " + oUser.name,
+                subtitle: oUser.roleLabel + " · " + new Date().toLocaleDateString("en-GB", {
+                    weekday: "long", day: "numeric", month: "long", year: "numeric"
+                })
+            });
             this._data().setProperty("/permissions", {
                 processor: PROCESSOR_ROLES.indexOf(oUser.role) >= 0,
                 approver: APPROVER_ROLES.indexOf(oUser.role) >= 0
@@ -154,14 +234,28 @@ sap.ui.define([
             }
         },
 
-        onTabSelect: function (oEvent) {
-            if (["dashboard", "approvals"].indexOf(oEvent.getParameter("key")) >= 0) {
+        // ------------------------------------------------------------ navigation
+
+        onToggleSideNav: function () {
+            var oToolPage = this.byId("toolPage");
+            oToolPage.setSideExpanded(!oToolPage.getSideExpanded());
+        },
+
+        onSectionSelect: function (oEvent) {
+            var sKey = oEvent.getParameter("item").getKey();
+            this._showSection(sKey);
+            if (["dashboard", "approvals"].indexOf(sKey) >= 0) {
                 this._loadCases();
             }
         },
 
+        _showSection: function (sKey) {
+            this._data().setProperty("/section", sKey);
+            this.byId("sections").to(this.byId(sKey + "Section"));
+        },
+
         onNavBack: function () {
-            this.byId("idIconTabBar").setSelectedKey("dashboard");
+            this._showSection("dashboard");
             this._loadCases();
         },
 
@@ -171,7 +265,11 @@ sap.ui.define([
             this._loadCases();
         },
 
-        onStatusFilterChange: function () {
+        onStatusFilterPress: function (oEvent) {
+            var oButton = oEvent.getSource();
+            // Pressing the active filter again must not switch it off.
+            oButton.setPressed(true);
+            this._data().setProperty("/statusFilter", oButton.getBindingContext("apData").getProperty("key"));
             this._applyStatusFilter();
         },
 
@@ -180,13 +278,19 @@ sap.ui.define([
             var that = this;
             return this._call("GET", "/api/v1/cases?limit=" + CASE_LIST_LIMIT).then(function (oList) {
                 var aCases = oList.items || [];
-                that._data().setProperty("/kpis", {
-                    total: aCases.length,
-                    processing: that._countStatuses(aCases, PROCESSING_STATUSES),
-                    review: that._countStatuses(aCases, REVIEW_STATUSES),
-                    approved: that._countStatuses(aCases, APPROVED_STATUSES),
-                    rejected: that._countStatuses(aCases, ["REJECTED"])
+                var aGroups = CASE_GROUPS.map(function (oGroup) {
+                    return Object.assign({ count: that._countStatuses(aCases, oGroup.statuses) }, oGroup);
                 });
+                that._data().setProperty("/kpiCards", [
+                    { label: "Total invoices", value: aCases.length, icon: "sap-icon://documents", tone: "navy" }
+                ].concat(aGroups.map(function (oGroup) {
+                    return { label: oGroup.label, value: oGroup.count, icon: oGroup.icon, tone: oGroup.tone };
+                })));
+                that._data().setProperty("/filterOptions", [{ key: "", text: "All (" + aCases.length + ")" }].concat(
+                    aGroups.map(function (oGroup) {
+                        return { key: oGroup.key, text: oGroup.label + " (" + oGroup.count + ")" };
+                    })
+                ));
                 that._data().setProperty("/allCases", aCases.map(that._mapCaseToRow.bind(that)));
                 that._data().setProperty("/approvals", aCases.filter(function (oCase) {
                     return DECIDABLE_STATUSES.indexOf(oCase.status) >= 0;
@@ -196,10 +300,13 @@ sap.ui.define([
         },
 
         _applyStatusFilter: function () {
-            var sStatus = this._data().getProperty("/statusFilter");
+            var sGroup = this._data().getProperty("/statusFilter");
             var aRows = this._data().getProperty("/allCases");
-            this._data().setProperty("/cases", sStatus ? aRows.filter(function (oRow) {
-                return oRow.statusCode === sStatus;
+            var oGroup = CASE_GROUPS.filter(function (oItem) {
+                return oItem.key === sGroup;
+            })[0];
+            this._data().setProperty("/cases", oGroup ? aRows.filter(function (oRow) {
+                return oGroup.statuses.indexOf(oRow.statusCode) >= 0;
             }) : aRows);
         },
 
@@ -229,7 +336,7 @@ sap.ui.define([
 
         _openCase: function (sCaseId) {
             this._data().setProperty("/selectedCaseId", sCaseId);
-            this.byId("idIconTabBar").setSelectedKey("review");
+            this._showSection("review");
             this._loadCase(sCaseId);
         },
 
@@ -276,7 +383,14 @@ sap.ui.define([
                     ? Math.round(oClassification.confidence * 100) + "%" : "—",
                 agentMode: oValidation.agent_mode || "—",
                 agentTrace: (oValidation.agent_trace || []).map(function (oStep) {
-                    return { title: oStep.agent + " — " + oStep.status, description: oStep.summary || "" };
+                    var bDone = oStep.status === "completed";
+                    return {
+                        title: oStep.agent + " — " + oStep.status,
+                        description: oStep.summary || "",
+                        meta: oStep.duration_ms != null ? oStep.duration_ms + " ms" : "",
+                        tone: bDone ? "success" : "warning",
+                        icon: bDone ? "sap-icon://accept" : "sap-icon://alert"
+                    };
                 }),
                 checks: Object.keys(CHECK_LABELS).map(function (sKey) {
                     var sValue = String((oValidation.checks || {})[sKey] || "not_checked");
@@ -466,11 +580,13 @@ sap.ui.define([
 
         _applyHistory: function (oHistory) {
             this._data().setProperty("/auditTrail", (oHistory.events || []).slice().reverse().map(function (oEvent) {
+                var aTone = EVENT_TONES[oEvent.event_type] || ["info", "sap-icon://ai"];
                 return {
+                    tone: aTone[0],
+                    icon: aTone[1],
                     title: EVENT_TITLES[oEvent.event_type] || oEvent.event_type.replace(/_/g, " ").toLowerCase(),
                     description: this._eventDescription(oEvent),
-                    actor: oEvent.actor_id + " (" + oEvent.actor_role + ")",
-                    time: this._formatDate(oEvent.created_at)
+                    meta: oEvent.actor_id + " (" + oEvent.actor_role + ") · " + this._formatDate(oEvent.created_at)
                 };
             }, this));
         },
@@ -502,26 +618,27 @@ sap.ui.define([
         // Upload returns at once; the agents run in the background, so the case is polled until they finish.
         _uploadInvoiceFile: function (oFile) {
             var that = this;
-            var oProgress = this.byId("uploadProgress");
             var oFormData = new FormData();
             oFormData.append("file", oFile, oFile.name);
 
-            this.byId("processingSection").setVisible(true);
-            this._setProgress(oProgress, 20, "Information", "Uploading invoice…");
+            this._setUploadStep(0, false, "Uploading " + oFile.name + "…", "Information");
             this._data().setProperty("/busy", true);
 
             this._call("POST", "/api/v1/cases/upload", oFormData).then(function (oAccepted) {
-                that._setProgress(oProgress, 50, "Information", "Agents processing (TOWER → LENS → rules)…");
+                that._setUploadStep(1, false, "Agents are reading the invoice…", "Information");
                 return that._waitForProcessing(oAccepted.case_id);
             }).then(function (oCase) {
                 var bDone = PROCESSING_STATUSES.indexOf(oCase.status) < 0;
-                that._setProgress(oProgress, 100, bDone ? "Success" : "Warning", bDone
+                that._setUploadStep(bDone ? UPLOAD_STEPS.length : 1, false, bDone
                     ? "Processed — status: " + (STATUS_LABELS[oCase.status] || oCase.status)
-                    : "Still processing — check the case list in a moment");
+                    : "Still processing — check the case list in a moment", bDone ? "Success" : "Warning");
                 that._loadCases();
                 that._openCase(oCase.id);
             }).catch(function (oError) {
-                that._setProgress(oProgress, 100, "Error", "Upload failed");
+                var iFailed = that._data().getProperty("/uploadSteps").findIndex(function (oStep) {
+                    return oStep.state === "active";
+                });
+                that._setUploadStep(Math.max(iFailed, 0), true, "Upload failed", "Error");
                 MessageBox.error(oError.message);
             }).finally(function () {
                 that._data().setProperty("/busy", false);
@@ -547,10 +664,31 @@ sap.ui.define([
             return poll();
         },
 
-        _setProgress: function (oProgress, iPercent, sState, sText) {
-            oProgress.setPercentValue(iPercent);
-            oProgress.setState(sState);
-            oProgress.setDisplayValue(sText);
+        // Steps before iActive are done and iActive is running or failed; past the last step all are done.
+        _uploadSteps: function (iActive, bFailed) {
+            return UPLOAD_STEPS.map(function (oStep, i) {
+                var sState = "pending";
+                if (i < iActive) {
+                    sState = "done";
+                } else if (i === iActive) {
+                    sState = bFailed ? "error" : "active";
+                }
+                return Object.assign({ state: sState }, oStep);
+            });
+        },
+
+        _setUploadStep: function (iActive, bFailed, sMessage, sState) {
+            this._data().setProperty("/uploadSteps", this._uploadSteps(iActive, bFailed));
+            this._data().setProperty("/upload", { visible: true, message: sMessage, state: sState });
+        },
+
+        onGoUpload: function () {
+            this._showSection("upload");
+        },
+
+        onGoQueue: function () {
+            this._showSection("approvals");
+            this._loadCases();
         },
 
         // ------------------------------------------------------------- helpers
