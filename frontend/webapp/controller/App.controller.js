@@ -15,6 +15,11 @@ sap.ui.define([
         // Keeps the side navigation in sync with the route and refreshes the lists where they are shown.
         _onRouteMatched: function (oEvent) {
             var sRoute = oEvent.getParameter("name");
+            // The bare address shows the dashboard under its own name, #/dashboard (replacing the history entry).
+            if (sRoute === "home") {
+                this.getRouter().navTo("dashboard", {}, true);
+                return;
+            }
             this.getData().setProperty("/section", sRoute);
             if (!this._casesLoaded || sRoute === "dashboard" || sRoute === "approvals") {
                 this._casesLoaded = true;

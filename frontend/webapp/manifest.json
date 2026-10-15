@@ -58,11 +58,12 @@
                 "async": true
             },
             "routes": [
-                { "name": "dashboard", "pattern": "", "target": "dashboard" },
+                { "name": "home", "pattern": "", "target": "dashboard" },
+                { "name": "dashboard", "pattern": "dashboard", "target": "dashboard" },
                 { "name": "upload", "pattern": "upload", "target": "upload" },
                 { "name": "review", "pattern": "review/:caseId:", "target": "review" },
                 { "name": "approvals", "pattern": "approvals", "target": "approvals" },
-                { "name": "audit", "pattern": "audit", "target": "audit" }
+                { "name": "audit", "pattern": "audittrail", "target": "audit" }
             ],
             "targets": {
                 "dashboard": { "id": "dashboard", "name": "Dashboard" },
