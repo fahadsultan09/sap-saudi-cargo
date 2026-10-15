@@ -1,5 +1,5 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
-    <Dialog id="decisionDialog" title="{dialog>/title}" contentWidth="28rem" draggable="true">
+    <Dialog id="decisionDialog" title="{dialog>/title}" contentWidth="28rem" draggable="true" class="apDialog">
         <VBox class="sapUiSmallMargin">
             <Label text="{dialog>/label}" required="true" labelFor="decisionText"/>
             <TextArea id="decisionText" value="{dialog>/text}" valueLiveUpdate="true" maxLength="2000"
