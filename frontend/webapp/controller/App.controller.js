@@ -488,7 +488,7 @@ sap.ui.define([
                     return null;
                 }
                 return that._caseRequest("PATCH", "fields", { fields: oChanges, comment: oResult.text }, "Corrections saved");
-            }).catch(function () {});
+            }).catch(function () { });
         },
 
         onApproveInvoice: function (oEvent) {
@@ -516,7 +516,7 @@ sap.ui.define([
                 submitText: sSubmitText
             }).then(function (oResult) {
                 return oResult && that._caseRequest("POST", sAction, { comment: oResult.text }, sSuccessText, sCaseId);
-            }).catch(function () {});
+            }).catch(function () { });
         },
 
         _caseRequest: function (sMethod, sAction, oBody, sSuccessText, sCaseId) {
@@ -704,6 +704,12 @@ sap.ui.define([
 
         _formatDate: function (sIso) {
             return sIso ? String(sIso).slice(0, 16).replace("T", " ") : "";
+        },
+
+        onTableUpdateFinished: function (oEvent) {
+            oEvent.getSource().getItems().forEach(function (oItem, i) {
+                oItem.getCells()[0].setText(String(i + 1));
+            });
         },
 
         onExit: function () {

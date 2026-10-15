@@ -114,7 +114,7 @@
 														<Text text="{apData>supplier}"/>
 														<Text text="{apData>amount}" class="apAmount"/>
 														<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"/>
-														<Text text="{apData>date}"/>
+														<Text text="{apData>date} "/>
 													</cells>
 												</ColumnListItem>
 											</items>
@@ -291,12 +291,13 @@
 								<VBox class="sapUiMediumMargin">
 									<Title text="Invoices awaiting a decision" level="H3" class="apSectionTitle sapUiSmallMarginBottom"/>
 									<VBox class="apCard">
-										<Table items="{apData>/approvals}" fixedLayout="false" class="apTable">
+										<Table items="{apData>/approvals}" fixedLayout="false" class="apTable" updateFinished="onTableUpdateFinished">
 											<noData>
 												<IllustratedMessage illustrationType="sapIllus-NoTasks" illustrationSize="Spot"
 													title="Nothing waiting for a decision" description="Invoices that need review or were returned show up here."/>
 											</noData>
 											<columns>
+												<Column hAlign="Center" width="3rem"><Text text="#"/></Column>
 												<Column hAlign="Center"><Text text="Invoice"/></Column>
 												<Column hAlign="Center"><Text text="Supplier"/></Column>
 												<Column hAlign="Center"><Text text="Amount"/></Column>
@@ -307,6 +308,7 @@
 											<items>
 												<ColumnListItem type="Navigation" press="onCasePress">
 													<cells>
+														<Text text=""/>
 														<ObjectIdentifier title="{apData>id}"/>
 														<Text text="{apData>supplier}"/>
 														<Text text="{apData>amount}" class="apAmount"/>
