@@ -3,8 +3,8 @@
     "sap.app": {
         "id": "saudicargo.ap.automation",
         "type": "application",
-        "title": "Saudi Cargo - AP Automation",
-        "description": "AP Automation Prototype"
+        "title": "AP Console",
+        "description": "Accounts Payable automation console"
     },
     "sap.ui": {
         "technology": "UI5",
@@ -17,9 +17,9 @@
     "sap.ui5": {
         "resources": {
             "css": [
-                {
-                    "uri": "css/style.css"
-                }
+                { "uri": "css/tokens.css" },
+                { "uri": "css/motion.css" },
+                { "uri": "css/style.css" }
             ]
         },
         "rootView": {

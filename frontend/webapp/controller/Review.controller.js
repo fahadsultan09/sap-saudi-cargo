@@ -7,6 +7,8 @@ sap.ui.define([
     return BaseController.extend("saudicargo.ap.automation.controller.Review", {
         onInit: function () {
             this.getRouter().getRoute("review").attachPatternMatched(this._onRouteMatched, this);
+            this.getOwnerComponent().getModel("apData").bindProperty("/selectedInvoice/documentUrl")
+                .attachChange(this._syncPdfFrame, this);
         },
 
         // Without a case id the screen shows the case that is already open, or its empty state.
@@ -15,6 +17,7 @@ sap.ui.define([
             if (sCaseId) {
                 this.getCaseStore().loadCase(sCaseId);
             }
+            this._syncPdfFrame();
         },
 
         onNavBack: function () {
@@ -22,7 +25,38 @@ sap.ui.define([
         },
 
         onOpenDocument: function () {
-            window.open(this.getData().getProperty("/selectedInvoice/documentUrl"), "_blank");
+            var sUrl = this.getData().getProperty("/selectedInvoice/documentUrl");
+            if (sUrl) {
+                window.open(sUrl, "_blank");
+            }
+        },
+
+        // Replays the soft tab fade when switching Agent Results / Invoice Fields.
+        onReviewTabSelect: function (oEvent) {
+            var oContent = oEvent.getSource().$().find(".sapMITBContent").get(0);
+            if (!oContent) {
+                return;
+            }
+            oContent.classList.remove("apTabFadeReplay");
+            // Force reflow so the animation can restart.
+            void oContent.offsetWidth;
+            oContent.classList.add("apTabFadeReplay");
+        },
+
+        _syncPdfFrame: function () {
+            var oView = this.getView();
+            var sUrl = this.getData().getProperty("/selectedInvoice/documentUrl") || "";
+            var oFrame = oView.byId("invoicePdfFrame");
+            if (!oFrame) {
+                return;
+            }
+            var oDom = oFrame.getDomRef ? oFrame.getDomRef() : document.getElementById(oView.createId("invoicePdfFrame"));
+            if (oDom && oDom.tagName === "IFRAME") {
+                if (oDom.getAttribute("src") !== sUrl) {
+                    oDom.setAttribute("src", sUrl);
+                }
+                oDom.style.display = sUrl ? "block" : "none";
+            }
         },
 
         onSaveCorrections: function () {

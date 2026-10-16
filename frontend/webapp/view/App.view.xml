@@ -12,9 +12,11 @@
 							<Button icon="sap-icon://menu2" type="Transparent" press="onToggleSideNav"
 								tooltip="Show or hide the menu" class="apMenuButton"/>
 							<HBox alignItems="Center">
-								<Image src="img/saudia-cargo-logo.png" alt="Saudia Cargo" height="2.25rem" class="apLogo"/>
+								<HBox class="apBrandMark" alignItems="Center" justifyContent="Center">
+									<Text text="AP" class="apBrandMarkLetter"/>
+								</HBox>
 								<VBox class="apBrandText">
-									<Title text="Accounts Payable" level="H4" class="apBrandTitle"/>
+									<Title text="AP Console" level="H4" class="apBrandTitle"/>
 									<Text text="Invoice automation" wrapping="false" class="apBrandSubtitle"/>
 								</VBox>
 							</HBox>

@@ -18,22 +18,7 @@
 						press="onGoQueue" visible="{apData>/permissions/approver}" class="apGhostButton"/>
 				</HBox>
 			</HBox>
-			<HBox items="{apData>/kpiCards}" wrap="Wrap" class="apKpiRow sapUiMediumMarginBottom">
-				<VBox class="apKpi">
-					<customData>
-						<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
-					</customData>
-					<HBox justifyContent="SpaceBetween" alignItems="Start">
-						<VBox>
-							<Text text="{apData>label}" class="apKpiLabel"/>
-							<Text text="{apData>value}" class="apKpiValue sapUiTinyMarginTop"/>
-						</VBox>
-						<VBox class="apKpiIcon" alignItems="Center" justifyContent="Center">
-							<core:Icon src="{apData>icon}" size="1.125rem"/>
-						</VBox>
-					</HBox>
-				</VBox>
-			</HBox>
+			<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.KpiStrip" type="XML"/>
 			<VBox class="apCard">
 				<!-- Wraps instead of overflowing, so the filter stays visible on narrow screens. -->
 				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCardHeader">

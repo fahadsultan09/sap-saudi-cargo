@@ -25,6 +25,7 @@ sap.ui.define([
 
             oData.setProperty("/upload", { visible: true, message: "Uploading " + oFile.name + "…", state: "Information" });
             oData.setProperty("/busy", true);
+            that._setDropZoneBusy(true);
 
             this.getCaseStore().call("POST", "/api/v1/cases/upload", oFormData).then(function () {
                 oData.setProperty("/upload/visible", false);
@@ -35,8 +36,17 @@ sap.ui.define([
                 MessageBox.error(oError.message);
             }).finally(function () {
                 oData.setProperty("/busy", false);
+                that._setDropZoneBusy(false);
                 that.byId("fileUploader").clear();
             });
+        },
+
+        _setDropZoneBusy: function (bBusy) {
+            var oZone = this.byId("dropZone");
+            if (!oZone) {
+                return;
+            }
+            oZone.toggleStyleClass("apDropZone--busy", !!bBusy);
         }
     });
 });
