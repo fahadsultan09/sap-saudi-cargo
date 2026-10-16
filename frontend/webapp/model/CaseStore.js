@@ -327,9 +327,14 @@ sap.ui.define([
             this._revokeDocument();
             api.blob(this._config.getData(), this.casePath(oCase.id) + "/document")
                 .then(function (oBlob) {
-                    that._documentBlobUrl = URL.createObjectURL(oBlob);
+                    // Iframe PDF viewers are picky about MIME; Open-in-tab often sniffs, embed does not.
+                    var oPdfBlob = oBlob && /pdf/i.test(oBlob.type || "")
+                        ? oBlob
+                        : new Blob([oBlob], { type: "application/pdf" });
+                    that._documentBlobUrl = URL.createObjectURL(oPdfBlob);
                     that._model.setProperty("/selectedInvoice/documentUrl", that._documentBlobUrl);
                 }).catch(function (oError) {
+                    that._model.setProperty("/selectedInvoice/documentUrl", "");
                     MessageToast.show("Document unavailable: " + oError.message);
                 });
         },

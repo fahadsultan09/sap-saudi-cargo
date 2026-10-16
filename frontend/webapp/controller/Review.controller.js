@@ -43,6 +43,7 @@ sap.ui.define([
             oContent.classList.add("apTabFadeReplay");
         },
 
+        // Native xhtml:iframe may not exist until afterRendering; blob URL needs a live src write.
         _syncPdfFrame: function () {
             var oView = this.getView();
             var sUrl = this.getData().getProperty("/selectedInvoice/documentUrl") || "";
@@ -50,12 +51,22 @@ sap.ui.define([
             if (!oFrame) {
                 return;
             }
-            var oDom = oFrame.getDomRef ? oFrame.getDomRef() : document.getElementById(oView.createId("invoicePdfFrame"));
-            if (oDom && oDom.tagName === "IFRAME") {
-                if (oDom.getAttribute("src") !== sUrl) {
+            var fnApply = function () {
+                var oDom = oFrame.getDomRef ? oFrame.getDomRef() : null;
+                if (!oDom || oDom.tagName !== "IFRAME") {
+                    oDom = document.getElementById(oView.createId("invoicePdfFrame"));
+                }
+                if (!oDom || oDom.tagName !== "IFRAME") {
+                    return false;
+                }
+                if ((oDom.getAttribute("src") || "") !== sUrl) {
                     oDom.setAttribute("src", sUrl);
                 }
                 oDom.style.display = sUrl ? "block" : "none";
+                return true;
+            };
+            if (!fnApply()) {
+                oView.attachEventOnce("afterRendering", fnApply);
             }
         },
 

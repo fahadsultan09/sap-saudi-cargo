@@ -4,22 +4,65 @@
 	xmlns="sap.m"
 	xmlns:core="sap.ui.core"
 	xmlns:u="sap.ui.unified">
-	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
-		<VBox class="sapUiLargeMargin" alignItems="Center">
-			<Title text="Upload an invoice" level="H2" class="apSectionTitle sapUiTinyMarginBottom"/>
-			<Text text="The agents classify it (TOWER), extract the fields (LENS) and run the finance rules."
-				class="sapUiMediumMarginBottom"/>
-			<VBox id="dropZone" class="apDropZone" alignItems="Center">
-				<core:Icon src="sap-icon://upload-to-cloud" size="3rem" class="apDropIcon sapUiSmallMarginBottom"/>
-				<Text text="PDF, PNG or JPEG · up to 20 MB" class="sapUiSmallMarginBottom"/>
-				<u:FileUploader id="fileUploader" fileType="pdf,png,jpg,jpeg" sameFilenameAllowed="true"
-					buttonText="Choose invoice" placeholder="Select a PDF, PNG or JPEG invoice"
-					style="Emphasized" width="26rem" change="onUploadChange"
-					enabled="{= !${apData>/busy} }"/>
-				<VBox visible="{apData>/busy}" class="apUploadProgress" width="26rem">
-					<VBox class="apUploadProgressBar"/>
+	<Page showHeader="false" backgroundDesign="Transparent" class="apSection apUploadPage">
+		<VBox class="sapUiLargeMargin apUploadWrap">
+			<HBox alignItems="Center" class="apUploadKicker sapUiTinyMarginBottom">
+				<core:Icon src="sap-icon://clear-filter" size="0.75rem" class="sapUiTinyMarginEnd"/>
+				<Text text="Clear Desk · One invoice at a time"/>
+			</HBox>
+			<Title text="Add an invoice to the queue" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
+			<Text text="Drop it in. TOWER classifies the document, LENS extracts the fields, and finance rules run the moment it lands."
+				class="apUploadLead sapUiMediumMarginBottom"/>
+
+			<HBox class="apUploadGrid" alignItems="Stretch" wrap="Wrap">
+				<!-- Hero drop zone: distinct target, real drag-and-drop, honest busy state -->
+				<VBox id="dropZone" class="apHeroDrop" alignItems="Center" justifyContent="Center">
+					<VBox alignItems="Center" class="apHeroDropInner">
+						<VBox class="apHeroDropBadge sapUiTinyMarginBottom" alignItems="Center" justifyContent="Center">
+							<core:Icon src="sap-icon://add-document" size="1.75rem" class="apHeroDropIcon"/>
+						</VBox>
+						<Title text="Drop invoice to start" level="H3" class="apHeroDropTitle"/>
+						<Text text="or browse — PDF, PNG or JPEG, up to 20 MB" class="apHeroDropHint sapUiTinyMarginTop sapUiSmallMarginBottom"/>
+						<u:FileUploader id="fileUploader" fileType="pdf,png,jpg,jpeg" sameFilenameAllowed="true"
+							buttonOnly="true" buttonText="Browse files" tooltip="Choose a PDF, PNG or JPEG invoice"
+							style="Emphasized" change="onUploadChange"
+							enabled="{= !${apData>/busy} }" class="apHeroDropBrowse"/>
+						<HBox class="apHeroDropFormats sapUiTinyMarginTop" wrap="Wrap" justifyContent="Center">
+							<ObjectStatus text="PDF" inverted="true" class="apFormatChip"/>
+							<ObjectStatus text="PNG" inverted="true" class="apFormatChip"/>
+							<ObjectStatus text="JPEG" inverted="true" class="apFormatChip"/>
+						</HBox>
+					</VBox>
+					<VBox visible="{apData>/busy}" class="apHeroDropBusy" alignItems="Center" justifyContent="Center">
+						<VBox class="apUploadSpinnerRing"/>
+						<Text text="{apData>/upload/fileName}" class="apHeroDropBusyFile sapUiSmallMarginTop"/>
+						<Text text="Receiving your file…" class="apHeroDropBusyLabel sapUiTinyMarginTop"/>
+						<VBox class="apUploadProgress sapUiSmallMarginTop">
+							<VBox class="apUploadProgressBar"/>
+						</VBox>
+					</VBox>
 				</VBox>
-			</VBox>
+
+				<!-- Elegant progress steps: honest about what is tracked here vs. what the agents do next -->
+				<VBox class="apUploadSteps">
+					<Text text="What happens next" class="apUploadStepsLabel sapUiTinyMarginBottom"/>
+					<VBox items="{apData>/uploadSteps}" class="apStepList">
+						<HBox alignItems="Start" class="apStep">
+							<customData>
+								<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+							</customData>
+							<VBox class="apStepDot" alignItems="Center" justifyContent="Center">
+								<core:Icon src="{apData>icon}" size="0.75rem"/>
+							</VBox>
+							<VBox class="apStepBody sapUiTinyMarginBegin">
+								<Text text="{apData>title}" class="apStepTitle"/>
+								<Text text="{apData>description}" class="apStepText"/>
+							</VBox>
+						</HBox>
+					</VBox>
+				</VBox>
+			</HBox>
+
 			<ObjectStatus text="{apData>/upload/message}" state="{apData>/upload/state}" inverted="true"
 				visible="{apData>/upload/visible}" class="apUploadStatus"/>
 		</VBox>

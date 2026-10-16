@@ -93,28 +93,40 @@
     animation: apBarIn 280ms var(--ap-ease) both;
 }
 
-/* Upload drop-zone + progress */
-.apDropZone {
-    transition: border-color var(--ap-base) var(--ap-ease), background var(--ap-base) var(--ap-ease),
-        transform var(--ap-base) var(--ap-ease), box-shadow var(--ap-base) var(--ap-ease);
+/* Upload — hero drop zone, busy overlay and step rail */
+@keyframes apHeroDropIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
-.apDropZone.is-busy,
-.apDropZone--busy {
-    border-color: var(--ap-brand);
-    background: var(--ap-brand-soft);
-    pointer-events: none;
+.apHeroDrop,
+.apUploadSteps {
+    animation: apHeroDropIn 420ms var(--ap-ease) both;
 }
 
+.apUploadSteps {
+    animation-delay: 80ms;
+}
+
+.apHeroDropBusy {
+    animation: apFadeIn var(--ap-base) var(--ap-ease) both;
+}
+
+/* Indeterminate shimmer only — the real upload is a single fetch with no byte-level progress,
+   so the bar never claims a false percentage, it just shows "something is happening". */
 .apUploadProgress {
-    width: 26rem;
+    width: 16rem;
     max-width: 100%;
     height: 4px;
-    margin-top: 1rem;
     border-radius: 999px;
     overflow: hidden;
     background: var(--ap-border);
-    animation: apFadeIn var(--ap-base) var(--ap-ease) both;
 }
 
 .apUploadProgressBar {
@@ -125,6 +137,14 @@
     background-size: 200% 100%;
     animation: apProgressShimmer 1.2s linear infinite;
 }
+
+.apStepList > .apStep {
+    animation: apFadeUp 320ms var(--ap-ease) both;
+}
+
+.apStepList > .apStep:nth-child(2) { animation-delay: 60ms; }
+.apStepList > .apStep:nth-child(3) { animation-delay: 120ms; }
+.apStepList > .apStep:nth-child(4) { animation-delay: 180ms; }
 
 .apKpi {
     animation: apFadeUp 350ms var(--ap-ease) both;

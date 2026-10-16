@@ -17,24 +17,27 @@
 				<layoutData>
 					<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
 				</layoutData>
-				<!-- PDF pane -->
+				<!-- PDF pane: FlexItemData minHeight beats UI5 inline min-height:auto; blob URL from CaseStore -->
 				<VBox class="apPdfPane" height="100%">
 					<layoutData>
-						<FlexItemData growFactor="1" baseSize="0" minWidth="0"/>
+						<FlexItemData growFactor="1" baseSize="0" minWidth="0" minHeight="70vh"/>
 					</layoutData>
 					<HBox class="apPdfPaneHeader" alignItems="Center" justifyContent="SpaceBetween">
+						<layoutData>
+							<FlexItemData growFactor="0" shrinkFactor="0"/>
+						</layoutData>
 						<Text text="Invoice document"/>
 						<Button text="Open" icon="sap-icon://inspect-open" type="Transparent"
 							press="onOpenDocument" enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
 					</HBox>
-					<VBox height="100%">
+					<VBox class="apPdfPaneBody" height="100%">
 						<layoutData>
 							<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
 						</layoutData>
 						<html:iframe id="invoicePdfFrame" class="apPdfFrame" title="Invoice document preview"
 							src="{apData>/selectedInvoice/documentUrl}"/>
 						<VBox visible="{= !${apData>/selectedInvoice/documentUrl} }" alignItems="Center"
-							justifyContent="Center" class="apPdfEmpty" height="100%">
+							justifyContent="Center" class="apPdfEmpty">
 							<IllustratedMessage illustrationType="sapIllus-NoData" illustrationSize="Spot"
 								title="Document loading" description="The invoice PDF appears here when available."/>
 						</VBox>
