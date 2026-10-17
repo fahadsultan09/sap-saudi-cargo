@@ -1,14 +1,15 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
     <Dialog id="decisionDialog" title="{dialog>/title}" contentWidth="28rem" draggable="true" class="apDialog">
         <VBox class="sapUiSmallMargin">
-            <Label text="{dialog>/label}" required="true" labelFor="decisionText"/>
+            <Label text="{dialog>/label}" required="{= ${dialog>/minLength} > 0 }" labelFor="decisionText"/>
             <TextArea id="decisionText" value="{dialog>/text}" valueLiveUpdate="true" maxLength="2000"
                 rows="4" width="100%" placeholder="{dialog>/placeholder}"/>
-            <Text text="At least 3 characters." class="sapUiTinyMarginTop"/>
+            <Text text="{= ${dialog>/minLength} > 0 ? 'At least ' + ${dialog>/minLength} + ' characters.' : 'Optional — helps whoever looks at this case next.' }"
+                class="sapUiTinyMarginTop"/>
         </VBox>
         <beginButton>
             <Button text="{dialog>/submitText}" type="Emphasized" press="onDecisionDialogSubmit"
-                enabled="{= ${dialog>/text}.trim().length >= 3 }"/>
+                enabled="{= ${dialog>/text}.trim().length >= ${dialog>/minLength} }"/>
         </beginButton>
         <endButton>
             <Button text="Cancel" press="onDecisionDialogCancel"/>

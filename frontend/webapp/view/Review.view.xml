@@ -117,12 +117,12 @@
 							<IconTabFilter text="Invoice Fields" key="fields">
 								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
 									<Table items="{apData>/selectedInvoice/fields}" fixedLayout="false" class="apTable apFieldsTable">
-										<headerToolbar>
-											<OverflowToolbar>
-												<Text text="Fields can be corrected while the case needs review, was returned or failed processing."
-													visible="{apData>/selectedInvoice/canEdit}"/>
-											</OverflowToolbar>
-										</headerToolbar>
+									<headerToolbar>
+										<OverflowToolbar visible="{= !!${apData>/selectedInvoice/fieldsGuidance} }">
+											<core:Icon src="sap-icon://hint" size="0.875rem" class="apReasonIcon sapUiTinyMarginEnd"/>
+											<Text text="{apData>/selectedInvoice/fieldsGuidance}" wrapping="true"/>
+										</OverflowToolbar>
+									</headerToolbar>
 										<columns>
 											<Column><Text text="Field"/></Column>
 											<Column><Text text="Value"/></Column>

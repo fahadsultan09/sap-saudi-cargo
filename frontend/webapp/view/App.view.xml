@@ -35,9 +35,12 @@
 					<tnt:sideContent>
 						<tnt:SideNavigation selectedKey="{apData>/section}" itemSelect="onSectionSelect" class="apSideNav">
 							<tnt:NavigationList>
-								<!-- Upload and the approval queue open from the dashboard's welcome banner. -->
 								<tnt:NavigationListItem key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard"/>
+								<tnt:NavigationListItem key="upload" text="Upload" icon="sap-icon://upload-to-cloud"/>
 								<tnt:NavigationListItem key="review" text="Invoice Review" icon="sap-icon://inspect"/>
+								<!-- Approvals is role-gated: only approvers see it in the menu. -->
+								<tnt:NavigationListItem key="approvals" text="Approvals" icon="sap-icon://approvals"
+									visible="{apData>/permissions/approver}"/>
 								<tnt:NavigationListItem key="audit" text="Audit Trail" icon="sap-icon://history"/>
 							</tnt:NavigationList>
 						</tnt:SideNavigation>

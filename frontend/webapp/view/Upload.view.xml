@@ -11,7 +11,7 @@
 				<Text text="Clear Desk · One invoice at a time"/>
 			</HBox>
 			<Title text="Add an invoice to the queue" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
-			<Text text="Drop it in. TOWER classifies the document, LENS extracts the fields, and finance rules run the moment it lands."
+			<Text text="Drop an invoice to begin. It is classified, key fields are extracted, and finance checks run automatically."
 				class="apUploadLead sapUiMediumMarginBottom"/>
 
 			<HBox class="apUploadGrid" alignItems="Stretch" wrap="Wrap">

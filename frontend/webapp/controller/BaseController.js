@@ -37,30 +37,39 @@ sap.ui.define([
 
         // ------------------------------------------------------- case actions
 
+        // Approving is the lightest action — a comment helps the audit trail but is not required.
+        // Returning or rejecting always needs a reason, since it sends the case backwards.
         onApproveInvoice: function (oEvent) {
-            this._decide(oEvent, "approve", "Approve invoice", "Approve", "Invoice approved");
+            this._decide(oEvent, "approve", "Approve invoice", "Approve", "Invoice approved", {
+                label: "Comment (optional)", placeholder: "Add a note for the audit trail", minLength: 0
+            });
         },
 
         onReturnInvoice: function (oEvent) {
-            this._decide(oEvent, "return", "Return to processor", "Return", "Case returned to processor");
+            this._decide(oEvent, "return", "Return to processor", "Return", "Case returned to processor", {
+                label: "Comment", placeholder: "Reason for this decision", minLength: 3
+            });
         },
 
         onRejectInvoice: function (oEvent) {
-            this._decide(oEvent, "reject", "Reject invoice", "Reject", "Invoice rejected");
+            this._decide(oEvent, "reject", "Reject invoice", "Reject", "Invoice rejected", {
+                label: "Comment", placeholder: "Reason for this decision", minLength: 3
+            });
         },
 
         // Decisions work from the review screen and from approval-queue rows.
-        _decide: function (oEvent, sAction, sTitle, sSubmitText, sSuccessText) {
+        _decide: function (oEvent, sAction, sTitle, sSubmitText, sSuccessText, oDialogOptions) {
             var that = this;
             var oRowContext = oEvent.getSource().getBindingContext("apData");
             var oRow = oRowContext && oRowContext.getObject();
             var sCaseId = oRow && oRow.caseId ? oRow.caseId : this.getData().getProperty("/selectedInvoice/caseId");
-            this._openDecisionDialog({
+            this._openDecisionDialog(Object.assign({
                 title: sTitle,
                 label: "Comment",
                 placeholder: "Reason for this decision",
-                submitText: sSubmitText
-            }).then(function (oResult) {
+                submitText: sSubmitText,
+                minLength: 3
+            }, oDialogOptions)).then(function (oResult) {
                 return oResult && that._caseRequest("POST", sCaseId, sAction, { comment: oResult.text }, sSuccessText);
             }).catch(function () { });
         },
@@ -89,7 +98,7 @@ sap.ui.define([
                 oView.setModel(new JSONModel({}), "dialog");
             }
             oView.getModel("dialog").setData(Object.assign({
-                title: "", label: "", placeholder: "", submitText: "OK", text: ""
+                title: "", label: "", placeholder: "", submitText: "OK", text: "", minLength: 3
             }, oOptions));
             if (!this._decisionDialog) {
                 this._decisionDialog = Fragment.load({

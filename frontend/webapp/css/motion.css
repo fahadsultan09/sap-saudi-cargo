@@ -150,10 +150,12 @@
     animation: apFadeUp 350ms var(--ap-ease) both;
 }
 
-.apKpiRow > :nth-child(2) .apKpi { animation-delay: 60ms; }
-.apKpiRow > :nth-child(3) .apKpi { animation-delay: 120ms; }
-.apKpiRow > :nth-child(4) .apKpi { animation-delay: 180ms; }
-.apKpiRow > :nth-child(5) .apKpi { animation-delay: 240ms; }
+/* .apKpi IS the direct flex child (UI5 just adds .sapMFlexItem alongside it, no wrapper),
+   so the delay rules must target it directly rather than look for it as a descendant. */
+.apKpiRow > .apKpi:nth-child(2) { animation-delay: 60ms; }
+.apKpiRow > .apKpi:nth-child(3) { animation-delay: 120ms; }
+.apKpiRow > .apKpi:nth-child(4) { animation-delay: 180ms; }
+.apKpiRow > .apKpi:nth-child(5) { animation-delay: 240ms; }
 
 @media (prefers-reduced-motion: reduce) {
     *,

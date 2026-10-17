@@ -229,7 +229,7 @@ sap.ui.define([
         },
 
         _emptyInvoice: function () {
-            return { hasCase: false, fields: [], agentTrace: [], checks: [], findings: [], reviewReasons: [] };
+            return { hasCase: false, fields: [], agentTrace: [], checks: [], findings: [], reviewReasons: [], fieldsGuidance: "" };
         },
 
         _mapCaseToSelectedInvoice: function (oCase) {
@@ -237,6 +237,7 @@ sap.ui.define([
             var oClassification = oValidation.ai_core || {};
             var oPermissions = this._model.getProperty("/permissions");
             var sStatus = oCase.status;
+            var aFields = this._mapFields(oCase, oValidation);
 
             return {
                 hasCase: true,
@@ -265,7 +266,8 @@ sap.ui.define([
                     return { name: C.CHECK_LABELS[sKey], value: sValue.replace(/_/g, " "), state: this._checkState(sValue) };
                 }, this),
                 findings: this._mapFindings(oValidation),
-                fields: this._mapFields(oCase, oValidation),
+                fields: aFields,
+                fieldsGuidance: this._fieldsGuidance(sStatus, oPermissions.processor, aFields),
                 fileName: oCase.file_name,
                 createdBy: oCase.created_by,
                 editedBy: oCase.last_edited_by || "—",
@@ -304,6 +306,26 @@ sap.ui.define([
                 aFindings.push({ text: "Missing field: " + sField.replace(/_/g, " "), icon: "sap-icon://edit" });
             });
             return aFindings;
+        },
+
+        // Plain-language guidance above the fields table — most specific for a failed extraction,
+        // otherwise just points at whatever is still marked as needing attention.
+        _fieldsGuidance: function (sStatus, bCanEditRole, aFields) {
+            if (!bCanEditRole || C.EDITABLE_STATUSES.indexOf(sStatus) < 0) {
+                return "";
+            }
+            var iMissing = aFields.filter(function (oField) {
+                return oField.needsAttention;
+            }).length;
+            if (sStatus === "PROCESSING_ERROR") {
+                return "Automatic extraction failed for this invoice. Enter the fields below using the PDF as reference"
+                    + (iMissing ? " — " + iMissing + " still need a value." : ".");
+            }
+            if (iMissing > 0) {
+                return "Check the PDF and fill in the " + iMissing + " field" + (iMissing > 1 ? "s" : "")
+                    + " marked below before approving.";
+            }
+            return "Fields can be corrected while this case needs review or was returned.";
         },
 
         _mapFields: function (oCase, oValidation) {

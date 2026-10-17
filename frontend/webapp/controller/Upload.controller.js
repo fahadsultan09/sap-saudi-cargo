@@ -11,8 +11,8 @@ sap.ui.define([
     // here rather than faking progress we cannot see yet.
     var UPLOAD_STEPS = [
         { key: "receive", title: "Receive invoice", description: "Your file lands in the queue and gets a case.", icon: "sap-icon://upload-to-cloud" },
-        { key: "classify", title: "Classify · TOWER", description: "Confirms it is an invoice or credit note.", icon: "sap-icon://inspect" },
-        { key: "extract", title: "Extract · LENS", description: "Reads supplier, amounts, PO and dates.", icon: "sap-icon://create-form" },
+        { key: "classify", title: "Classify document", description: "Confirms it is an invoice or credit note.", icon: "sap-icon://inspect" },
+        { key: "extract", title: "Extract fields", description: "Reads supplier, amounts, PO and dates.", icon: "sap-icon://create-form" },
         { key: "validate", title: "Finance checks", description: "Vendor, PO, tax and duplicate rules run.", icon: "sap-icon://lab" }
     ];
 
@@ -54,7 +54,7 @@ sap.ui.define([
             this.getCaseStore().call("POST", "/api/v1/cases/upload", oFormData).then(function () {
                 oData.setProperty("/upload/visible", false);
                 that._setStepState("receive", "done");
-                MessageToast.show(oFile.name + " is in the queue — TOWER and LENS are on it.");
+                MessageToast.show(oFile.name + " is in the queue — processing has started.");
                 that.navTo("dashboard");
             }).catch(function (oError) {
                 oData.setProperty("/upload", {
