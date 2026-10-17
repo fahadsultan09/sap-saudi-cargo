@@ -12,10 +12,12 @@
 							<Button icon="sap-icon://menu2" type="Transparent" press="onToggleSideNav"
 								tooltip="Show or hide the menu" class="apMenuButton"/>
 							<HBox alignItems="Center">
-								<Image src="img/saudia-cargo-logo.png" alt="Saudia Cargo" height="2.25rem" class="apLogo"/>
+								<HBox class="apBrandMark" alignItems="Center" justifyContent="Center">
+									<Text text="AP" class="apBrandMarkLetter"/>
+								</HBox>
 								<VBox class="apBrandText">
-									<Title text="Accounts Payable" level="H4" class="apBrandTitle"/>
-									<Text text="Invoice automation" wrapping="false" class="apBrandSubtitle"/>
+									<Title text="AP Console" level="H4" class="apBrandTitle"/>
+									<Text text="Saudi Cargo · Invoice automation" wrapping="false" class="apBrandSubtitle"/>
 								</VBox>
 							</HBox>
 							<ToolbarSpacer/>
@@ -33,15 +35,16 @@
 					<tnt:sideContent>
 						<tnt:SideNavigation selectedKey="{apData>/section}" itemSelect="onSectionSelect" class="apSideNav">
 							<tnt:NavigationList>
-								<!-- Upload and the approval queue open from the dashboard's welcome banner. -->
 								<tnt:NavigationListItem key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard"/>
-								<tnt:NavigationListItem key="review" text="Invoice Review" icon="sap-icon://inspect"/>
+								<tnt:NavigationListItem key="upload" text="Upload" icon="sap-icon://upload-to-cloud"/>
+								<tnt:NavigationListItem key="review" text="Clear Desk" icon="sap-icon://inspect"/>
+								<tnt:NavigationListItem key="approvals" text="Approvals" icon="sap-icon://approvals"
+									visible="{apData>/permissions/approver}"/>
 								<tnt:NavigationListItem key="audit" text="Audit Trail" icon="sap-icon://history"/>
 							</tnt:NavigationList>
 						</tnt:SideNavigation>
 					</tnt:sideContent>
 					<tnt:mainContents>
-						<!-- The router places one screen view at a time in here (see manifest.json routing). -->
 						<NavContainer id="sections" defaultTransitionName="show"/>
 					</tnt:mainContents>
 				</tnt:ToolPage>

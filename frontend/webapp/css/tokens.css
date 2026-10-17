@@ -1,0 +1,77 @@
+/* ==========================================================================
+   AP Console v2 — Runway design tokens
+   Cargo ops: ink navy + Saudia signal green + cool slate (not purple / cream)
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+:root {
+    /* Brand — Saudia Cargo green, elevated */
+    --ap-brand: #0B7A42;
+    --ap-brand-dark: #06532C;
+    --ap-brand-deep: #043820;
+    --ap-brand-light: #9FD4B4;
+    --ap-brand-soft: #E6F5EC;
+    --ap-brand-glow: rgba(11, 122, 66, 0.22);
+
+    /* Atmosphere — cool cargo slate, not flat Fiori gray */
+    --ap-ink: #0A1620;
+    --ap-ink-soft: #142433;
+    --ap-bg: #EEF2F4;
+    --ap-bg-mesh: radial-gradient(1200px 600px at 8% -10%, rgba(11, 122, 66, 0.10), transparent 55%),
+        radial-gradient(900px 500px at 92% 0%, rgba(15, 118, 140, 0.08), transparent 50%),
+        linear-gradient(180deg, #F4F7F8 0%, #E8EDF0 100%);
+    --ap-surface: #FFFFFF;
+    --ap-surface-2: #F7FAFB;
+    --ap-border: #D5DEE4;
+    --ap-border-strong: #B8C5CE;
+    --ap-text: #0F1C26;
+    --ap-muted: #5A6B78;
+    --ap-faint: #8A9AA6;
+
+    /* Signal / status */
+    --ap-live: #0E8F8A;
+    --ap-live-soft: #E4F7F6;
+    --ap-info: #1F6FBF;
+    --ap-success: #0B7A42;
+    --ap-warning: #B86A12;
+    --ap-warning-soft: #FFF4E5;
+    --ap-error: #C0352B;
+    --ap-error-soft: #FCECEC;
+    --ap-gold: #C4A35A;
+
+    /* Shape & motion */
+    --ap-radius: 14px;
+    --ap-radius-sm: 9px;
+    --ap-radius-lg: 20px;
+    --ap-shadow: 0 1px 2px rgba(10, 22, 32, 0.05), 0 8px 24px rgba(10, 22, 32, 0.06);
+    --ap-shadow-lift: 0 4px 12px rgba(10, 22, 32, 0.08), 0 18px 40px rgba(10, 22, 32, 0.10);
+    --ap-fast: 160ms;
+    --ap-base: 280ms;
+    --ap-slow: 520ms;
+    --ap-ease: cubic-bezier(0.22, 0.9, 0.24, 1);
+    --ap-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Type */
+    --ap-font-display: "Space Grotesk", "Segoe UI", sans-serif;
+    --ap-font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+/* Map UI5 theme accents to brand so Emphasized buttons / focus follow Runway green */
+:root:root {
+    --sapBrandColor: #0B7A42;
+    --sapHighlightColor: #0B7A42;
+    --sapSelectedColor: #0B7A42;
+    --sapLinkColor: #06532C;
+    --sapContent_FocusColor: #0B7A42;
+    --sapContent_Selected_TextColor: #0B7A42;
+    --sapButton_TextColor: #0B7A42;
+    --sapButton_IconColor: #0B7A42;
+    --sapButton_Lite_TextColor: #0B7A42;
+    --sapButton_Emphasized_Background: #0B7A42;
+    --sapButton_Emphasized_BorderColor: #0B7A42;
+    --sapButton_Emphasized_Hover_Background: #06532C;
+    --sapButton_Emphasized_Hover_BorderColor: #06532C;
+    --sapList_SelectionBackgroundColor: #E6F5EC;
+    --sapFontFamily: "IBM Plex Sans", "Segoe UI", sans-serif;
+}

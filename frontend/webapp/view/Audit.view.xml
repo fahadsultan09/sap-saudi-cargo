@@ -4,12 +4,14 @@
 	xmlns:core="sap.ui.core">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
 		<VBox class="sapUiMediumMargin">
-			<Title text="History of invoice {apData>/selectedInvoice/id}" level="H3"
-				class="apSectionTitle sapUiMediumMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
+			<Title text="Audit trail" level="H3"
+				class="apSectionTitle sapUiTinyMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
+			<Text text="History of invoice {apData>/selectedInvoice/id}"
+				class="apTimelineMeta sapUiMediumMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
 			<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
 				illustrationType="sapIllus-NoActivities" illustrationSize="Scene"
 				title="No case selected" description="Open a case from the Dashboard to see its full history."/>
-			<VBox class="apCard sapUiSmallMarginBottom" visible="{apData>/selectedInvoice/hasCase}">
+			<VBox class="apCaseBoard sapUiSmallMarginBottom" visible="{apData>/selectedInvoice/hasCase}">
 				<List items="{apData>/auditTrail}" showSeparators="None" class="apTimeline sapUiSmallMargin">
 					<CustomListItem>
 						<VBox class="apTimelineItem">

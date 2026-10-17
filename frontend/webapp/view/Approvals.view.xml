@@ -4,8 +4,10 @@
 	xmlns="sap.m">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
 		<VBox class="sapUiMediumMargin">
-			<Title text="Invoices awaiting a decision" level="H3" class="apSectionTitle sapUiSmallMarginBottom"/>
-			<VBox class="apCard">
+			<Title text="Dock Decide queue" level="H3" class="apSectionTitle sapUiTinyMarginBottom"/>
+			<Text text="Invoices waiting for Approve, Return, or Reject."
+				class="apTimelineMeta sapUiSmallMarginBottom"/>
+			<VBox class="apCaseBoard">
 				<Table items="{apData>/approvals}" fixedLayout="false" class="apTable" updateFinished="onTableUpdateFinished">
 					<noData>
 						<IllustratedMessage illustrationType="sapIllus-NoTasks" illustrationSize="Spot"
