@@ -15,6 +15,8 @@ sap.ui.define([
             this._config = oConfigModel;
             this._documentBlobUrl = null;
             this._refreshTimer = null;
+            this._casePollTimer = null;
+            this._documentCaseId = null;
             this._processingIds = [];
             this._model = new JSONModel({
                 section: "dashboard",
@@ -23,7 +25,16 @@ sap.ui.define([
                 welcome: {},
                 busy: false,
                 kpiCards: [],
-                upload: { visible: false, message: "", state: "None" },
+                upload: {
+                    visible: false,
+                    message: "",
+                    state: "None",
+                    fileName: "",
+                    watching: false,
+                    nowText: "",
+                    progressPercent: 0
+                },
+                uploadSteps: [],
                 permissions: { processor: false, approver: false },
                 statusFilter: "",
                 filterOptions: [],
@@ -32,6 +43,9 @@ sap.ui.define([
                 page: { index: 0, count: 1, text: "", range: "" },
                 pagedCases: [],
                 approvals: [],
+                pipelineBanner: "",
+                pipelineBannerDots: [],
+                reviewTabKey: "agents",
                 selectedCaseId: "",
                 selectedInvoice: this._emptyInvoice(),
                 auditTrail: []
@@ -117,6 +131,8 @@ sap.ui.define([
                 that._model.setProperty("/approvals", aCases.filter(function (oCase) {
                     return C.DECIDABLE_STATUSES.indexOf(oCase.status) >= 0;
                 }).map(that._mapCaseToRow.bind(that)));
+                that._model.setProperty("/pipelineBanner", that._pipelineBanner(aCases));
+                that._model.setProperty("/pipelineBannerDots", that._pipelineBannerDots(aCases));
                 that.applyStatusFilter();
                 that._watchProcessing(aCases);
             }).catch(this._showError);
@@ -183,6 +199,15 @@ sap.ui.define([
         },
 
         _mapCaseToRow: function (oCase) {
+            var bProcessing = C.PROCESSING_STATUSES.indexOf(oCase.status) >= 0;
+            var sHint = "";
+            var aDots = [];
+            if (bProcessing) {
+                sHint = oCase.status === "RECEIVED"
+                    ? "Full cycle: Received → Classify → Extract → Finance → Review"
+                    : "Full cycle live — open to watch every step";
+                aDots = this._pipelineDotsFromStatus(oCase.status);
+            }
             return {
                 caseId: oCase.id,
                 id: oCase.invoice_number || oCase.file_name,
@@ -191,10 +216,71 @@ sap.ui.define([
                 statusCode: oCase.status,
                 status: C.STATUS_LABELS[oCase.status] || oCase.status,
                 state: C.STATUS_STATES[oCase.status] || "None",
-                processing: C.PROCESSING_STATUSES.indexOf(oCase.status) >= 0,
+                processing: bProcessing,
+                pipelineHint: sHint,
+                pipelineDots: aDots,
                 editedBy: oCase.last_edited_by || oCase.created_by,
                 date: this._formatDate(oCase.created_at)
             };
+        },
+
+        // Short dashboard hint while any case is still in the agent pipeline.
+        _pipelineBanner: function (aCases) {
+            var iProcessing = aCases.filter(function (oCase) {
+                return C.PROCESSING_STATUSES.indexOf(oCase.status) >= 0;
+            }).length;
+            if (!iProcessing) {
+                return "";
+            }
+            return iProcessing === 1
+                ? "1 invoice is live in the full pipeline — open it to watch all five steps."
+                : iProcessing + " invoices are live in the full pipeline — open a case to watch the cycle.";
+        },
+
+        // Banner legend: all five steps as a mini process map while anything is processing.
+        _pipelineBannerDots: function (aCases) {
+            var bAny = (aCases || []).some(function (oCase) {
+                return C.PROCESSING_STATUSES.indexOf(oCase.status) >= 0;
+            });
+            if (!bAny) {
+                return [];
+            }
+            return C.PIPELINE_STEPS.map(function (oDef, iIndex) {
+                var sState = "pending";
+                if (iIndex === 0) {
+                    sState = "done";
+                } else if (iIndex <= 2) {
+                    sState = "running";
+                }
+                return {
+                    key: oDef.key,
+                    title: oDef.title,
+                    short: oDef.title.split(" ")[0],
+                    state: sState
+                };
+            });
+        },
+
+        // Status-only mini rail for dashboard rows (full fidelity is on Upload / Review).
+        _pipelineDotsFromStatus: function (sStatus) {
+            var aStates;
+            if (sStatus === "RECEIVED") {
+                aStates = ["done", "running", "pending", "pending", "pending"];
+            } else if (sStatus === "PROCESSING") {
+                aStates = ["done", "done", "running", "pending", "pending"];
+            } else if (sStatus === "PROCESSING_ERROR") {
+                aStates = ["done", "failed", "pending", "pending", "pending"];
+            } else {
+                return [];
+            }
+            return C.PIPELINE_STEPS.map(function (oDef, iIndex) {
+                return {
+                    key: oDef.key,
+                    title: oDef.title,
+                    short: oDef.title.split(" ")[0],
+                    state: aStates[iIndex] || "pending"
+                };
+            });
         },
 
         // --------------------------------------------------------- one case
@@ -210,10 +296,71 @@ sap.ui.define([
                 that._model.setProperty("/selectedInvoice", that._mapCaseToSelectedInvoice(aResults[0]));
                 that._applyHistory(aResults[1]);
                 that._loadDocument(aResults[0]);
+                that._scheduleCasePoll(aResults[0]);
             }).catch(this._showError);
         },
 
+        // While Clear Desk is open on a processing case, keep the pipeline rail live.
+        _scheduleCasePoll: function (oCase) {
+            var that = this;
+            clearTimeout(this._casePollTimer);
+            this._casePollTimer = null;
+            if (!oCase || this._model.getProperty("/selectedCaseId") !== oCase.id) {
+                return;
+            }
+            if (C.PROCESSING_STATUSES.indexOf(oCase.status) < 0) {
+                return;
+            }
+            this._casePollTimer = setTimeout(function () {
+                if (that._model.getProperty("/selectedCaseId") !== oCase.id) {
+                    return;
+                }
+                // Pause while the user is on another screen; Review restarts via route match.
+                if (that._model.getProperty("/section") !== "review") {
+                    return;
+                }
+                that.loadCase(oCase.id);
+            }, C.PIPELINE_POLL_MS);
+        },
+
+        // Shared mapper for Upload stay-and-watch and Review Agent Results.
+        buildPipelineFromCase: function (oCase) {
+            return this._mapPipelineSteps(oCase || {}, (oCase && oCase.validation) || {});
+        },
+
+        pipelineProgress: function (aSteps) {
+            var aList = aSteps || [];
+            var iDone = aList.filter(function (oStep) {
+                return oStep.state === "done";
+            }).length;
+            var oRunning = aList.filter(function (oStep) {
+                return oStep.state === "running";
+            })[0];
+            var iTotal = Math.max(aList.length, 1);
+            // Count a running step as half-complete so the rail advances while agents work.
+            var fScore = iDone + (oRunning ? 0.45 : 0);
+            var iPercent = Math.max(0, Math.min(100, Math.round((fScore / iTotal) * 100)));
+            var sNow = "";
+            if (oRunning) {
+                sNow = oRunning.nowLabel || C.PIPELINE_NOW_LABELS[oRunning.key]
+                    || ("Working on " + oRunning.title + "…");
+            } else if (iDone >= iTotal) {
+                sNow = "Pipeline complete — ready on Clear Desk.";
+            } else {
+                sNow = "Waiting for the next agent step…";
+            }
+            return {
+                percent: iPercent,
+                nowText: sNow,
+                doneCount: iDone,
+                total: iTotal,
+                runningKey: oRunning ? oRunning.key : ""
+            };
+        },
+
         clearCase: function () {
+            clearTimeout(this._casePollTimer);
+            this._casePollTimer = null;
             this._revokeDocument();
             this._model.setProperty("/selectedCaseId", "");
             this._model.setProperty("/selectedInvoice", this._emptyInvoice());
@@ -229,7 +376,20 @@ sap.ui.define([
         },
 
         _emptyInvoice: function () {
-            return { hasCase: false, fields: [], agentTrace: [], checks: [], findings: [], reviewReasons: [], fieldsGuidance: "" };
+            return {
+                hasCase: false,
+                fields: [],
+                agentTrace: [],
+                pipelineSteps: [],
+                checks: [],
+                findings: [],
+                reviewReasons: [],
+                fieldsGuidance: "",
+                isProcessing: false,
+                pipelineNow: "",
+                pipelinePercent: 0,
+                pipelineSummary: ""
+            };
         },
 
         _mapCaseToSelectedInvoice: function (oCase) {
@@ -238,6 +398,13 @@ sap.ui.define([
             var oPermissions = this._model.getProperty("/permissions");
             var sStatus = oCase.status;
             var aFields = this._mapFields(oCase, oValidation);
+            var aPipeline = this._mapPipelineSteps(oCase, oValidation);
+            var oProgress = this.pipelineProgress(aPipeline);
+            var bProcessing = C.PROCESSING_STATUSES.indexOf(sStatus) >= 0;
+            var sExistingUrl = "";
+            if (this._documentCaseId === oCase.id && this._documentBlobUrl) {
+                sExistingUrl = this._model.getProperty("/selectedInvoice/documentUrl") || "";
+            }
 
             return {
                 hasCase: true,
@@ -251,15 +418,13 @@ sap.ui.define([
                 classificationConfidence: typeof oClassification.confidence === "number"
                     ? Math.round(oClassification.confidence * 100) + "%" : "—",
                 agentMode: oValidation.agent_mode || "—",
-                agentTrace: (oValidation.agent_trace || []).map(function (oStep) {
-                    var bDone = oStep.status === "completed";
-                    return {
-                        title: oStep.agent + " — " + oStep.status,
-                        description: oStep.summary || "",
-                        meta: oStep.duration_ms != null ? oStep.duration_ms + " ms" : "",
-                        tone: bDone ? "success" : "warning",
-                        icon: bDone ? "sap-icon://accept" : "sap-icon://alert"
-                    };
+                pipelineSteps: aPipeline,
+                isProcessing: bProcessing,
+                pipelineNow: oProgress.nowText,
+                pipelinePercent: oProgress.percent,
+                pipelineSummary: oProgress.doneCount + " of " + oProgress.total + " steps complete",
+                agentTrace: aPipeline.filter(function (oStep) {
+                    return !!oStep.agent;
                 }),
                 checks: Object.keys(C.CHECK_LABELS).map(function (sKey) {
                     var sValue = String((oValidation.checks || {})[sKey] || "not_checked");
@@ -271,10 +436,178 @@ sap.ui.define([
                 fileName: oCase.file_name,
                 createdBy: oCase.created_by,
                 editedBy: oCase.last_edited_by || "—",
-                documentUrl: "",
+                documentUrl: sExistingUrl,
                 canEdit: oPermissions.processor && C.EDITABLE_STATUSES.indexOf(sStatus) >= 0,
                 canDecide: oPermissions.approver && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0
             };
+        },
+
+        // Maps case status + validation.agent_trace into the full Received → … → Approve timeline.
+        // When trace is empty (common in mock / mid-flight), status still drives an honest demo-friendly rail.
+        _mapPipelineSteps: function (oCase, oValidation) {
+            var aTrace = oValidation.agent_trace || [];
+            var oByAgent = {};
+            aTrace.forEach(function (oStep) {
+                oByAgent[oStep.agent] = oStep;
+            });
+            var sStatus = oCase.status;
+            var bProcessing = C.PROCESSING_STATUSES.indexOf(sStatus) >= 0;
+            var bError = sStatus === "PROCESSING_ERROR";
+            var bNeedsHuman = ["NEEDS_REVIEW", "RETURNED", "READY_FOR_APPROVAL", "PENDING_APPROVAL"].indexOf(sStatus) >= 0;
+            var bApproved = ["APPROVED", "POSTING", "POSTED"].indexOf(sStatus) >= 0;
+            var bRejected = sStatus === "REJECTED";
+            var bPastAgents = bNeedsHuman || bApproved || bRejected || bError;
+            var sRunningAgent = this._inferRunningAgent(aTrace, oByAgent, bProcessing);
+
+            return C.PIPELINE_STEPS.map(function (oDef) {
+                var oTrace = oDef.agent ? oByAgent[oDef.agent] : null;
+                var sState = "pending";
+                var sDescription = oDef.description;
+                var aMeta = [];
+
+                if (oDef.service) {
+                    aMeta.push(oDef.service);
+                }
+
+                if (oDef.key === "receive") {
+                    sState = "done";
+                    sDescription = oCase.file_name
+                        ? "Received “" + oCase.file_name + "” and opened a case."
+                        : oDef.description;
+                } else if (oDef.key === "decide") {
+                    if (bApproved) {
+                        sState = "done";
+                        sDescription = "Decision recorded — invoice approved.";
+                    } else if (bRejected) {
+                        sState = "failed";
+                        sDescription = "Decision recorded — invoice rejected.";
+                    } else if (bNeedsHuman) {
+                        sState = "running";
+                        sDescription = sStatus === "RETURNED"
+                            ? "Returned for corrections on Clear Desk before Dock Decide."
+                            : "Open Clear Desk to check fields, then use Dock Decide.";
+                    } else if (bError) {
+                        sState = "pending";
+                        sDescription = "Fix extraction on Clear Desk, then send for approval.";
+                    } else {
+                        sState = "pending";
+                    }
+                } else if (oTrace) {
+                    sState = this._traceToPipelineState(oTrace.status);
+                    if (oTrace.summary) {
+                        sDescription = oTrace.summary;
+                    }
+                    if (oTrace.duration_ms != null) {
+                        aMeta.push(oTrace.duration_ms + " ms");
+                    }
+                } else if (bPastAgents && !bError) {
+                    // Past the agent phase with no per-step trace — show agents as done for the demo.
+                    sState = "done";
+                    sDescription = oDef.description + " (completed).";
+                } else if (bError) {
+                    // Prefer the failed agent from trace; otherwise mark the first missing agent as failed.
+                    if (!aTrace.length && oDef.agent === "TOWER") {
+                        sState = "failed";
+                        sDescription = "Automatic processing stopped during classification or extraction.";
+                    } else if (sRunningAgent === oDef.agent) {
+                        sState = "failed";
+                    } else if (this._agentIndex(oDef.agent) < this._agentIndex(sRunningAgent)) {
+                        sState = "done";
+                    } else {
+                        sState = "pending";
+                    }
+                } else if (bProcessing && oDef.agent && oDef.agent === sRunningAgent) {
+                    sState = "running";
+                    sDescription = oDef.description;
+                } else if (bProcessing && oDef.agent && this._agentIndex(oDef.agent) < this._agentIndex(sRunningAgent)) {
+                    sState = "done";
+                } else if (bProcessing && sStatus === "RECEIVED" && oDef.agent === "TOWER") {
+                    // File accepted; agents about to start — show Classify as live immediately.
+                    sState = "running";
+                }
+
+                var sNowLabel = "";
+                if (sState === "running") {
+                    sNowLabel = C.PIPELINE_NOW_LABELS[oDef.key] || ("Working on " + oDef.title + "…");
+                    if (!oTrace || !oTrace.summary) {
+                        sDescription = sNowLabel;
+                    }
+                } else if (sState === "done" && oDef.key !== "receive" && oDef.key !== "decide" && !oTrace) {
+                    sDescription = oDef.description + " — complete.";
+                }
+
+                var sStatusLabel = C.PIPELINE_STATUS_LABELS[sState] || sState;
+                // Decide is a human step on Clear Desk — not an agent "Working…" cue.
+                if (oDef.key === "decide" && sState === "running" && bNeedsHuman) {
+                    sStatusLabel = "Your turn";
+                    sNowLabel = "";
+                }
+
+                return {
+                    key: oDef.key,
+                    agent: oDef.agent || "",
+                    title: oDef.title,
+                    service: oDef.service || "",
+                    description: sDescription,
+                    nowLabel: sNowLabel,
+                    meta: aMeta.join(" · "),
+                    state: sState,
+                    statusLabel: sStatusLabel,
+                    tone: sState === "done" ? "success"
+                        : sState === "failed" ? "error"
+                            : sState === "running" ? "info" : "muted",
+                    icon: sState === "done" ? "sap-icon://accept"
+                        : sState === "failed" ? "sap-icon://error"
+                            : (sState === "running" && oDef.key !== "decide") ? "sap-icon://synchronize"
+                                : (sState === "running" ? "sap-icon://approvals" : oDef.icon)
+                };
+            }, this);
+        },
+
+        _traceToPipelineState: function (sStatus) {
+            var s = String(sStatus || "").toLowerCase();
+            if (s === "completed" || s === "skipped" || s === "done") {
+                return "done";
+            }
+            if (s === "failed" || s === "error") {
+                return "failed";
+            }
+            if (s === "running" || s === "in_progress" || s === "processing") {
+                return "running";
+            }
+            return "pending";
+        },
+
+        _agentIndex: function (sAgent) {
+            var aOrder = ["TOWER", "LENS", "FINANCE_RULES"];
+            var i = aOrder.indexOf(sAgent);
+            return i < 0 ? aOrder.length : i;
+        },
+
+        // Next agent that has not completed yet while the case is still PROCESSING/RECEIVED.
+        _inferRunningAgent: function (aTrace, oByAgent, bProcessing) {
+            if (!bProcessing) {
+                return null;
+            }
+            var aOrder = ["TOWER", "LENS", "FINANCE_RULES"];
+            var i;
+            for (i = 0; i < aOrder.length; i++) {
+                var oStep = oByAgent[aOrder[i]];
+                if (!oStep) {
+                    return aOrder[i];
+                }
+                var sState = this._traceToPipelineState(oStep.status);
+                if (sState === "running") {
+                    return aOrder[i];
+                }
+                if (sState === "failed") {
+                    return aOrder[i];
+                }
+                if (sState !== "done") {
+                    return aOrder[i];
+                }
+            }
+            return "FINANCE_RULES";
         },
 
         _checkState: function (sValue) {
@@ -346,7 +679,12 @@ sap.ui.define([
 
         _loadDocument: function (oCase) {
             var that = this;
+            // Keep the PDF iframe stable across pipeline polls for the same case.
+            if (this._documentCaseId === oCase.id && this._documentBlobUrl) {
+                return;
+            }
             this._revokeDocument();
+            this._documentCaseId = oCase.id;
             api.blob(this._config.getData(), this.casePath(oCase.id) + "/document")
                 .then(function (oBlob) {
                     // Iframe PDF viewers are picky about MIME; Open-in-tab often sniffs, embed does not.
@@ -356,6 +694,7 @@ sap.ui.define([
                     that._documentBlobUrl = URL.createObjectURL(oPdfBlob);
                     that._model.setProperty("/selectedInvoice/documentUrl", that._documentBlobUrl);
                 }).catch(function (oError) {
+                    that._documentCaseId = null;
                     that._model.setProperty("/selectedInvoice/documentUrl", "");
                     MessageToast.show("Document unavailable: " + oError.message);
                 });
@@ -366,6 +705,7 @@ sap.ui.define([
                 URL.revokeObjectURL(this._documentBlobUrl);
                 this._documentBlobUrl = null;
             }
+            this._documentCaseId = null;
         },
 
         // ---------------------------------------------------------- audit trail
@@ -425,6 +765,7 @@ sap.ui.define([
 
         destroy: function () {
             clearTimeout(this._refreshTimer);
+            clearTimeout(this._casePollTimer);
             this._revokeDocument();
             this._model.destroy();
             BaseObject.prototype.destroy.apply(this, arguments);

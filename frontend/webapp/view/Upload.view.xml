@@ -11,11 +11,13 @@
 				<Text text="Clear Desk · One invoice at a time"/>
 			</HBox>
 			<Title text="Add an invoice to the queue" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
-			<Text text="Drop an invoice to begin. It is classified, key fields are extracted, and finance checks run automatically."
-				class="apUploadLead sapUiMediumMarginBottom"/>
+			<Text text="Drop a file to start the full pipeline: Received → Classify (TOWER) → Extract (LENS) → Finance rules → Needs review / Approve."
+				class="apUploadLead sapUiMediumMarginBottom"
+				visible="{= !${apData>/upload/watching} }"/>
 
-			<HBox class="apUploadGrid" alignItems="Stretch" wrap="Wrap">
-				<!-- Hero drop zone: distinct target, real drag-and-drop, honest busy state -->
+			<!-- Idle / receiving: drop zone + pipeline side-by-side -->
+			<HBox class="apUploadGrid" alignItems="Stretch" wrap="Wrap"
+				visible="{= !${apData>/upload/watching} }">
 				<VBox id="dropZone" class="apHeroDrop" alignItems="Center" justifyContent="Center">
 					<VBox alignItems="Center" class="apHeroDropInner">
 						<VBox class="apHeroDropBadge sapUiTinyMarginBottom" alignItems="Center" justifyContent="Center">
@@ -26,7 +28,7 @@
 						<u:FileUploader id="fileUploader" fileType="pdf,png,jpg,jpeg" sameFilenameAllowed="true"
 							buttonOnly="true" buttonText="Browse files" tooltip="Choose a PDF, PNG or JPEG invoice"
 							style="Emphasized" change="onUploadChange"
-							enabled="{= !${apData>/busy} }" class="apHeroDropBrowse"/>
+							enabled="{= !${apData>/busy} &amp;&amp; !${apData>/upload/watching} }" class="apHeroDropBrowse"/>
 						<HBox class="apHeroDropFormats sapUiTinyMarginTop" wrap="Wrap" justifyContent="Center">
 							<ObjectStatus text="PDF" inverted="true" class="apFormatChip"/>
 							<ObjectStatus text="PNG" inverted="true" class="apFormatChip"/>
@@ -37,31 +39,78 @@
 						<VBox class="apUploadSpinnerRing"/>
 						<Text text="{apData>/upload/fileName}" class="apHeroDropBusyFile sapUiSmallMarginTop"/>
 						<Text text="Receiving your file…" class="apHeroDropBusyLabel sapUiTinyMarginTop"/>
-						<VBox class="apUploadProgress sapUiSmallMarginTop">
-							<VBox class="apUploadProgressBar"/>
-						</VBox>
 					</VBox>
 				</VBox>
 
-				<!-- Elegant progress steps: honest about what is tracked here vs. what the agents do next -->
-				<VBox class="apUploadSteps">
-					<Text text="What happens next" class="apUploadStepsLabel sapUiTinyMarginBottom"/>
-					<VBox items="{apData>/uploadSteps}" class="apStepList">
+				<VBox class="apUploadSteps apPipeRail">
+					<Text text="Full pipeline" class="apUploadStepsLabel sapUiTinyMarginBottom"/>
+					<Text text="All five steps stay on screen. After upload you watch them light up live."
+						class="apUploadStepsHint sapUiTinyMarginBottom"/>
+					<VBox items="{apData>/uploadSteps}" class="apStepList apPipeRailList">
 						<HBox alignItems="Start" class="apStep">
 							<customData>
 								<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
 							</customData>
 							<VBox class="apStepDot" alignItems="Center" justifyContent="Center">
-								<core:Icon src="{apData>icon}" size="0.75rem"/>
+								<core:Icon src="{apData>icon}" size="0.85rem"/>
 							</VBox>
 							<VBox class="apStepBody sapUiTinyMarginBegin">
-								<Text text="{apData>title}" class="apStepTitle"/>
+								<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apStepTitleRow">
+									<Text text="{apData>title}" class="apStepTitle"/>
+									<ObjectStatus text="{apData>statusLabel}" class="apStepStatus"/>
+								</HBox>
+								<Text text="{apData>service}" class="apStepService"
+									visible="{= !!${apData>service} }"/>
 								<Text text="{apData>description}" class="apStepText"/>
 							</VBox>
 						</HBox>
 					</VBox>
 				</VBox>
 			</HBox>
+
+			<!-- Live watch: full-cycle pipeline is the hero (not a single status chip) -->
+			<VBox visible="{apData>/upload/watching}" class="apPipeHero apPipeHero--upload">
+				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apPipeHeroHeader sapUiTinyMarginBottom">
+					<VBox>
+						<HBox alignItems="Center" class="sapUiTinyMarginBottom">
+							<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+							<Text text="Full pipeline · live" class="apPipeHeroKicker"/>
+						</HBox>
+						<Title text="Watch the complete cycle" level="H3" class="apPipeHeroTitle"/>
+						<Text text="{apData>/upload/fileName}" class="apPipeHeroFile sapUiTinyMarginTop"/>
+					</VBox>
+					<Button text="Open Clear Desk now" type="Emphasized" icon="sap-icon://inspect"
+						visible="{= !!${apData>/upload/caseId} }" press="onOpenLiveCase"/>
+				</HBox>
+
+				<!-- Horizontal process map: all 5 steps always visible as the hero -->
+				<HBox class="apPipeTrack" wrap="Wrap" justifyContent="SpaceBetween"
+					items="{apData>/uploadSteps}">
+					<VBox class="apPipeTrackStep" alignItems="Center">
+						<customData>
+							<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+						</customData>
+						<VBox class="apPipeTrackDot" alignItems="Center" justifyContent="Center">
+							<core:Icon src="{apData>icon}" size="1rem"/>
+						</VBox>
+						<Text text="{apData>title}" class="apPipeTrackLabel sapUiTinyMarginTop" textAlign="Center"/>
+						<Text text="{apData>service}" class="apPipeTrackService" textAlign="Center"
+							visible="{= !!${apData>service} }"/>
+						<ObjectStatus text="{apData>statusLabel}" class="apStepStatus sapUiTinyMarginTop"/>
+						<VBox class="apPipeTrackConnector"/>
+					</VBox>
+				</HBox>
+
+				<!-- “Now” caption UNDER the timeline — progress is secondary -->
+				<HBox visible="{= !!${apData>/upload/nowText} }" alignItems="Center" class="apPipeNow sapUiSmallMarginTop">
+					<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+					<Text text="{apData>/upload/nowText}" class="apPipeNowText"/>
+				</HBox>
+				<ProgressIndicator class="apPipeProgress sapUiTinyMarginTop"
+					percentValue="{apData>/upload/progressPercent}"
+					displayValue="{apData>/upload/progressPercent}% complete"
+					state="Information" showValue="true"/>
+			</VBox>
 
 			<ObjectStatus text="{apData>/upload/message}" state="{apData>/upload/state}" inverted="true"
 				visible="{apData>/upload/visible}" class="apUploadStatus"/>

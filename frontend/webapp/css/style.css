@@ -672,7 +672,8 @@
 }
 
 /* "What happens next" step rail */
-.apUploadSteps {
+.apUploadSteps,
+.apPipeRail {
     flex: 1 1 17rem;
     min-width: 15rem;
     box-sizing: border-box;
@@ -683,6 +684,225 @@
     box-shadow: var(--ap-shadow);
 }
 
+/* Full-cycle hero (Upload watch + Review processing) */
+.apPipeHero {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 1.25rem 1.35rem 1.1rem;
+    background:
+        linear-gradient(165deg, color-mix(in srgb, var(--ap-brand-soft) 75%, white) 0%, var(--ap-card) 55%);
+    border: 1px solid color-mix(in srgb, var(--ap-brand) 30%, var(--ap-border));
+    border-left: 4px solid var(--ap-brand);
+    border-radius: var(--ap-radius);
+    box-shadow: var(--ap-shadow);
+}
+
+.apPipeHeroKicker.sapMText {
+    color: var(--ap-brand-dark);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.apPipeHeroTitle.sapMTitle {
+    color: var(--ap-text);
+    font-weight: 700;
+}
+
+.apPipeHeroFile.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.apPipeHeroHeader {
+    gap: 0.75rem;
+}
+
+/* Horizontal process map — all five steps always visible */
+.apPipeTrack {
+    gap: 0;
+    width: 100%;
+    padding: 0.5rem 0 0.25rem;
+}
+
+.apPipeTrackStep {
+    position: relative;
+    flex: 1 1 5.5rem;
+    min-width: 4.75rem;
+    max-width: 10rem;
+    padding: 0.35rem 0.4rem 0.5rem;
+    box-sizing: border-box;
+}
+
+.apPipeTrackDot {
+    width: 2.15rem;
+    height: 2.15rem;
+    flex: none;
+    border-radius: 50%;
+    background: var(--ap-border);
+    z-index: 1;
+    transition: background var(--ap-base) var(--ap-ease), box-shadow var(--ap-base) var(--ap-ease);
+}
+
+.apPipeTrackDot .sapUiIcon {
+    color: var(--ap-muted);
+}
+
+.apPipeTrackStep[data-state="running"] .apPipeTrackDot {
+    background: var(--ap-brand);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--ap-brand) 18%, white);
+}
+
+.apPipeTrackStep[data-state="running"] .apPipeTrackDot .sapUiIcon {
+    color: #FFFFFF;
+}
+
+.apPipeTrackStep[data-state="done"] .apPipeTrackDot {
+    background: var(--ap-success);
+}
+
+.apPipeTrackStep[data-state="done"] .apPipeTrackDot .sapUiIcon {
+    color: #FFFFFF;
+}
+
+.apPipeTrackStep[data-state="failed"] .apPipeTrackDot {
+    background: var(--ap-error);
+}
+
+.apPipeTrackStep[data-state="failed"] .apPipeTrackDot .sapUiIcon {
+    color: #FFFFFF;
+}
+
+.apPipeTrackStep[data-state="pending"] .apPipeTrackLabel.sapMText {
+    color: var(--ap-muted);
+}
+
+.apPipeTrackLabel.sapMText {
+    color: var(--ap-text);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.25;
+    max-width: 6.5rem;
+}
+
+.apPipeTrackService.sapMText {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--ap-brand-dark);
+    font-size: 0.625rem;
+    font-weight: 600;
+    line-height: 1.2;
+    max-width: 6.5rem;
+}
+
+/* Connector between horizontal steps — fills left-to-right as the cycle advances */
+.apPipeTrackConnector {
+    position: absolute;
+    top: 1.3rem;
+    left: calc(50% + 1.2rem);
+    width: calc(100% - 0.35rem);
+    height: 3px;
+    border-radius: 999px;
+    background: var(--ap-border);
+    pointer-events: none;
+}
+
+.apPipeTrackStep[data-state="done"] .apPipeTrackConnector {
+    background: linear-gradient(90deg, var(--ap-success) 0%, var(--ap-brand-light) 100%);
+}
+
+.apPipeTrackStep[data-state="running"] .apPipeTrackConnector {
+    background: linear-gradient(90deg, var(--ap-brand) 0%, var(--ap-border) 100%);
+}
+
+.apPipeTrack .apPipeTrackStep:last-child .apPipeTrackConnector {
+    display: none;
+}
+
+/* Dashboard mini full-cycle dots */
+.apPipeMini {
+    gap: 0;
+    flex-wrap: wrap;
+}
+
+.apPipeMiniItem {
+    position: relative;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.apPipeMiniDot {
+    width: 0.55rem;
+    height: 0.55rem;
+    flex: none;
+    border-radius: 50%;
+    background: #C4BBB0;
+}
+
+.apPipeMiniItem[data-state="done"] .apPipeMiniDot {
+    background: var(--ap-success);
+}
+
+.apPipeMiniItem[data-state="running"] .apPipeMiniDot {
+    background: var(--ap-brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ap-brand) 20%, white);
+}
+
+.apPipeMiniItem[data-state="failed"] .apPipeMiniDot {
+    background: var(--ap-error);
+}
+
+.apPipeMiniConnector {
+    width: 0.85rem;
+    height: 2px;
+    flex: none;
+    border-radius: 999px;
+    background: var(--ap-border);
+}
+
+.apPipeMiniItem[data-state="done"] .apPipeMiniConnector {
+    background: color-mix(in srgb, var(--ap-success) 55%, var(--ap-border));
+}
+
+.apPipeMiniItem[data-state="running"] .apPipeMiniConnector {
+    background: color-mix(in srgb, var(--ap-brand) 45%, var(--ap-border));
+}
+
+.apPipeMini .apPipeMiniItem:last-child .apPipeMiniConnector {
+    display: none;
+}
+
+.apPipeMiniLabel.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.apPipeMiniItem[data-state="running"] .apPipeMiniLabel.sapMText,
+.apPipeMiniItem[data-state="done"] .apPipeMiniLabel.sapMText {
+    color: var(--ap-brand-dark);
+}
+
+.apPipeMini--row .apPipeMiniConnector {
+    width: 0.65rem;
+}
+
+.apPipeHero .apStepTitle.sapMText {
+    font-size: 0.9375rem;
+}
+
+.apPipeHero .apStepDot {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.apPipeHero .apPipeProgress.sapMPI {
+    max-width: 100%;
+}
+
 .apUploadStepsLabel.sapMText {
     color: var(--ap-muted);
     font-size: 0.75rem;
@@ -691,9 +911,23 @@
     text-transform: uppercase;
 }
 
+.apUploadStepsHint.sapMText {
+    display: block;
+    color: var(--ap-muted);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    margin-bottom: 0.75rem;
+}
+
 .apStep {
     position: relative;
     padding: 0 0 1.25rem 0;
+}
+
+.apStepBody {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.15rem 0.4rem 0.35rem 0.25rem;
 }
 
 .apStep::before {
@@ -704,6 +938,17 @@
     bottom: -0.25rem;
     width: 2px;
     background: var(--ap-border);
+    transform-origin: top center;
+}
+
+/* Connector fills as the step completes, so progress reads top-to-bottom. */
+.apStep[data-state="done"]::before {
+    background: linear-gradient(180deg, var(--ap-success) 0%, var(--ap-brand-light) 100%);
+    animation: apConnectorFill 380ms var(--ap-ease) both;
+}
+
+.apStep[data-state="running"]::before {
+    background: linear-gradient(180deg, var(--ap-brand) 0%, var(--ap-border) 100%);
 }
 
 .apStepList > .apStep:last-child::before {
@@ -726,12 +971,14 @@
     transition: color var(--ap-base) var(--ap-ease);
 }
 
+.apStep[data-state="running"] .apStepDot,
 .apStep[data-state="active"] .apStepDot {
     background: var(--ap-brand);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--ap-brand) 18%, white);
     animation: apPulse 1.4s ease-in-out infinite;
 }
 
+.apStep[data-state="running"] .apStepDot .sapUiIcon,
 .apStep[data-state="active"] .apStepDot .sapUiIcon {
     color: #FFFFFF;
 }
@@ -744,12 +991,84 @@
     color: #FFFFFF;
 }
 
+/* Live "now" cue shared by Upload, Review and Dashboard */
+.apPipeNow {
+    gap: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-brand-soft);
+    border: 1px solid color-mix(in srgb, var(--ap-brand) 22%, var(--ap-border));
+}
+
+.apPipeNowDot {
+    width: 0.5rem;
+    height: 0.5rem;
+    flex: none;
+    border-radius: 50%;
+    background: var(--ap-brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ap-brand) 20%, white);
+}
+
+.apPipeNowText.sapMText {
+    color: var(--ap-brand-dark);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.apPipeLiveCard {
+    padding: 0.875rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--ap-brand) 28%, var(--ap-border));
+    border-left: 4px solid var(--ap-brand);
+    border-radius: var(--ap-radius-sm);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--ap-brand-soft) 80%, white), var(--ap-card));
+}
+
+/* Review processing hero sits in a narrow pane — keep track readable */
+.apPipeHero--review .apPipeTrackStep {
+    min-width: 4.25rem;
+    max-width: 7.5rem;
+    padding: 0.25rem 0.2rem 0.35rem;
+}
+
+.apPipeHero--review .apPipeTrackLabel.sapMText {
+    font-size: 0.6875rem;
+    max-width: 5.5rem;
+}
+
+.apPipeLiveTitle.sapMTitle {
+    color: var(--ap-brand-dark);
+    font-weight: 700;
+}
+
+.apPipeProgress.sapMPI {
+    width: 100%;
+    max-width: 20rem;
+}
+
+.apPipeProgress .sapMPIBarNeutral,
+.apPipeProgress .sapMPIBarInformation {
+    background: linear-gradient(90deg, var(--ap-brand-dark), var(--ap-brand), var(--ap-brand-light));
+}
+
+.apHeroDrop--watching {
+    border-style: solid;
+}
+
+.apStep[data-state="failed"] .apStepDot,
 .apStep[data-state="error"] .apStepDot {
     background: var(--ap-error);
 }
 
+.apStep[data-state="failed"] .apStepDot .sapUiIcon,
 .apStep[data-state="error"] .apStepDot .sapUiIcon {
     color: #FFFFFF;
+}
+
+.apStepTitleRow {
+    gap: 0.5rem;
+    width: 100%;
 }
 
 .apStepTitle.sapMText {
@@ -758,13 +1077,70 @@
     font-size: 0.875rem;
 }
 
+.apStep[data-state="pending"] .apStepTitle.sapMText,
 .apStep[data-state="upcoming"] .apStepTitle.sapMText {
     color: var(--ap-muted);
+}
+
+.apStepService.sapMText {
+    display: block;
+    color: var(--ap-brand-dark);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }
 
 .apStepText.sapMText {
     color: var(--ap-muted);
     font-size: 0.8125rem;
+}
+
+.apStepStatus.sapMObjStatus .sapMObjStatusWrapper {
+    padding: 0.0625rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--ap-border);
+    background: #F7F2EB;
+}
+
+.apStepStatus.sapMObjStatus .sapMObjStatusText {
+    color: var(--ap-muted);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.apStep[data-state="running"] .apStepStatus .sapMObjStatusWrapper,
+.apTimelineItem[data-state="running"] .apStepStatus .sapMObjStatusWrapper {
+    border-color: color-mix(in srgb, var(--ap-info) 35%, white);
+    background: color-mix(in srgb, var(--ap-info) 12%, white);
+}
+
+.apStep[data-state="running"] .apStepStatus .sapMObjStatusText,
+.apTimelineItem[data-state="running"] .apStepStatus .sapMObjStatusText {
+    color: var(--ap-info);
+}
+
+.apStep[data-state="done"] .apStepStatus .sapMObjStatusWrapper,
+.apTimelineItem[data-state="done"] .apStepStatus .sapMObjStatusWrapper {
+    border-color: color-mix(in srgb, var(--ap-success) 35%, white);
+    background: color-mix(in srgb, var(--ap-success) 12%, white);
+}
+
+.apStep[data-state="done"] .apStepStatus .sapMObjStatusText,
+.apTimelineItem[data-state="done"] .apStepStatus .sapMObjStatusText {
+    color: var(--ap-success);
+}
+
+.apStep[data-state="failed"] .apStepStatus .sapMObjStatusWrapper,
+.apTimelineItem[data-state="failed"] .apStepStatus .sapMObjStatusWrapper {
+    border-color: color-mix(in srgb, var(--ap-error) 35%, white);
+    background: color-mix(in srgb, var(--ap-error) 12%, white);
+}
+
+.apStep[data-state="failed"] .apStepStatus .sapMObjStatusText,
+.apTimelineItem[data-state="failed"] .apStepStatus .sapMObjStatusText {
+    color: var(--ap-error);
 }
 
 .apUploadStatus.sapMObjStatus {
@@ -974,6 +1350,16 @@
     bottom: -0.5rem;
     width: 2px;
     background: var(--ap-border);
+    transform-origin: top center;
+}
+
+.apTimelineItem[data-state="done"]::before {
+    background: linear-gradient(180deg, var(--ap-success) 0%, var(--ap-brand-light) 100%);
+    animation: apConnectorFill 380ms var(--ap-ease) both;
+}
+
+.apTimelineItem[data-state="running"]::before {
+    background: linear-gradient(180deg, var(--ap-brand) 0%, var(--ap-border) 100%);
 }
 
 .apTimeline .sapMLIB:last-child .apTimelineItem::before {
@@ -999,6 +1385,41 @@
 .apTimelineItem[data-tone="success"] { --ap-tone: var(--ap-success); }
 .apTimelineItem[data-tone="warning"] { --ap-tone: var(--ap-warning); }
 .apTimelineItem[data-tone="error"] { --ap-tone: var(--ap-error); }
+.apTimelineItem[data-tone="muted"] { --ap-tone: #B8B0A4; }
+
+.apTimelineItem[data-state="running"] .apTimelineDot {
+    animation: apPulse 1.4s ease-in-out infinite;
+}
+
+.apPipelineBanner {
+    gap: 0.35rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid color-mix(in srgb, var(--ap-brand) 28%, var(--ap-border));
+    border-radius: var(--ap-radius-sm);
+    background: color-mix(in srgb, var(--ap-brand-soft) 70%, white);
+}
+
+.apPipelineBanner .sapMText {
+    color: var(--ap-text);
+    font-size: 0.8125rem;
+}
+
+.apPipelineBanner .apPipeMini {
+    margin-top: 0.15rem;
+}
+
+.apPipelineHint.sapMText {
+    display: block;
+    margin-top: 0.125rem;
+    color: var(--ap-brand-dark);
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+/* Dashboard status pill while agents are processing */
+.sapMObjStatus[data-processing="true"] .sapMObjStatusWrapper {
+    animation: apPulse 1.6s ease-in-out infinite;
+}
 
 .apTimelineTitle.sapMText {
     color: var(--ap-text);

@@ -13,9 +13,15 @@ sap.ui.define([
 
         // Without a case id the screen shows the case that is already open, or its empty state.
         _onRouteMatched: function (oEvent) {
+            var that = this;
             var sCaseId = oEvent.getParameter("arguments").caseId;
             if (sCaseId) {
-                this.getCaseStore().loadCase(sCaseId);
+                this.getCaseStore().loadCase(sCaseId).then(function () {
+                    // Pin Agent Results so the full pipeline hero is above the fold while processing.
+                    if (that.getData().getProperty("/selectedInvoice/isProcessing")) {
+                        that.getData().setProperty("/reviewTabKey", "agents");
+                    }
+                });
             }
             this._syncPdfFrame();
         },

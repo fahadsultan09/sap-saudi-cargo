@@ -10,6 +10,11 @@ sap.ui.define([], function () {
         CASES_PER_PAGE: 10,
         // How often the case list refreshes itself while the agents are still processing a case.
         REFRESH_INTERVAL_MS: 3000,
+        // Snappier poll while watching a single case's pipeline (Upload stay-and-watch + Review).
+        PIPELINE_POLL_MS: 1500,
+        // Stay on Upload long enough to see the full 5-step track light up before Clear Desk.
+        UPLOAD_WATCH_MIN_MS: 4200,
+        UPLOAD_WATCH_MAX_MS: 14000,
 
         // The agentic API stores times in UTC; they are shown in the time zone of config.json's countryCode.
         COUNTRY_TIME_ZONES: {
@@ -83,6 +88,65 @@ sap.ui.define([], function () {
         ],
 
         CHECK_LABELS: { vendor: "Vendor", po: "Purchase order", tax: "Tax", duplicate: "Duplicate" },
+
+        // Full invoice pipeline shown on Upload + Review. agent matches validation.agent_trace[].agent.
+        PIPELINE_STEPS: [
+            {
+                key: "receive",
+                title: "Received",
+                service: "",
+                description: "Your file lands in AP Console and gets a case.",
+                icon: "sap-icon://upload-to-cloud",
+                agent: null
+            },
+            {
+                key: "classify",
+                title: "Classify",
+                service: "TOWER · AI Core",
+                description: "Confirms it is an invoice or credit note.",
+                icon: "sap-icon://inspect",
+                agent: "TOWER"
+            },
+            {
+                key: "extract",
+                title: "Extract",
+                service: "LENS · Document AI",
+                description: "Reads supplier, amounts, PO, dates and line items.",
+                icon: "sap-icon://create-form",
+                agent: "LENS"
+            },
+            {
+                key: "finance",
+                title: "Finance rules",
+                service: "Deterministic checks",
+                description: "Vendor, PO, tax and duplicate rules run.",
+                icon: "sap-icon://lab",
+                agent: "FINANCE_RULES"
+            },
+            {
+                key: "decide",
+                title: "Needs review / Approve",
+                service: "Clear Desk · Dock Decide",
+                description: "Check fields on Clear Desk, then approve, return or reject on the dock.",
+                icon: "sap-icon://approvals",
+                agent: null
+            }
+        ],
+        PIPELINE_STATUS_LABELS: {
+            pending: "Pending",
+            running: "Working…",
+            done: "Done",
+            failed: "Failed"
+        },
+
+        // Live status line while a step is active (Upload rail + Review processing banner).
+        PIPELINE_NOW_LABELS: {
+            receive: "Receiving your file and opening a case…",
+            classify: "Now: Classifying document (TOWER · AI Core)…",
+            extract: "Now: Extracting invoice fields (LENS · Document AI)…",
+            finance: "Now: Running finance rules (vendor, PO, tax, duplicate)…",
+            decide: "Now: Handing off to Clear Desk / Dock Decide…"
+        },
 
         // Plain-language text and icon for the agents' review reason codes (validation.review_decision).
         REVIEW_REASONS: {

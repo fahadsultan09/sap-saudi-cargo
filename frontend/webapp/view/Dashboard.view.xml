@@ -31,6 +31,24 @@
 						<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh" press="onRefreshCases"/>
 					</HBox>
 				</HBox>
+				<VBox visible="{= !!${apData>/pipelineBanner} }" class="apPipelineBanner sapUiSmallMarginBottom">
+					<HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
+						<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+						<core:Icon src="sap-icon://process" size="0.875rem" class="apReasonIcon sapUiTinyMarginEnd"/>
+						<Text text="{apData>/pipelineBanner}" wrapping="true"/>
+					</HBox>
+					<!-- Mini full-cycle dots: all five steps -->
+					<HBox class="apPipeMini" alignItems="Center" items="{apData>/pipelineBannerDots}">
+						<HBox alignItems="Center" class="apPipeMiniItem">
+							<customData>
+								<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+							</customData>
+							<VBox class="apPipeMiniDot"/>
+							<Text text="{apData>short}" class="apPipeMiniLabel"/>
+							<VBox class="apPipeMiniConnector"/>
+						</HBox>
+					</HBox>
+				</VBox>
 				<Table items="{apData>/pagedCases}" fixedLayout="false" class="apTable">
 					<noData>
 						<IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
@@ -48,7 +66,21 @@
 					<items>
 						<ColumnListItem type="Navigation" press="onCasePress">
 							<cells>
-								<ObjectIdentifier title="{apData>id}"/>
+								<VBox>
+									<ObjectIdentifier title="{apData>id}"/>
+									<HBox visible="{= !!${apData>processing} }" class="apPipeMini apPipeMini--row sapUiTinyMarginTop"
+										alignItems="Center" items="{apData>pipelineDots}">
+										<HBox alignItems="Center" class="apPipeMiniItem">
+											<customData>
+												<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+											</customData>
+											<VBox class="apPipeMiniDot" tooltip="{apData>title}"/>
+											<VBox class="apPipeMiniConnector"/>
+										</HBox>
+									</HBox>
+									<Text text="{apData>pipelineHint}" class="apPipelineHint"
+										visible="{= !!${apData>pipelineHint} }"/>
+								</VBox>
 								<Text text="{apData>supplier}"/>
 								<Text text="{apData>amount}" class="apAmount"/>
 								<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"

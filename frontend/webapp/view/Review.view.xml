@@ -62,8 +62,8 @@
 						<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
 							press="onSaveCorrections" visible="{apData>/selectedInvoice/canEdit}"/>
 					</HBox>
-					<IconTabBar class="apReviewTabs apIconTabFade" expandable="false" applyContentPadding="false"
-						select="onReviewTabSelect">
+					<IconTabBar id="reviewTabs" class="apReviewTabs apIconTabFade" expandable="false" applyContentPadding="false"
+						select="onReviewTabSelect" selectedKey="{apData>/reviewTabKey}">
 						<layoutData>
 							<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
 						</layoutData>
@@ -71,6 +71,50 @@
 							<IconTabFilter text="Agent Results" key="agents">
 								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
 									<VBox>
+										<!-- Processing: full-cycle pipeline is the above-the-fold hero -->
+										<VBox visible="{apData>/selectedInvoice/isProcessing}" class="apPipeHero apPipeHero--review sapUiSmallMarginBottom">
+											<HBox alignItems="Center" class="sapUiTinyMarginBottom">
+												<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+												<Title text="Full pipeline · agents at work" level="H5" class="apPipeLiveTitle"/>
+											</HBox>
+											<Text text="Every step stays on screen — done, working, and still pending."
+												class="apUploadStepsHint sapUiTinyMarginBottom"/>
+
+											<!-- Vertical full-cycle rail — connectors fill as each step completes -->
+											<VBox items="{apData>/selectedInvoice/pipelineSteps}" class="apStepList apPipeRailList">
+												<HBox alignItems="Start" class="apStep">
+													<customData>
+														<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+														<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+													</customData>
+													<VBox class="apStepDot" alignItems="Center" justifyContent="Center">
+														<core:Icon src="{apData>icon}" size="0.85rem"/>
+													</VBox>
+													<VBox class="apStepBody sapUiTinyMarginBegin">
+														<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apStepTitleRow">
+															<Text text="{apData>title}" class="apStepTitle"/>
+															<ObjectStatus text="{apData>statusLabel}" class="apStepStatus"/>
+														</HBox>
+														<Text text="{apData>service}" class="apStepService"
+															visible="{= !!${apData>service} }"/>
+														<Text text="{apData>description}" class="apStepText"/>
+														<Text text="{apData>meta}" class="apTimelineMeta"
+															visible="{= !!${apData>meta} }"/>
+													</VBox>
+												</HBox>
+											</VBox>
+
+											<HBox visible="{= !!${apData>/selectedInvoice/pipelineNow} }"
+												alignItems="Center" class="apPipeNow sapUiSmallMarginTop">
+												<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+												<Text text="{apData>/selectedInvoice/pipelineNow}" class="apPipeNowText"/>
+											</HBox>
+											<ProgressIndicator class="apPipeProgress sapUiTinyMarginTop"
+												percentValue="{apData>/selectedInvoice/pipelinePercent}"
+												displayValue="{apData>/selectedInvoice/pipelineSummary}"
+												state="Information" showValue="true"/>
+										</VBox>
+
 										<VBox visible="{= ${apData>/selectedInvoice/reviewReasons}.length > 0 }"
 											class="apReasonCard sapUiSmallMarginBottom">
 											<Title text="Why this invoice needs attention" level="H5" class="apReasonTitle"/>
@@ -86,27 +130,40 @@
 											<ObjectStatus title="Classification confidence" text="{apData>/selectedInvoice/classificationConfidence}" class="sapUiLargeMarginEnd"/>
 											<ObjectStatus title="Agent mode" text="{apData>/selectedInvoice/agentMode}"/>
 										</HBox>
-										<Title text="Checks" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+
+										<!-- Completed / non-processing: same full rail, without the live hero chrome -->
+										<VBox visible="{= !${apData>/selectedInvoice/isProcessing} }" class="apPipeRail sapUiTinyMarginBottom">
+											<Title text="Pipeline" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+											<Text text="Received → Classify (TOWER / AI Core) → Extract (LENS / Document AI) → Finance rules → Clear Desk / Dock Decide."
+												class="apTimelineMeta sapUiTinyMarginBottom"/>
+											<VBox items="{apData>/selectedInvoice/pipelineSteps}" class="apStepList apPipeRailList">
+												<HBox alignItems="Start" class="apStep">
+													<customData>
+														<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+														<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+													</customData>
+													<VBox class="apStepDot" alignItems="Center" justifyContent="Center">
+														<core:Icon src="{apData>icon}" size="0.85rem"/>
+													</VBox>
+													<VBox class="apStepBody sapUiTinyMarginBegin">
+														<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apStepTitleRow">
+															<Text text="{apData>title}" class="apStepTitle"/>
+															<ObjectStatus text="{apData>statusLabel}" class="apStepStatus"/>
+														</HBox>
+														<Text text="{apData>service}" class="apStepService"
+															visible="{= !!${apData>service} }"/>
+														<Text text="{apData>description}" class="apStepText"/>
+														<Text text="{apData>meta}" class="apTimelineMeta"
+															visible="{= !!${apData>meta} }"/>
+													</VBox>
+												</HBox>
+											</VBox>
+										</VBox>
+
+										<Title text="Checks" level="H5" class="apSectionTitle sapUiSmallMarginTop sapUiTinyMarginBottom"/>
 										<HBox wrap="Wrap" class="apChips sapUiSmallMarginBottom" items="{apData>/selectedInvoice/checks}">
 											<ObjectStatus text="{apData>name}: {apData>value}" state="{apData>state}" inverted="true"/>
 										</HBox>
-										<Title text="Agent steps" level="H5" class="apSectionTitle sapUiSmallMarginTop sapUiTinyMarginBottom"/>
-										<List items="{apData>/selectedInvoice/agentTrace}" showSeparators="None" class="apTimeline"
-											noDataText="No agent steps recorded">
-											<CustomListItem>
-												<VBox class="apTimelineItem">
-													<customData>
-														<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
-													</customData>
-													<VBox class="apTimelineDot" alignItems="Center" justifyContent="Center">
-														<core:Icon src="{apData>icon}" size="0.75rem"/>
-													</VBox>
-													<Text text="{apData>title}" class="apTimelineTitle"/>
-													<Text text="{apData>description}" class="apTimelineText"/>
-													<Text text="{apData>meta}" class="apTimelineMeta"/>
-												</VBox>
-											</CustomListItem>
-										</List>
 										<Title text="Findings" level="H5" class="apSectionTitle sapUiSmallMarginTop sapUiTinyMarginBottom"/>
 										<List items="{apData>/selectedInvoice/findings}" noDataText="No findings">
 											<StandardListItem title="{apData>text}" icon="{apData>icon}" wrapping="true"/>
