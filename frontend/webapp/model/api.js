@@ -1,12 +1,11 @@
 sap.ui.define([], function () {
     "use strict";
 
-    // Single place for backend calls: adds the user headers and turns error responses into a readable Error.
-    function currentUser(oConfigData) {
-        var aUsers = oConfigData.users || [];
-        return aUsers.filter(function (oUser) {
-            return oUser.id === oConfigData.currentUserId;
-        })[0] || aUsers[0] || {};
+    // Single place for server calls. The app is served by the gateway, so calls are relative and carry the
+    // session cookie; who the user is comes from that session, never from the browser.
+
+    function signIn() {
+        window.location.assign("/auth/login?returnTo=" + encodeURIComponent(window.location.hash || "#/dashboard"));
     }
 
     // The gateway turns every error into {error: {code, message}} with a message written for business users.
@@ -14,19 +13,22 @@ sap.ui.define([], function () {
         return oBody && oBody.error ? oBody.error.message : "Something went wrong. Please try again.";
     }
 
-    function send(oConfigData, sMethod, sPath, vBody) {
-        var oUser = currentUser(oConfigData);
-        var mHeaders = { "X-User-Id": oUser.id || "", "X-User-Role": oUser.role || "" };
-        var oOptions = { method: sMethod, headers: mHeaders };
+    function send(sMethod, sPath, vBody) {
+        var oOptions = { method: sMethod, headers: {}, credentials: "same-origin" };
         if (vBody instanceof FormData) {
             oOptions.body = vBody;
         } else if (vBody !== undefined) {
-            mHeaders["Content-Type"] = "application/json";
+            oOptions.headers["Content-Type"] = "application/json";
             oOptions.body = JSON.stringify(vBody);
         }
-        var sBase = String(oConfigData.apiBaseUrl || "").replace(/\/$/, "");
-        return fetch(sBase + sPath, oOptions).catch(function () {
+        return fetch(sPath, oOptions).catch(function () {
             throw new Error("The application server cannot be reached. Check your connection and try again.");
+        }).then(function (oResponse) {
+            // An ended session sends the user to the sign-in page and back to where they were.
+            if (oResponse.status === 401) {
+                signIn();
+            }
+            return oResponse;
         });
     }
 
@@ -42,18 +44,20 @@ sap.ui.define([], function () {
     }
 
     return {
-        currentUser: currentUser,
-
-        json: function (oConfigData, sMethod, sPath, vBody) {
-            return send(oConfigData, sMethod, sPath, vBody).then(function (oResponse) {
+        json: function (sMethod, sPath, vBody) {
+            return send(sMethod, sPath, vBody).then(function (oResponse) {
                 return oResponse.ok ? oResponse.json() : rejectWithBody(oResponse);
             });
         },
 
-        blob: function (oConfigData, sPath) {
-            return send(oConfigData, "GET", sPath).then(function (oResponse) {
+        blob: function (sPath) {
+            return send("GET", sPath).then(function (oResponse) {
                 return oResponse.ok ? oResponse.blob() : rejectWithBody(oResponse);
             });
+        },
+
+        signOut: function () {
+            window.location.assign("/auth/logout");
         }
     };
 });

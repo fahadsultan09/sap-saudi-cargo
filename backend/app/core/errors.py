@@ -27,6 +27,21 @@ class UpstreamUnavailable(AppError):
     code = "agentic_api_unavailable"
 
 
+class NotSignedIn(AppError):
+    status_code = 401
+    code = "not_signed_in"
+
+
+class NotPermitted(AppError):
+    status_code = 403
+    code = "not_permitted"
+
+
+class IdentityUnavailable(AppError):
+    status_code = 502
+    code = "identity_unavailable"
+
+
 def error_response(
     status: int, code: str, message: str, details: list[dict[str, object]] | None = None
 ) -> JSONResponse:

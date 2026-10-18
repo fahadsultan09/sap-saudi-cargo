@@ -1,0 +1,46 @@
+{
+    "name": "Saudi Cargo",
+    "countryCode": "SA",
+    "branding": {
+        "appTitle": "AP Console",
+        "appSubtitle": "Saudi Cargo · Invoice automation",
+        "markText": "AP",
+        "logo": "logo.png",
+        "colors": {
+            "brand": "#0B7A42",
+            "brandDark": "#06532C",
+            "brandLight": "#9FD4B4",
+            "brandSoft": "#E6F5EC"
+        }
+    },
+    "identity": {
+        "provider": "oidc",
+        "issuer": "http://localhost:8180/realms/saudi-cargo",
+        "clientId": "ap-gateway",
+        "rolesClaim": "realm_access.roles",
+        "roleMap": {
+            "AP_PROCESSOR": "AP_PROCESSOR",
+            "AP_APPROVER": "AP_APPROVER",
+            "FINANCE_MANAGER": "FINANCE_MANAGER",
+            "ADMIN": "ADMIN"
+        }
+    },
+    "roles": [
+        {
+            "id": "FINANCE_MANAGER",
+            "label": "Finance Manager"
+        },
+        {
+            "id": "AP_APPROVER",
+            "label": "AP Approver"
+        },
+        {
+            "id": "AP_PROCESSOR",
+            "label": "AP Processor"
+        },
+        {
+            "id": "ADMIN",
+            "label": "Administrator"
+        }
+    ]
+}

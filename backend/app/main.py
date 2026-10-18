@@ -5,51 +5,61 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 
-from .clients.agentic_api import AgenticAPI
+from .auth import routes as auth_routes
+from .auth.access import AccessPolicy
+from .auth.registry import create_provider
+from .auth.sessions import MemorySessionStore
+from .client_profile import routes as profile_routes
+from .client_profile.profile import load_profile
 from .config import get_settings
-from .errors import register_handlers
-from .routers import proxy
-from .schemas import ErrorResponse, Health
+from .core.errors import register_handlers
+from .core.schemas import ErrorResponse, Health
+from .gateway import proxy
+from .gateway.agentic_api import AgenticAPI
+from .gateway.frontend import mount_frontend
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     async with httpx.AsyncClient(timeout=settings.http_timeout) as http:
+        application.state.http = http
         application.state.agentic_api = AgenticAPI(http, settings)
+        application.state.identity = create_provider(
+            application.state.profile.identity, settings.oidc_client_secret, http
+        )
+        application.state.sessions = MemorySessionStore()
         yield
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
-        title="Saudi Cargo AP Gateway",
-        description="Routes the AP Console's /api/v1 calls to the agentic API.",
-        version="2.0.0",
+        title="AP Automation Gateway",
+        description="Single entry point: sign-in, the AP Console UI and its /api/v1 calls.",
+        version="3.0.0",
         lifespan=lifespan,
         responses={502: {"model": ErrorResponse}},
     )
-    application.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH"],
-        allow_headers=["*"],
-    )
+    # Loaded at start-up: a broken client profile or rules file stops the gateway, not a later call.
+    application.state.profile = load_profile(settings.client_profile)
+    application.state.access = AccessPolicy.load(settings.access_rules)
     register_handlers(application)
+
+    @application.get("/health", response_model=Health, tags=["health"])
+    async def health(request: Request) -> Health:
+        reachable = await request.app.state.agentic_api.reachable()
+        return Health(agentic_api="reachable" if reachable else "unreachable")
+
+    application.include_router(auth_routes.router)
+    application.include_router(profile_routes.router)
     application.include_router(proxy.router)
+    mount_frontend(application, settings)
     return application
 
 
 app = create_app()
-
-
-@app.get("/health", response_model=Health, status_code=200, tags=["health"])
-async def health(request: Request) -> Health:
-    reachable = await request.app.state.agentic_api.reachable()
-    return Health(agentic_api="reachable" if reachable else "unreachable")
 
 
 if __name__ == "__main__":

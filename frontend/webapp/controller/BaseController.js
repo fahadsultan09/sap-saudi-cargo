@@ -15,10 +15,6 @@ sap.ui.define([
             return this.getOwnerComponent().getModel("apData");
         },
 
-        getConfig: function () {
-            return this.getOwnerComponent().getModel("config");
-        },
-
         getCaseStore: function () {
             return this.getOwnerComponent().getCaseStore();
         },

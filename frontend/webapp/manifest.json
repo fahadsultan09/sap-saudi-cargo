@@ -40,12 +40,6 @@
                 "sap.ui.unified": {}
             }
         },
-        "models": {
-            "config": {
-                "type": "sap.ui.model.json.JSONModel",
-                "uri": "model/config.json"
-            }
-        },
         "routing": {
             "config": {
                 "routerClass": "sap.m.routing.Router",

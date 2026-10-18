@@ -1,9 +1,0 @@
-{
-    "apiBaseUrl": "http://127.0.0.1:8000",
-    "countryCode": "SA",
-    "users": [
-        { "id": "faizan", "name": "Faizan", "role": "AP_PROCESSOR" },
-        { "id": "sara", "name": "Sara", "role": "FINANCE_MANAGER" }
-    ],
-    "currentUserId": "faizan"
-}

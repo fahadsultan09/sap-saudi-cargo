@@ -6,19 +6,19 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 :root {
-    /* Brand — Saudia Cargo green, elevated */
+    /* Brand: these defaults are replaced at start-up by the client profile's branding.colors. */
     --ap-brand: #0B7A42;
     --ap-brand-dark: #06532C;
-    --ap-brand-deep: #043820;
+    --ap-brand-deep: color-mix(in srgb, var(--ap-brand-dark) 65%, black);
     --ap-brand-light: #9FD4B4;
     --ap-brand-soft: #E6F5EC;
-    --ap-brand-glow: rgba(11, 122, 66, 0.22);
+    --ap-brand-glow: color-mix(in srgb, var(--ap-brand) 22%, transparent);
 
     /* Atmosphere — cool cargo slate, not flat Fiori gray */
     --ap-ink: #0A1620;
     --ap-ink-soft: #142433;
     --ap-bg: #EEF2F4;
-    --ap-bg-mesh: radial-gradient(1200px 600px at 8% -10%, rgba(11, 122, 66, 0.10), transparent 55%),
+    --ap-bg-mesh: radial-gradient(1200px 600px at 8% -10%, color-mix(in srgb, var(--ap-brand) 10%, transparent), transparent 55%),
         radial-gradient(900px 500px at 92% 0%, rgba(15, 118, 140, 0.08), transparent 50%),
         linear-gradient(180deg, #F4F7F8 0%, #E8EDF0 100%);
     --ap-surface: #FFFFFF;
@@ -57,21 +57,21 @@
     --ap-font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
-/* Map UI5 theme accents to brand so Emphasized buttons / focus follow Runway green */
+/* Map UI5 theme accents to the brand tokens, so Emphasized buttons / focus follow the client's colours */
 :root:root {
-    --sapBrandColor: #0B7A42;
-    --sapHighlightColor: #0B7A42;
-    --sapSelectedColor: #0B7A42;
-    --sapLinkColor: #06532C;
-    --sapContent_FocusColor: #0B7A42;
-    --sapContent_Selected_TextColor: #0B7A42;
-    --sapButton_TextColor: #0B7A42;
-    --sapButton_IconColor: #0B7A42;
-    --sapButton_Lite_TextColor: #0B7A42;
-    --sapButton_Emphasized_Background: #0B7A42;
-    --sapButton_Emphasized_BorderColor: #0B7A42;
-    --sapButton_Emphasized_Hover_Background: #06532C;
-    --sapButton_Emphasized_Hover_BorderColor: #06532C;
-    --sapList_SelectionBackgroundColor: #E6F5EC;
+    --sapBrandColor: var(--ap-brand);
+    --sapHighlightColor: var(--ap-brand);
+    --sapSelectedColor: var(--ap-brand);
+    --sapLinkColor: var(--ap-brand-dark);
+    --sapContent_FocusColor: var(--ap-brand);
+    --sapContent_Selected_TextColor: var(--ap-brand);
+    --sapButton_TextColor: var(--ap-brand);
+    --sapButton_IconColor: var(--ap-brand);
+    --sapButton_Lite_TextColor: var(--ap-brand);
+    --sapButton_Emphasized_Background: var(--ap-brand);
+    --sapButton_Emphasized_BorderColor: var(--ap-brand);
+    --sapButton_Emphasized_Hover_Background: var(--ap-brand-dark);
+    --sapButton_Emphasized_Hover_BorderColor: var(--ap-brand-dark);
+    --sapList_SelectionBackgroundColor: var(--ap-brand-soft);
     --sapFontFamily: "IBM Plex Sans", "Segoe UI", sans-serif;
 }

@@ -52,7 +52,8 @@ sap.ui.define([
         // Native xhtml:iframe may not exist until afterRendering; blob URL needs a live src write.
         _syncPdfFrame: function () {
             var oView = this.getView();
-            var sUrl = this.getData().getProperty("/selectedInvoice/documentUrl") || "";
+            var sUrl = this.getData().getProperty("/selectedInvoice/documentIsImage")
+                ? "" : this.getData().getProperty("/selectedInvoice/documentUrl") || "";
             var oFrame = oView.byId("invoicePdfFrame");
             if (!oFrame) {
                 return;

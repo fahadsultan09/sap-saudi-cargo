@@ -10,9 +10,10 @@ sap.ui.define([
 
     // Loads cases from the gateway and maps them into the shared "apData" model that every screen binds to.
     return BaseObject.extend("saudicargo.ap.automation.model.CaseStore", {
-        constructor: function (oConfigModel) {
+        // oClientModel: this deployment's client profile (branding, country, role labels) from /config/client.
+        constructor: function (oClientModel) {
             BaseObject.call(this);
-            this._config = oConfigModel;
+            this._client = oClientModel;
             this._documentBlobUrl = null;
             this._refreshTimer = null;
             this._casePollTimer = null;
@@ -21,7 +22,6 @@ sap.ui.define([
             this._model = new JSONModel({
                 section: "dashboard",
                 currentUser: {},
-                profiles: [],
                 welcome: {},
                 busy: false,
                 kpiCards: [],
@@ -57,7 +57,7 @@ sap.ui.define([
         },
 
         call: function (sMethod, sPath, vBody) {
-            return api.json(this._config.getData(), sMethod, sPath, vBody);
+            return api.json(sMethod, sPath, vBody);
         },
 
         casePath: function (sCaseId) {
@@ -66,7 +66,7 @@ sap.ui.define([
 
         // Dates are shown in the time zone of the configured country (UTC if the code is unknown).
         applyTimeZone: function () {
-            var oZone = C.COUNTRY_TIME_ZONES[this._config.getProperty("/countryCode")] || C.DEFAULT_TIME_ZONE;
+            var oZone = C.COUNTRY_TIME_ZONES[this._client.getProperty("/countryCode")] || C.DEFAULT_TIME_ZONE;
             this._dateFormat = new Intl.DateTimeFormat("en-CA", {
                 timeZone: oZone.zone,
                 year: "numeric", month: "2-digit", day: "2-digit",
@@ -77,34 +77,36 @@ sap.ui.define([
 
         // ---------------------------------------------------------------- users
 
-        applyCurrentUser: function () {
-            var oConfig = this._config.getData();
-            var oUser = this._profile(api.currentUser(oConfig), oConfig.currentUserId);
+        // oMe: the signed-in user from /auth/me. A user with several roles acts with the first one in the
+        // client profile's role list.
+        applyCurrentUser: function (oMe) {
+            var aRoles = this._client.getProperty("/roles") || [];
+            var oRole = aRoles.filter(function (oItem) {
+                return oMe.roles.indexOf(oItem.id) >= 0;
+            })[0] || { id: "", label: "No role assigned" };
             var iHour = new Date().getHours();
             var sGreeting = iHour < 12 ? "Good morning" : (iHour < 18 ? "Good afternoon" : "Good evening");
-            this._model.setProperty("/currentUser", oUser);
-            this._model.setProperty("/profiles", (oConfig.users || []).map(function (oItem) {
-                return this._profile(oItem, oUser.id);
-            }, this));
+            this._model.setProperty("/currentUser", {
+                id: oMe.userId,
+                name: oMe.name,
+                email: oMe.email,
+                role: oRole.id,
+                roleLabel: oRole.label,
+                initials: oMe.name.split(/\s+/).map(function (sPart) {
+                    return sPart.charAt(0);
+                }).join("").slice(0, 2).toUpperCase(),
+                avatarColor: C.APPROVER_ROLES.indexOf(oRole.id) >= 0 ? "Accent8" : "Accent7"
+            });
             this._model.setProperty("/welcome", {
-                greeting: sGreeting + ", " + oUser.name,
-                subtitle: oUser.roleLabel + " · " + new Date().toLocaleDateString("en-GB", {
+                greeting: sGreeting + ", " + oMe.name.split(/\s+/)[0],
+                subtitle: oRole.label + " · " + new Date().toLocaleDateString("en-GB", {
                     weekday: "long", day: "numeric", month: "long", year: "numeric"
                 })
             });
             this._model.setProperty("/permissions", {
-                processor: C.PROCESSOR_ROLES.indexOf(oUser.role) >= 0,
-                approver: C.APPROVER_ROLES.indexOf(oUser.role) >= 0
+                processor: C.PROCESSOR_ROLES.indexOf(oRole.id) >= 0,
+                approver: C.APPROVER_ROLES.indexOf(oRole.id) >= 0
             });
-        },
-
-        _profile: function (oUser, sCurrentId) {
-            return Object.assign({
-                initials: (oUser.name || "?").slice(0, 2).toUpperCase(),
-                avatarColor: C.APPROVER_ROLES.indexOf(oUser.role) >= 0 ? "Accent8" : "Accent7",
-                roleLabel: C.ROLE_LABELS[oUser.role] || oUser.role,
-                current: oUser.id === sCurrentId
-            }, oUser);
         },
 
         // ---------------------------------------------------------- case list
@@ -402,8 +404,10 @@ sap.ui.define([
             var oProgress = this.pipelineProgress(aPipeline);
             var bProcessing = C.PROCESSING_STATUSES.indexOf(sStatus) >= 0;
             var sExistingUrl = "";
+            var bExistingImage = false;
             if (this._documentCaseId === oCase.id && this._documentBlobUrl) {
                 sExistingUrl = this._model.getProperty("/selectedInvoice/documentUrl") || "";
+                bExistingImage = !!this._model.getProperty("/selectedInvoice/documentIsImage");
             }
 
             return {
@@ -437,6 +441,7 @@ sap.ui.define([
                 createdBy: oCase.created_by,
                 editedBy: oCase.last_edited_by || "—",
                 documentUrl: sExistingUrl,
+                documentIsImage: bExistingImage,
                 canEdit: oPermissions.processor && C.EDITABLE_STATUSES.indexOf(sStatus) >= 0,
                 canDecide: oPermissions.approver && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0
             };
@@ -685,13 +690,14 @@ sap.ui.define([
             }
             this._revokeDocument();
             this._documentCaseId = oCase.id;
-            api.blob(this._config.getData(), this.casePath(oCase.id) + "/document")
+            api.blob(this.casePath(oCase.id) + "/document")
                 .then(function (oBlob) {
-                    // Iframe PDF viewers are picky about MIME; Open-in-tab often sniffs, embed does not.
-                    var oPdfBlob = oBlob && /pdf/i.test(oBlob.type || "")
-                        ? oBlob
-                        : new Blob([oBlob], { type: "application/pdf" });
-                    that._documentBlobUrl = URL.createObjectURL(oPdfBlob);
+                    // The preview frame needs the real type: PDFs open in the PDF viewer, PNG/JPEG show as
+                    // images. Only a file served without a usable type is treated as a PDF.
+                    var bTyped = /^(application\/pdf|image\/)/i.test(oBlob.type || "");
+                    var oDocument = bTyped ? oBlob : new Blob([oBlob], { type: "application/pdf" });
+                    that._documentBlobUrl = URL.createObjectURL(oDocument);
+                    that._model.setProperty("/selectedInvoice/documentIsImage", /^image\//i.test(oDocument.type));
                     that._model.setProperty("/selectedInvoice/documentUrl", that._documentBlobUrl);
                 }).catch(function (oError) {
                     that._documentCaseId = null;

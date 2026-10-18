@@ -16,7 +16,7 @@ sap.ui.define([], function () {
         UPLOAD_WATCH_MIN_MS: 4200,
         UPLOAD_WATCH_MAX_MS: 14000,
 
-        // The agentic API stores times in UTC; they are shown in the time zone of config.json's countryCode.
+        // The agentic API stores times in UTC; they are shown in the time zone of the client profile's countryCode.
         COUNTRY_TIME_ZONES: {
             SA: { zone: "Asia/Riyadh", label: "KSA time" },
             AE: { zone: "Asia/Dubai", label: "UAE time" },
@@ -158,13 +158,6 @@ sap.ui.define([], function () {
             LOW_CRITICAL_FIELD_CONFIDENCE: ["sap-icon://inspect", "Key details such as the amount or invoice number should be checked against the PDF."],
             VALIDATION_FAILED: ["sap-icon://lab", "The finance checks did not pass."],
             DUPLICATE_CHECK_FAILED: ["sap-icon://duplicate", "This invoice may already have been submitted."]
-        },
-
-        ROLE_LABELS: {
-            AP_PROCESSOR: "AP Processor",
-            AP_APPROVER: "AP Approver",
-            FINANCE_MANAGER: "Finance Manager",
-            ADMIN: "Administrator"
         },
 
         // Timeline colour and icon per audit event type; anything else is shown as information.

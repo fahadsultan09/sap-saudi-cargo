@@ -35,10 +35,12 @@
 						</layoutData>
 						<html:iframe id="invoicePdfFrame" class="apPdfFrame" title="Invoice document preview"
 							src="{apData>/selectedInvoice/documentUrl}"/>
+						<Image src="{apData>/selectedInvoice/documentUrl}" alt="Invoice document preview" class="apDocImage"
+							visible="{= !!${apData>/selectedInvoice/documentUrl} &amp;&amp; !!${apData>/selectedInvoice/documentIsImage} }"/>
 						<VBox visible="{= !${apData>/selectedInvoice/documentUrl} }" alignItems="Center"
 							justifyContent="Center" class="apPdfEmpty">
 							<IllustratedMessage illustrationType="sapIllus-NoData" illustrationSize="Spot"
-								title="Document loading" description="The invoice PDF appears here when available."/>
+								title="Document loading" description="The invoice document appears here when available."/>
 						</VBox>
 					</VBox>
 				</VBox>

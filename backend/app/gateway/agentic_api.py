@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 
 from ..config import Settings
-from ..errors import UpstreamUnavailable
+from ..core.errors import UpstreamUnavailable
 
 
 class AgenticAPI:

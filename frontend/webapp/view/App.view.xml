@@ -13,11 +13,11 @@
 								tooltip="Show or hide the menu" class="apMenuButton"/>
 							<HBox alignItems="Center">
 								<HBox class="apBrandMark" alignItems="Center" justifyContent="Center">
-									<Text text="AP" class="apBrandMarkLetter"/>
+									<Text text="{client>/branding/markText}" class="apBrandMarkLetter"/>
 								</HBox>
 								<VBox class="apBrandText">
-									<Title text="AP Console" level="H4" class="apBrandTitle"/>
-									<Text text="Saudi Cargo · Invoice automation" wrapping="false" class="apBrandSubtitle"/>
+									<Title text="{client>/branding/appTitle}" level="H4" class="apBrandTitle"/>
+									<Text text="{client>/branding/appSubtitle}" wrapping="false" class="apBrandSubtitle"/>
 								</VBox>
 							</HBox>
 							<ToolbarSpacer/>
@@ -28,7 +28,7 @@
 								</VBox>
 								<Avatar initials="{apData>/currentUser/initials}" displaySize="XS"
 									backgroundColor="{apData>/currentUser/avatarColor}" press="onOpenProfileMenu"
-									tooltip="Profile" ariaHasPopup="Menu" class="apProfileAvatar"/>
+									tooltip="Account" ariaHasPopup="Menu" class="apProfileAvatar"/>
 							</HBox>
 						</tnt:ToolHeader>
 					</tnt:header>
