@@ -4,14 +4,14 @@
         "id": "saudicargo.ap.automation",
         "type": "application",
         "title": "AP Console",
-        "description": "Accounts Payable automation console"
+        "description": "Saudi Cargo accounts payable automation console"
     },
     "sap.ui": {
         "technology": "UI5",
         "deviceTypes": {
             "desktop": true,
             "tablet": true,
-            "phone": false
+            "phone": true
         }
     },
     "sap.ui5": {

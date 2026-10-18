@@ -4,30 +4,23 @@
 	xmlns="sap.m">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
 		<VBox class="sapUiMediumMargin">
-			<VBox class="apCard">
-				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCardHeader">
-					<Title text="Invoices awaiting a decision" level="H3" class="apSectionTitle"/>
-					<Text text="{= ${apData>/approvals}.length } waiting" class="apTimelineMeta"/>
-				</HBox>
+			<Title text="Dock Decide queue" level="H3" class="apSectionTitle sapUiTinyMarginBottom"/>
+			<Text text="Invoices waiting for Approve, Return, or Reject."
+				class="apTimelineMeta sapUiSmallMarginBottom"/>
+			<VBox class="apCaseBoard">
 				<Table items="{apData>/approvals}" fixedLayout="false" class="apTable" updateFinished="onTableUpdateFinished">
 					<noData>
 						<IllustratedMessage illustrationType="sapIllus-NoTasks" illustrationSize="Spot"
 							title="Nothing waiting for a decision" description="Invoices that need review or were returned show up here."/>
 					</noData>
 					<columns>
-						<Column hAlign="Center" width="3rem" minScreenWidth="Tablet" demandPopin="true" importance="Low">
-							<Text text="#" wrapping="false"/>
-						</Column>
-						<Column><Text text="Invoice" wrapping="false"/></Column>
-						<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Supplier" wrapping="false"/></Column>
-						<Column hAlign="End" width="8rem"><Text text="Amount" wrapping="false"/></Column>
-						<Column hAlign="Center" width="9rem"><Text text="Status" wrapping="false"/></Column>
-						<Column hAlign="Center" width="8rem" minScreenWidth="Tablet" demandPopin="true" importance="Low">
-							<Text text="Edited by" wrapping="false"/>
-						</Column>
-						<Column visible="{apData>/permissions/approver}" hAlign="Center" width="8rem">
-							<Text text="Actions" wrapping="false"/>
-						</Column>
+						<Column hAlign="Center" width="3rem"><Text text="#"/></Column>
+						<Column hAlign="Center"><Text text="Invoice"/></Column>
+						<Column hAlign="Center"><Text text="Supplier"/></Column>
+						<Column hAlign="Center"><Text text="Amount"/></Column>
+						<Column hAlign="Center"><Text text="Status"/></Column>
+						<Column hAlign="Center"><Text text="Last edited by"/></Column>
+						<Column visible="{apData>/permissions/approver}" hAlign="Center"><Text text="Actions"/></Column>
 					</columns>
 					<items>
 						<ColumnListItem type="Navigation" press="onCasePress">

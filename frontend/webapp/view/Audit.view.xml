@@ -4,16 +4,15 @@
 	xmlns:core="sap.ui.core">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
 		<VBox class="sapUiMediumMargin">
+			<Title text="Audit trail" level="H3"
+				class="apSectionTitle sapUiTinyMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
+			<Text text="History of invoice {apData>/selectedInvoice/id}"
+				class="apTimelineMeta sapUiMediumMarginBottom" visible="{apData>/selectedInvoice/hasCase}"/>
 			<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
 				illustrationType="sapIllus-NoActivities" illustrationSize="Scene"
 				title="No case selected" description="Open a case from the Dashboard to see its full history."/>
-			<VBox class="apCard" visible="{apData>/selectedInvoice/hasCase}">
-				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCardHeader">
-					<Title text="History of invoice {apData>/selectedInvoice/id}" level="H3" class="apSectionTitle"/>
-					<ObjectStatus text="{apData>/selectedInvoice/status}" state="{apData>/selectedInvoice/statusState}" inverted="true"/>
-				</HBox>
-				<List items="{apData>/auditTrail}" showSeparators="None" class="apTimeline sapUiSmallMargin"
-					noDataText="No history recorded yet for this case.">
+			<VBox class="apCaseBoard sapUiSmallMarginBottom" visible="{apData>/selectedInvoice/hasCase}">
+				<List items="{apData>/auditTrail}" showSeparators="None" class="apTimeline sapUiSmallMargin">
 					<CustomListItem>
 						<VBox class="apTimelineItem">
 							<customData>

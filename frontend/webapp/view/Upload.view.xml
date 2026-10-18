@@ -7,15 +7,14 @@
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection apUploadPage">
 		<VBox class="sapUiLargeMargin apUploadWrap">
 			<HBox alignItems="Center" class="apUploadKicker sapUiTinyMarginBottom">
-				<core:Icon src="sap-icon://clear-filter" size="0.75rem" class="sapUiTinyMarginEnd"/>
-				<Text text="Clear Desk · One invoice at a time"/>
+				<core:Icon src="sap-icon://flight" size="0.75rem" class="sapUiTinyMarginEnd"/>
+				<Text text="Runway intake · one invoice at a time"/>
 			</HBox>
-			<Title text="Add an invoice to the queue" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
-			<Text text="Drop a file to start the full pipeline: Received → Classify (TOWER) → Extract (LENS) → Finance rules → Needs review / Approve."
+			<Title text="Start the AP pipeline" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
+			<Text text="Drop a file and watch the full cycle light up: Received → Classify (TOWER) → Extract (LENS) → Finance rules → Clear Desk."
 				class="apUploadLead sapUiMediumMarginBottom"
 				visible="{= !${apData>/upload/watching} }"/>
 
-			<!-- Idle / receiving: drop zone + pipeline side-by-side -->
 			<HBox class="apUploadGrid" alignItems="Stretch" wrap="Wrap"
 				visible="{= !${apData>/upload/watching} }">
 				<VBox id="dropZone" class="apHeroDrop" alignItems="Center" justifyContent="Center">
@@ -44,7 +43,7 @@
 
 				<VBox class="apUploadSteps apPipeRail">
 					<Text text="Full pipeline" class="apUploadStepsLabel sapUiTinyMarginBottom"/>
-					<Text text="All five steps stay on screen. After upload you watch them light up live."
+					<Text text="All five steps stay on screen. After upload they light Done / Working / Pending live."
 						class="apUploadStepsHint sapUiTinyMarginBottom"/>
 					<VBox items="{apData>/uploadSteps}" class="apStepList apPipeRailList">
 						<HBox alignItems="Start" class="apStep">
@@ -68,7 +67,6 @@
 				</VBox>
 			</HBox>
 
-			<!-- Live watch: full-cycle pipeline is the hero (not a single status chip) -->
 			<VBox visible="{apData>/upload/watching}" class="apPipeHero apPipeHero--upload">
 				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apPipeHeroHeader sapUiTinyMarginBottom">
 					<VBox>
@@ -83,7 +81,6 @@
 						visible="{= !!${apData>/upload/caseId} }" press="onOpenLiveCase"/>
 				</HBox>
 
-				<!-- Horizontal process map: all 5 steps always visible as the hero -->
 				<HBox class="apPipeTrack" wrap="Wrap" justifyContent="SpaceBetween"
 					items="{apData>/uploadSteps}">
 					<VBox class="apPipeTrackStep" alignItems="Center">
@@ -97,11 +94,9 @@
 						<Text text="{apData>service}" class="apPipeTrackService" textAlign="Center"
 							visible="{= !!${apData>service} }"/>
 						<ObjectStatus text="{apData>statusLabel}" class="apStepStatus sapUiTinyMarginTop"/>
-						<VBox class="apPipeTrackConnector"/>
 					</VBox>
 				</HBox>
 
-				<!-- “Now” caption UNDER the timeline — progress is secondary -->
 				<HBox visible="{= !!${apData>/upload/nowText} }" alignItems="Center" class="apPipeNow sapUiSmallMarginTop">
 					<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
 					<Text text="{apData>/upload/nowText}" class="apPipeNowText"/>

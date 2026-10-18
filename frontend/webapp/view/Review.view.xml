@@ -11,13 +11,12 @@
 		</Toolbar>
 		<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
 			illustrationType="sapIllus-NoTasks" illustrationSize="Scene"
-			title="No invoice selected" description="Open a case from the Dashboard or upload an invoice to review it here."/>
+			title="Clear Desk is empty" description="Open a case from the Dashboard or upload an invoice to review it here."/>
 		<VBox height="calc(100vh - 7.5rem)" visible="{apData>/selectedInvoice/hasCase}" class="apReviewShell apReviewShell--docked">
 			<HBox class="apReviewSplit" height="100%">
 				<layoutData>
 					<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
 				</layoutData>
-				<!-- PDF pane: FlexItemData minHeight beats UI5 inline min-height:auto; blob URL from CaseStore -->
 				<VBox class="apPdfPane" height="100%">
 					<layoutData>
 						<FlexItemData growFactor="1" baseSize="0" minWidth="0" minHeight="70vh"/>
@@ -43,7 +42,6 @@
 						</VBox>
 					</VBox>
 				</VBox>
-				<!-- Fields / agent results -->
 				<VBox class="apReviewMain" height="100%">
 					<layoutData>
 						<FlexItemData growFactor="1" baseSize="0" minWidth="0"/>
@@ -71,16 +69,13 @@
 							<IconTabFilter text="Agent Results" key="agents">
 								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
 									<VBox>
-										<!-- Processing: full-cycle pipeline is the above-the-fold hero -->
 										<VBox visible="{apData>/selectedInvoice/isProcessing}" class="apPipeHero apPipeHero--review sapUiSmallMarginBottom">
 											<HBox alignItems="Center" class="sapUiTinyMarginBottom">
 												<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
 												<Title text="Full pipeline · agents at work" level="H5" class="apPipeLiveTitle"/>
 											</HBox>
-											<Text text="Every step stays on screen — done, working, and still pending."
+											<Text text="Every step stays on screen — Done, Working, and still Pending."
 												class="apUploadStepsHint sapUiTinyMarginBottom"/>
-
-											<!-- Vertical full-cycle rail — connectors fill as each step completes -->
 											<VBox items="{apData>/selectedInvoice/pipelineSteps}" class="apStepList apPipeRailList">
 												<HBox alignItems="Start" class="apStep">
 													<customData>
@@ -103,7 +98,6 @@
 													</VBox>
 												</HBox>
 											</VBox>
-
 											<HBox visible="{= !!${apData>/selectedInvoice/pipelineNow} }"
 												alignItems="Center" class="apPipeNow sapUiSmallMarginTop">
 												<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
@@ -131,10 +125,9 @@
 											<ObjectStatus title="Agent mode" text="{apData>/selectedInvoice/agentMode}"/>
 										</HBox>
 
-										<!-- Completed / non-processing: same full rail, without the live hero chrome -->
 										<VBox visible="{= !${apData>/selectedInvoice/isProcessing} }" class="apPipeRail sapUiTinyMarginBottom">
 											<Title text="Pipeline" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
-											<Text text="Received → Classify (TOWER / AI Core) → Extract (LENS / Document AI) → Finance rules → Clear Desk / Dock Decide."
+											<Text text="Received → Classify (TOWER) → Extract (LENS) → Finance rules → Clear Desk / Dock Decide."
 												class="apTimelineMeta sapUiTinyMarginBottom"/>
 											<VBox items="{apData>/selectedInvoice/pipelineSteps}" class="apStepList apPipeRailList">
 												<HBox alignItems="Start" class="apStep">

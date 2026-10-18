@@ -1,292 +1,157 @@
 /* ==========================================================================
-   AP Console — motion (Clear Desk, richer but calm)
+   AP Console v2 — intentional motion (step progress, thinking, completion)
    ========================================================================== */
 
-@keyframes apFadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
+@keyframes apPulseLive {
+    0%, 100% { box-shadow: 0 0 0 0 var(--ap-brand-glow); transform: scale(1); }
+    50% { box-shadow: 0 0 0 10px transparent; transform: scale(1.04); }
 }
 
-@keyframes apFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes apSlideUp {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-@keyframes apPulse {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(13, 107, 92, 0.42);
-    }
-    50% {
-        box-shadow: 0 0 0 7px rgba(13, 107, 92, 0);
-    }
-}
-
-@keyframes apSpin {
+@keyframes apThinkingSpin {
     to { transform: rotate(360deg); }
 }
 
-@keyframes apBarIn {
-    from {
-        opacity: 0;
-        transform: translateY(100%);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
+@keyframes apStepIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes apPillIn {
-    from {
-        opacity: 0;
-        transform: scale(0.92);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
+@keyframes apTrackFill {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
 }
 
-@keyframes apProgressShimmer {
+@keyframes apFadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes apShimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
 
-@keyframes apStepEnter {
-    from {
-        opacity: 0;
-        transform: translateX(-6px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
+@keyframes apDonePop {
+    0% { transform: scale(0.7); opacity: 0.4; }
+    60% { transform: scale(1.12); }
+    100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes apCheckPop {
-    0% { transform: scale(0.7); }
-    55% { transform: scale(1.12); }
-    100% { transform: scale(1); }
+@keyframes apTabFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes apThinkingShimmer {
-    0% { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
+/* Live “working” pulse on pipeline now-dot */
+.apPipeNowDot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--ap-live);
+    animation: apPulseLive 1.6s var(--ap-ease) infinite;
+    flex-shrink: 0;
 }
 
-@keyframes apConnectorFill {
-    from { transform: scaleY(0); }
-    to { transform: scaleY(1); }
+/* Thinking spinner in drop zone / step dots */
+.apUploadSpinnerRing,
+.apStep[data-state="running"] .apStepDot::after,
+.apPipeTrackStep[data-state="running"] .apPipeTrackDot::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--ap-live);
+    animation: apThinkingSpin 0.9s linear infinite;
 }
 
-@keyframes apDotGlow {
-    0%, 100% { opacity: 0.55; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.15); }
+.apUploadSpinnerRing {
+    position: relative;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: 3px solid var(--ap-border);
+    border-top-color: var(--ap-brand);
+    animation: apThinkingSpin 0.85s linear infinite;
 }
 
-/* NavContainer section entrance */
-.apSection .sapMPageEnableScrolling > * {
-    animation: apFadeUp var(--ap-base) var(--ap-ease) both;
-}
-
-/* Tab / panel soft fade ~200ms */
-.apReviewTabs .sapMITBContainerContent,
-.apReviewTabs .sapMITBContent,
-.apIconTabFade .sapMITBContent,
-.apTabFadeReplay {
-    animation: apFadeIn 200ms var(--ap-ease) both;
-}
-
-/* Status pill entrance */
-.apPage .sapMObjStatus.sapMObjStatusInverted,
-.apUploadStatus.sapMObjStatus {
-    animation: apPillIn var(--ap-base) var(--ap-ease) both;
-}
-
-/* Decision bar entrance */
-.apDecisionBar {
-    animation: apBarIn 280ms var(--ap-ease) both;
-}
-
-/* Upload — hero drop zone, busy overlay and step rail */
-@keyframes apHeroDropIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.99);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-.apHeroDrop,
-.apUploadSteps {
-    animation: apHeroDropIn 420ms var(--ap-ease) both;
-}
-
-.apUploadSteps {
-    animation-delay: 80ms;
-}
-
-.apHeroDropBusy {
-    animation: apFadeIn var(--ap-base) var(--ap-ease) both;
-}
-
-/* Indeterminate shimmer only — the real upload is a single fetch with no byte-level progress,
-   so the bar never claims a false percentage, it just shows "something is happening". */
-.apUploadProgress {
-    width: 16rem;
-    max-width: 100%;
-    height: 4px;
-    border-radius: 999px;
-    overflow: hidden;
-    background: var(--ap-border);
-}
-
-.apUploadProgressBar {
-    height: 100%;
-    width: 40%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--ap-brand-dark), var(--ap-brand), var(--ap-brand-light), var(--ap-brand));
-    background-size: 200% 100%;
-    animation: apProgressShimmer 1.2s linear infinite;
-}
-
-.apStepList > .apStep {
-    animation: apStepEnter 360ms var(--ap-ease) both;
-}
-
-.apStepList > .apStep:nth-child(2) { animation-delay: 60ms; }
-.apStepList > .apStep:nth-child(3) { animation-delay: 120ms; }
-.apStepList > .apStep:nth-child(4) { animation-delay: 180ms; }
-.apStepList > .apStep:nth-child(5) { animation-delay: 240ms; }
-
-.apStep[data-state="running"] .apStepBody,
-.apTimelineItem[data-state="running"] {
-    background: linear-gradient(
-        100deg,
-        transparent 0%,
-        color-mix(in srgb, var(--ap-brand-soft) 70%, transparent) 45%,
-        transparent 90%
-    );
-    background-size: 220% 100%;
-    animation: apThinkingShimmer 1.8s linear infinite;
-    border-radius: var(--ap-radius-sm);
+.apStep[data-state="running"] .apStepDot,
+.apPipeTrackStep[data-state="running"] .apPipeTrackDot {
+    position: relative;
+    background: var(--ap-live-soft) !important;
+    color: var(--ap-live) !important;
+    border-color: var(--ap-live) !important;
 }
 
 .apStep[data-state="done"] .apStepDot,
-.apTimelineItem[data-state="done"] .apTimelineDot {
-    animation: apCheckPop 420ms var(--ap-ease) both;
-}
-
-.apStep[data-state="running"] .apStepDot .sapUiIcon,
-.apTimelineItem[data-state="running"] .apTimelineDot .sapUiIcon {
-    animation: apSpin 1.1s linear infinite;
-}
-
-.apPipelineTimeline .sapMLIB {
-    animation: apStepEnter 360ms var(--ap-ease) both;
-}
-
-.apPipelineTimeline .sapMLIB:nth-child(2) { animation-delay: 50ms; }
-.apPipelineTimeline .sapMLIB:nth-child(3) { animation-delay: 100ms; }
-.apPipelineTimeline .sapMLIB:nth-child(4) { animation-delay: 150ms; }
-.apPipelineTimeline .sapMLIB:nth-child(5) { animation-delay: 200ms; }
-
-.apPipelineBanner {
-    animation: apFadeUp 280ms var(--ap-ease) both;
-}
-
-.apPipeNowDot {
-    animation: apDotGlow 1.3s ease-in-out infinite;
-}
-
-.apPipeLiveCard,
-.apPipeHero {
-    animation: apFadeUp 320ms var(--ap-ease) both;
-}
-
-.apPipeProgress .sapMPIBar {
-    transition: width 500ms var(--ap-ease);
-}
-
-.apPipeTrackStep {
-    animation: apStepEnter 360ms var(--ap-ease) both;
-}
-
-.apPipeTrack .apPipeTrackStep:nth-child(2) { animation-delay: 50ms; }
-.apPipeTrack .apPipeTrackStep:nth-child(3) { animation-delay: 100ms; }
-.apPipeTrack .apPipeTrackStep:nth-child(4) { animation-delay: 150ms; }
-.apPipeTrack .apPipeTrackStep:nth-child(5) { animation-delay: 200ms; }
-
-.apPipeTrackStep[data-state="running"] .apPipeTrackDot {
-    animation: apPulse 1.4s ease-in-out infinite;
-}
-
-.apPipeTrackStep[data-state="running"] .apPipeTrackDot .sapUiIcon {
-    animation: apSpin 1.1s linear infinite;
-}
-
 .apPipeTrackStep[data-state="done"] .apPipeTrackDot {
-    animation: apCheckPop 420ms var(--ap-ease) both;
+    animation: apDonePop var(--ap-base) var(--ap-ease-out);
+    background: var(--ap-brand) !important;
+    color: #fff !important;
+    border-color: var(--ap-brand) !important;
+}
+
+.apStep[data-state="failed"] .apStepDot,
+.apPipeTrackStep[data-state="failed"] .apPipeTrackDot {
+    background: var(--ap-error) !important;
+    color: #fff !important;
+    border-color: var(--ap-error) !important;
+}
+
+.apStep {
+    animation: apStepIn var(--ap-base) var(--ap-ease-out) both;
+}
+
+.apStep:nth-child(1) { animation-delay: 40ms; }
+.apStep:nth-child(2) { animation-delay: 80ms; }
+.apStep:nth-child(3) { animation-delay: 120ms; }
+.apStep:nth-child(4) { animation-delay: 160ms; }
+.apStep:nth-child(5) { animation-delay: 200ms; }
+
+.apPipeHero {
+    animation: apFadeUp var(--ap-slow) var(--ap-ease-out);
 }
 
 .apPipeTrackStep[data-state="done"] .apPipeTrackConnector,
-.apPipeTrackStep[data-state="running"] .apPipeTrackConnector {
-    animation: apConnectorFill 380ms var(--ap-ease) both;
+.apStep[data-state="done"] + .apStep .apStepConnector {
+    background: var(--ap-brand);
 }
 
-.apPipeTrackStep[data-state="running"] {
-    background: linear-gradient(
-        100deg,
-        transparent 0%,
-        color-mix(in srgb, var(--ap-brand-soft) 55%, transparent) 45%,
-        transparent 90%
-    );
-    background-size: 220% 100%;
-    animation: apThinkingShimmer 1.8s linear infinite, apStepEnter 360ms var(--ap-ease) both;
-    border-radius: var(--ap-radius-sm);
+.apPipeProgress .sapMPIBar {
+    transition: width var(--ap-slow) var(--ap-ease-out);
 }
 
-.apPipeMiniItem[data-state="running"] .apPipeMiniDot {
-    animation: apPulse 1.4s ease-in-out infinite;
+.apHeroDrop--busy .apHeroDropInner {
+    opacity: 0.25;
+    pointer-events: none;
 }
 
-.apKpi {
-    animation: apFadeUp 350ms var(--ap-ease) both;
+.apTabFadeReplay {
+    animation: apTabFade var(--ap-base) var(--ap-ease-out);
 }
 
-/* .apKpi IS the direct flex child (UI5 just adds .sapMFlexItem alongside it, no wrapper),
-   so the delay rules must target it directly rather than look for it as a descendant. */
-.apKpiRow > .apKpi:nth-child(2) { animation-delay: 60ms; }
-.apKpiRow > .apKpi:nth-child(3) { animation-delay: 120ms; }
-.apKpiRow > .apKpi:nth-child(4) { animation-delay: 180ms; }
-.apKpiRow > .apKpi:nth-child(5) { animation-delay: 240ms; }
+.apWelcome,
+.apKpi,
+.apCaseBoard {
+    animation: apFadeUp 420ms var(--ap-ease-out) both;
+}
+
+.apKpi:nth-child(2) { animation-delay: 60ms; }
+.apKpi:nth-child(3) { animation-delay: 100ms; }
+.apKpi:nth-child(4) { animation-delay: 140ms; }
+.apKpi:nth-child(5) { animation-delay: 180ms; }
 
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 1ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 1ms !important;
+    .apPipeNowDot,
+    .apUploadSpinnerRing,
+    .apStep,
+    .apPipeHero,
+    .apWelcome,
+    .apKpi,
+    .apCaseBoard,
+    .apTabFadeReplay,
+    .apStep[data-state="running"] .apStepDot::after,
+    .apPipeTrackStep[data-state="running"] .apPipeTrackDot::after {
+        animation: none !important;
     }
 }

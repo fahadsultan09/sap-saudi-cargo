@@ -1,47 +1,77 @@
 /* ==========================================================================
-   AP Console — Clear Desk design tokens
-   Technical module id remains saudicargo.ap.automation (not renamed).
+   AP Console v2 — Runway design tokens
+   Cargo ops: ink navy + Saudia signal green + cool slate (not purple / cream)
    ========================================================================== */
 
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
 :root {
-    /* Warm paper surface + ink text + one forest/teal accent */
-    --ap-brand: #0D6B5C;
-    --ap-brand-dark: #0A5448;
-    --ap-brand-light: #A8D0C8;
-    --ap-brand-soft: #E8F3F0;
-    --ap-bg: #F3EDE4;
-    --ap-card: #FFFBF7;
-    --ap-border: #E4DCD0;
-    --ap-text: #1A1F1C;
-    --ap-muted: #5A635E;
-    --ap-info: #2A6A8F;
-    --ap-success: #1E7B45;
-    --ap-warning: #A8620F;
-    --ap-error: #B3261E;
-    --ap-radius: 12px;
-    --ap-radius-sm: 8px;
-    --ap-shadow: 0 1px 2px rgba(26, 31, 28, 0.05), 0 4px 14px rgba(26, 31, 28, 0.06);
-    --ap-shadow-hover: 0 4px 10px rgba(26, 31, 28, 0.07), 0 12px 28px rgba(13, 107, 92, 0.12);
-    --ap-fast: 150ms;
-    --ap-base: 200ms;
-    --ap-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-    --ap-decision-bar-h: 4.25rem;
+    /* Brand — Saudia Cargo green, elevated */
+    --ap-brand: #0B7A42;
+    --ap-brand-dark: #06532C;
+    --ap-brand-deep: #043820;
+    --ap-brand-light: #9FD4B4;
+    --ap-brand-soft: #E6F5EC;
+    --ap-brand-glow: rgba(11, 122, 66, 0.22);
+
+    /* Atmosphere — cool cargo slate, not flat Fiori gray */
+    --ap-ink: #0A1620;
+    --ap-ink-soft: #142433;
+    --ap-bg: #EEF2F4;
+    --ap-bg-mesh: radial-gradient(1200px 600px at 8% -10%, rgba(11, 122, 66, 0.10), transparent 55%),
+        radial-gradient(900px 500px at 92% 0%, rgba(15, 118, 140, 0.08), transparent 50%),
+        linear-gradient(180deg, #F4F7F8 0%, #E8EDF0 100%);
+    --ap-surface: #FFFFFF;
+    --ap-surface-2: #F7FAFB;
+    --ap-border: #D5DEE4;
+    --ap-border-strong: #B8C5CE;
+    --ap-text: #0F1C26;
+    --ap-muted: #5A6B78;
+    --ap-faint: #8A9AA6;
+
+    /* Signal / status */
+    --ap-live: #0E8F8A;
+    --ap-live-soft: #E4F7F6;
+    --ap-info: #1F6FBF;
+    --ap-success: #0B7A42;
+    --ap-warning: #B86A12;
+    --ap-warning-soft: #FFF4E5;
+    --ap-error: #C0352B;
+    --ap-error-soft: #FCECEC;
+    --ap-gold: #C4A35A;
+
+    /* Shape & motion */
+    --ap-radius: 14px;
+    --ap-radius-sm: 9px;
+    --ap-radius-lg: 20px;
+    --ap-shadow: 0 1px 2px rgba(10, 22, 32, 0.05), 0 8px 24px rgba(10, 22, 32, 0.06);
+    --ap-shadow-lift: 0 4px 12px rgba(10, 22, 32, 0.08), 0 18px 40px rgba(10, 22, 32, 0.10);
+    --ap-fast: 160ms;
+    --ap-base: 280ms;
+    --ap-slow: 520ms;
+    --ap-ease: cubic-bezier(0.22, 0.9, 0.24, 1);
+    --ap-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Type */
+    --ap-font-display: "Space Grotesk", "Segoe UI", sans-serif;
+    --ap-font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
-/* Point UI5 theme variables at the Clear Desk accent. */
+/* Map UI5 theme accents to brand so Emphasized buttons / focus follow Runway green */
 :root:root {
-    --sapBrandColor: #0D6B5C;
-    --sapHighlightColor: #0D6B5C;
-    --sapSelectedColor: #0D6B5C;
-    --sapLinkColor: #0D6B5C;
-    --sapContent_FocusColor: #0D6B5C;
-    --sapContent_Selected_TextColor: #0D6B5C;
-    --sapButton_TextColor: #0D6B5C;
-    --sapButton_IconColor: #0D6B5C;
-    --sapButton_Lite_TextColor: #0D6B5C;
-    --sapButton_Emphasized_Background: #0D6B5C;
-    --sapButton_Emphasized_BorderColor: #0D6B5C;
-    --sapButton_Emphasized_Hover_Background: #0A5448;
-    --sapButton_Emphasized_Hover_BorderColor: #0A5448;
-    --sapList_SelectionBackgroundColor: #E8F3F0;
+    --sapBrandColor: #0B7A42;
+    --sapHighlightColor: #0B7A42;
+    --sapSelectedColor: #0B7A42;
+    --sapLinkColor: #06532C;
+    --sapContent_FocusColor: #0B7A42;
+    --sapContent_Selected_TextColor: #0B7A42;
+    --sapButton_TextColor: #0B7A42;
+    --sapButton_IconColor: #0B7A42;
+    --sapButton_Lite_TextColor: #0B7A42;
+    --sapButton_Emphasized_Background: #0B7A42;
+    --sapButton_Emphasized_BorderColor: #0B7A42;
+    --sapButton_Emphasized_Hover_Background: #06532C;
+    --sapButton_Emphasized_Hover_BorderColor: #06532C;
+    --sapList_SelectionBackgroundColor: #E6F5EC;
+    --sapFontFamily: "IBM Plex Sans", "Segoe UI", sans-serif;
 }

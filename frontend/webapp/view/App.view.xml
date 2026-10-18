@@ -17,7 +17,7 @@
 								</HBox>
 								<VBox class="apBrandText">
 									<Title text="AP Console" level="H4" class="apBrandTitle"/>
-									<Text text="Invoice automation" wrapping="false" class="apBrandSubtitle"/>
+									<Text text="Saudi Cargo · Invoice automation" wrapping="false" class="apBrandSubtitle"/>
 								</VBox>
 							</HBox>
 							<ToolbarSpacer/>
@@ -37,8 +37,7 @@
 							<tnt:NavigationList>
 								<tnt:NavigationListItem key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard"/>
 								<tnt:NavigationListItem key="upload" text="Upload" icon="sap-icon://upload-to-cloud"/>
-								<tnt:NavigationListItem key="review" text="Invoice Review" icon="sap-icon://inspect"/>
-								<!-- Approvals is role-gated: only approvers see it in the menu. -->
+								<tnt:NavigationListItem key="review" text="Clear Desk" icon="sap-icon://inspect"/>
 								<tnt:NavigationListItem key="approvals" text="Approvals" icon="sap-icon://approvals"
 									visible="{apData>/permissions/approver}"/>
 								<tnt:NavigationListItem key="audit" text="Audit Trail" icon="sap-icon://history"/>
@@ -46,7 +45,6 @@
 						</tnt:SideNavigation>
 					</tnt:sideContent>
 					<tnt:mainContents>
-						<!-- The router places one screen view at a time in here (see manifest.json routing). -->
 						<NavContainer id="sections" defaultTransitionName="show"/>
 					</tnt:mainContents>
 				</tnt:ToolPage>

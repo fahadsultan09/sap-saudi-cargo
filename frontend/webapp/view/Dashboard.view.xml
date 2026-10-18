@@ -8,6 +8,7 @@
 			<HBox class="apWelcome sapUiMediumMarginBottom" alignItems="Center"
 				justifyContent="SpaceBetween" wrap="Wrap">
 				<VBox>
+					<Text text="AP Console · Saudi Cargo" class="apWelcomeBrand"/>
 					<Title text="{apData>/welcome/greeting}" level="H2"/>
 					<Text text="{apData>/welcome/subtitle}" class="sapUiTinyMarginTop"/>
 				</VBox>
@@ -19,9 +20,8 @@
 				</HBox>
 			</HBox>
 			<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.KpiStrip" type="XML"/>
-			<VBox class="apCard">
-				<!-- Wraps instead of overflowing, so the filter stays visible on narrow screens. -->
-				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCardHeader">
+			<VBox class="apCaseBoard">
+				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCaseBoardHeader">
 					<Title text="Cases" level="H3" class="apSectionTitle"/>
 					<HBox alignItems="Center">
 						<HBox items="{apData>/filterOptions}" wrap="Wrap" class="apFilter sapUiTinyMarginEnd">
@@ -37,7 +37,6 @@
 						<core:Icon src="sap-icon://process" size="0.875rem" class="apReasonIcon sapUiTinyMarginEnd"/>
 						<Text text="{apData>/pipelineBanner}" wrapping="true"/>
 					</HBox>
-					<!-- Mini full-cycle dots: all five steps -->
 					<HBox class="apPipeMini" alignItems="Center" items="{apData>/pipelineBannerDots}">
 						<HBox alignItems="Center" class="apPipeMiniItem">
 							<customData>
