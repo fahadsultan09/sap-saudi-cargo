@@ -24,15 +24,13 @@ dist/
 build/
 .pytest_cache/
 
-# Environment files
-.env.local
+# Environment files: real settings and secrets stay on each machine (gateway/.env, infra/.env,
+# ap-core-service/.env, agentic-ai/config/.env). Only the .env.example templates are committed.
+.env
 .env.*
 !.env.example
 
 # Secrets and local config (copy from the *.example templates)
-.env
-!backend/.env
-config/.env
 config/ai_core_cred.json
 config/sap_credentials.json
 
@@ -127,15 +125,11 @@ docker-data/
 # OS
 # =========================
 Thumbs.db
-backend/data/
-backend/.venv/
-__pycache__/
-.ruff_cache/
-
-backend/data/
-backend/.venv/
+gateway/.venv/
 __pycache__/
 .ruff_cache/
 
 
 node_modules/
+# Fahad's archive of ap-core-service, not source
+ap-core-service/*.rar

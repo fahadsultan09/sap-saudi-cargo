@@ -16,7 +16,7 @@ from .config import get_settings
 from .core.errors import register_handlers
 from .core.schemas import ErrorResponse, Health
 from .gateway import proxy
-from .gateway.agentic_api import AgenticAPI
+from .gateway.ap_core import APCore
 from .gateway.frontend import mount_frontend
 
 
@@ -25,7 +25,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     async with httpx.AsyncClient(timeout=settings.http_timeout) as http:
         application.state.http = http
-        application.state.agentic_api = AgenticAPI(http, settings)
+        application.state.ap_core = APCore(http, settings)
         application.state.identity = create_provider(
             application.state.profile.identity, settings.oidc_client_secret, http
         )
@@ -49,8 +49,8 @@ def create_app() -> FastAPI:
 
     @application.get("/health", response_model=Health, tags=["health"])
     async def health(request: Request) -> Health:
-        reachable = await request.app.state.agentic_api.reachable()
-        return Health(agentic_api="reachable" if reachable else "unreachable")
+        reachable = await request.app.state.ap_core.reachable()
+        return Health(ap_core="reachable" if reachable else "unreachable")
 
     application.include_router(auth_routes.router)
     application.include_router(profile_routes.router)

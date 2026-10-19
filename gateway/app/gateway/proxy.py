@@ -8,10 +8,9 @@ from fastapi import APIRouter, Depends, Request, Response
 
 from ..auth.dependencies import current_session
 from ..auth.sessions import Session
-from ..config import get_settings
 from ..core.error_messages import translate
 from ..core.errors import NotPermitted, error_response
-from .agentic_api import AgenticAPI
+from .ap_core import APCore
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["proxy"])
@@ -21,31 +20,25 @@ FORWARDED_HEADERS = {"content-type", "idempotency-key", "x-correlation-id"}
 RETURNED_HEADERS = {"content-disposition", "content-type"}
 
 
-def agentic_api_dependency(request: Request) -> AgenticAPI:
-    return request.app.state.agentic_api
+def ap_core_dependency(request: Request) -> APCore:
+    return request.app.state.ap_core
 
 
 def identity_headers(request: Request, session: Session) -> dict[str, str]:
-    """The signed-in user for the agentic API: the access token, plus (while that API is still in
-    development auth mode) the user and role taken from the verified token."""
-    headers = {"authorization": f"Bearer {session.tokens.access_token}"}
-    if get_settings().forward_identity_headers:
-        user = session.principal
-        role = request.app.state.profile.primary_role(user.roles)
-        headers.update({"x-user-id": user.user_id, "x-user-role": role or ""})
-        if user.email:
-            headers["x-user-email"] = user.email
-    return headers
+    """The signed-in user for AP Core, taken from the verified token (principal propagation)."""
+    user = session.principal
+    role = request.app.state.profile.primary_role(user.roles)
+    return {"x-user-id": user.user_id, "x-user-role": role or ""}
 
 
 @router.api_route("/api/v1/{path:path}", methods=["GET", "POST", "PATCH"])
 async def forward(
     path: str,
     request: Request,
-    api: Annotated[AgenticAPI, Depends(agentic_api_dependency)],
+    api: Annotated[APCore, Depends(ap_core_dependency)],
     session: Annotated[Session, Depends(current_session)],
 ) -> Response:
-    """Route every /api/v1 call to the agentic API on behalf of the signed-in user.
+    """Route every /api/v1 call to AP Core on behalf of the signed-in user.
 
     The user's roles must allow the route (access-rules.json); successful responses are returned as
     is and errors are replaced by a business-friendly message.
@@ -68,15 +61,18 @@ async def forward(
     )
     if upstream.is_error:
         logger.warning(
-            "Agentic API error %s on %s /api/v1/%s: %s",
+            "AP Core error %s on %s /api/v1/%s: %s",
             upstream.status_code, request.method, path, upstream.text[:1000],
         )
         try:
             body = upstream.json()
         except json.JSONDecodeError:
             body = None
-        friendly = translate(upstream.status_code, body)
-        return error_response(upstream.status_code, friendly.code, friendly.message)
+        # AP Core only answers 401 when the gateway's own service key is wrong: that is a server
+        # fault, not the user's sign-in, so the browser must not be sent back to the login page.
+        status = 502 if upstream.status_code == 401 else upstream.status_code
+        friendly = translate(status, body)
+        return error_response(status, friendly.code, friendly.message)
     return Response(
         content=upstream.content,
         status_code=upstream.status_code,

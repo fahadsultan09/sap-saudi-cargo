@@ -11,7 +11,7 @@ class Model(BaseModel):
 
 class Health(Model):
     status: Literal["ok"] = "ok"
-    agentic_api: Literal["reachable", "unreachable"]
+    ap_core: Literal["reachable", "unreachable"]
 
 
 class ErrorDetail(Model):

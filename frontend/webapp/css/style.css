@@ -579,7 +579,8 @@ html, body, .sapUiBody {
     font-weight: 700;
 }
 
-.apStep[data-state="pending"] .apStepTitle { color: var(--ap-faint); }
+.apStep[data-state="pending"] .apStepTitle,
+.apStep[data-state="skipped"] .apStepTitle { color: var(--ap-faint); }
 .apStep[data-state="running"] .apStepTitle { color: var(--ap-live); }
 .apStep[data-state="done"] .apStepTitle { color: var(--ap-brand-dark); }
 

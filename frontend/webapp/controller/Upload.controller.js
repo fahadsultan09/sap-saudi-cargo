@@ -68,6 +68,15 @@ sap.ui.define([
 
             this.getCaseStore().call("POST", "/api/v1/cases/upload", oFormData).then(function (oResult) {
                 var sCaseId = (oResult && (oResult.case_id || oResult.id)) || "";
+                // AP Core recognises the exact same file and returns its existing case instead of a new one.
+                if (oResult && oResult.duplicate) {
+                    MessageToast.show(oFile.name + " was already uploaded — opening the existing invoice.");
+                    oData.setProperty("/upload/visible", false);
+                    oData.setProperty("/busy", false);
+                    that._setDropZoneBusy(false);
+                    that._goToReview(sCaseId);
+                    return;
+                }
                 that._setStepState("receive", "done");
                 that._setStepState("classify", "running");
                 oData.setProperty("/upload/visible", true);

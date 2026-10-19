@@ -24,7 +24,7 @@ class AppError(Exception):
 
 class UpstreamUnavailable(AppError):
     status_code = 502
-    code = "agentic_api_unavailable"
+    code = "ap_core_unavailable"
 
 
 class NotSignedIn(AppError):

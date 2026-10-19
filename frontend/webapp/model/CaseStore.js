@@ -331,7 +331,10 @@ sap.ui.define([
         },
 
         pipelineProgress: function (aSteps) {
-            var aList = aSteps || [];
+            // Steps that did not run (agents skipped, details entered by hand) are not part of the count.
+            var aList = (aSteps || []).filter(function (oStep) {
+                return oStep.state !== "skipped";
+            });
             var iDone = aList.filter(function (oStep) {
                 return oStep.state === "done";
             }).length;
@@ -459,6 +462,9 @@ sap.ui.define([
             var bProcessing = C.PROCESSING_STATUSES.indexOf(sStatus) >= 0;
             var bError = sStatus === "PROCESSING_ERROR";
             var bNeedsHuman = ["NEEDS_REVIEW", "RETURNED", "READY_FOR_APPROVAL", "PENDING_APPROVAL"].indexOf(sStatus) >= 0;
+            // An invoice awaiting approval is the approver's turn, so everyone else sees it as waiting.
+            var bAwaitingApproval = C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0
+                && !this._model.getProperty("/permissions/approver");
             var bApproved = ["APPROVED", "POSTING", "POSTED"].indexOf(sStatus) >= 0;
             var bRejected = sStatus === "REJECTED";
             var bPastAgents = bNeedsHuman || bApproved || bRejected || bError;
@@ -486,6 +492,9 @@ sap.ui.define([
                     } else if (bRejected) {
                         sState = "failed";
                         sDescription = "Decision recorded — invoice rejected.";
+                    } else if (bAwaitingApproval) {
+                        sState = "running";
+                        sDescription = "Waiting for an approver to approve, return or reject on Dock Decide.";
                     } else if (bNeedsHuman) {
                         sState = "running";
                         sDescription = sStatus === "RETURNED"
@@ -506,18 +515,18 @@ sap.ui.define([
                         aMeta.push(oTrace.duration_ms + " ms");
                     }
                 } else if (bPastAgents && !bError) {
-                    // Past the agent phase with no per-step trace — show agents as done for the demo.
-                    sState = "done";
-                    sDescription = oDef.description + " (completed).";
+                    // No per-step trace: AP Core's own checks always ran, the agents only if they delivered fields.
+                    if (oDef.key === "finance" || oValidation.agents_completed) {
+                        sState = "done";
+                    } else {
+                        sState = "skipped";
+                        sDescription = "Did not run — the invoice details were entered on Clear Desk.";
+                    }
                 } else if (bError) {
-                    // Prefer the failed agent from trace; otherwise mark the first missing agent as failed.
+                    // An agent without a trace never ran; with no trace at all, processing stopped at the first one.
                     if (!aTrace.length && oDef.agent === "TOWER") {
                         sState = "failed";
                         sDescription = "Automatic processing stopped during classification or extraction.";
-                    } else if (sRunningAgent === oDef.agent) {
-                        sState = "failed";
-                    } else if (this._agentIndex(oDef.agent) < this._agentIndex(sRunningAgent)) {
-                        sState = "done";
                     } else {
                         sState = "pending";
                     }
@@ -534,7 +543,8 @@ sap.ui.define([
                 var sNowLabel = "";
                 if (sState === "running") {
                     sNowLabel = C.PIPELINE_NOW_LABELS[oDef.key] || ("Working on " + oDef.title + "…");
-                    if (!oTrace || !oTrace.summary) {
+                    // The decide step keeps its own text: who acts next (processor or approver).
+                    if (oDef.key !== "decide" && (!oTrace || !oTrace.summary)) {
                         sDescription = sNowLabel;
                     }
                 } else if (sState === "done" && oDef.key !== "receive" && oDef.key !== "decide" && !oTrace) {
@@ -544,7 +554,7 @@ sap.ui.define([
                 var sStatusLabel = C.PIPELINE_STATUS_LABELS[sState] || sState;
                 // Decide is a human step on Clear Desk — not an agent "Working…" cue.
                 if (oDef.key === "decide" && sState === "running" && bNeedsHuman) {
-                    sStatusLabel = "Your turn";
+                    sStatusLabel = bAwaitingApproval ? "Awaiting approval" : "Your turn";
                     sNowLabel = "";
                 }
 
@@ -563,6 +573,7 @@ sap.ui.define([
                             : sState === "running" ? "info" : "muted",
                     icon: sState === "done" ? "sap-icon://accept"
                         : sState === "failed" ? "sap-icon://error"
+                            : sState === "skipped" ? "sap-icon://less"
                             : (sState === "running" && oDef.key !== "decide") ? "sap-icon://synchronize"
                                 : (sState === "running" ? "sap-icon://approvals" : oDef.icon)
                 };
@@ -638,7 +649,7 @@ sap.ui.define([
 
         _mapFindings: function (oValidation) {
             var aFindings = (oValidation.blocking || []).map(function (sFlag) {
-                return { text: sFlag.replace(/_/g, " ").toLowerCase(), icon: "sap-icon://alert" };
+                return { text: C.BLOCKING_TEXTS[sFlag] || sFlag.replace(/_/g, " ").toLowerCase(), icon: "sap-icon://alert" };
             });
             (oValidation.missing_fields || []).forEach(function (sField) {
                 aFindings.push({ text: "Missing field: " + sField.replace(/_/g, " "), icon: "sap-icon://edit" });
@@ -716,28 +727,32 @@ sap.ui.define([
 
         // ---------------------------------------------------------- audit trail
 
+        // oHistory: AP Core's audit trail, {items: [{event_type, actor, reason, payload, created_at}]}.
         _applyHistory: function (oHistory) {
-            this._model.setProperty("/auditTrail", (oHistory.events || []).slice().reverse().map(function (oEvent) {
+            this._model.setProperty("/auditTrail", (oHistory.items || []).slice().reverse().map(function (oEvent) {
                 var aTone = C.EVENT_TONES[oEvent.event_type] || ["info", "sap-icon://ai"];
+                var sRole = (oEvent.payload || {}).role;
                 return {
                     tone: aTone[0],
                     icon: aTone[1],
                     title: C.EVENT_TITLES[oEvent.event_type] || oEvent.event_type.replace(/_/g, " ").toLowerCase(),
                     description: this._eventDescription(oEvent),
-                    meta: oEvent.actor_id + " (" + oEvent.actor_role + ") · " + this._formatDate(oEvent.created_at)
+                    meta: oEvent.actor + (sRole ? " (" + sRole + ")" : "") + " · " + this._formatDate(oEvent.created_at)
                 };
             }, this));
         },
 
         _eventDescription: function (oEvent) {
+            var oPayload = oEvent.payload || {};
             var aParts = oEvent.reason ? [oEvent.reason] : [];
-            if (oEvent.event_type === "FIELDS_CORRECTED" && oEvent.after) {
-                Object.keys(oEvent.after).forEach(function (sKey) {
-                    var vBefore = (oEvent.before || {})[sKey];
-                    aParts.push(sKey.replace(/_/g, " ") + ": " + (vBefore || "—") + " → " + oEvent.after[sKey]);
+            var sStatus = oPayload.to || oPayload.status;
+            if (oEvent.event_type === "FIELDS_CORRECTED" && oPayload.after) {
+                Object.keys(oPayload.after).forEach(function (sKey) {
+                    var vBefore = (oPayload.before || {})[sKey];
+                    aParts.push(sKey.replace(/_/g, " ") + ": " + (vBefore || "—") + " → " + (oPayload.after[sKey] || "—"));
                 });
-            } else if (oEvent.after && oEvent.after.status) {
-                aParts.push("Status: " + (C.STATUS_LABELS[oEvent.after.status] || oEvent.after.status));
+            } else if (sStatus) {
+                aParts.push("Status: " + (C.STATUS_LABELS[sStatus] || sStatus));
             }
             return aParts.join(" · ");
         },

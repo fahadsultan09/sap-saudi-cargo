@@ -6,19 +6,26 @@ from ..config import Settings
 from ..core.errors import UpstreamUnavailable
 
 
-class AgenticAPI:
-    """HTTP client for Fahad's agentic API, which owns the cases, agents and database."""
+class APCore:
+    """HTTP client for AP Core, which owns the cases, their state and the audit trail.
+
+    The gateway signs in to AP Core with the service key, like a technical user on SAP BTP; the
+    person behind each call travels in the identity headers set by the proxy.
+    """
 
     def __init__(self, http: httpx.AsyncClient, settings: Settings) -> None:
         self.http = http
-        self.base_url = settings.agentic_api_url.rstrip("/")
+        self.base_url = settings.ap_core_url.rstrip("/")
+        self.service_headers = {"x-ap-core-key": settings.ap_core_service_api_key}
 
     async def forward(
         self, method: str, path: str, query: str, headers: dict[str, str], body: bytes
     ) -> httpx.Response:
         url = self.base_url + path + (f"?{query}" if query else "")
         try:
-            return await self.http.request(method, url, headers=headers, content=body)
+            return await self.http.request(
+                method, url, headers={**headers, **self.service_headers}, content=body
+            )
         except httpx.HTTPError as exc:
             raise UpstreamUnavailable(
                 "The invoice service is not available right now. Please try again in a few minutes."

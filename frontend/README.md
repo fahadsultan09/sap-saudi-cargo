@@ -1,6 +1,6 @@
 # AP Console (frontend)
 
-Saudi Cargo accounts payable automation UI — OpenUI5 / Fiori shell talking to the gateway (`:8000`) and agentic services (`:8001`).
+Saudi Cargo accounts payable automation UI — OpenUI5 / Fiori shell served by the gateway (`:8000`), which signs users in with Keycloak and forwards `/api/v1` calls to AP Core (`:8002`).
 
 ## Run
 
@@ -10,7 +10,7 @@ npm install          # first time only
 npm start            # UI5 CLI + livereload → usually http://localhost:8080
 ```
 
-Open the URL printed by `@ui5/cli serve`. Ensure the backend gateway is up so upload / case list / document preview work.
+Open the URL printed by `@ui5/cli serve`. Ensure the gateway (`gateway/`) is up so upload / case list / document preview work.
 
 ## Demo flow
 

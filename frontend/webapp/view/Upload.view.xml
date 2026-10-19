@@ -23,15 +23,13 @@
 							<core:Icon src="sap-icon://add-document" size="1.75rem" class="apHeroDropIcon"/>
 						</VBox>
 						<Title text="Drop invoice to start" level="H3" class="apHeroDropTitle"/>
-						<Text text="or browse — PDF, PNG or JPEG, up to 20 MB" class="apHeroDropHint sapUiTinyMarginTop sapUiSmallMarginBottom"/>
-						<u:FileUploader id="fileUploader" fileType="pdf,png,jpg,jpeg" sameFilenameAllowed="true"
-							buttonOnly="true" buttonText="Browse files" tooltip="Choose a PDF, PNG or JPEG invoice"
+						<Text text="or browse — PDF, up to 25 MB" class="apHeroDropHint sapUiTinyMarginTop sapUiSmallMarginBottom"/>
+						<u:FileUploader id="fileUploader" fileType="pdf" sameFilenameAllowed="true"
+							buttonOnly="true" buttonText="Browse files" tooltip="Choose a PDF invoice"
 							style="Emphasized" change="onUploadChange"
 							enabled="{= !${apData>/busy} &amp;&amp; !${apData>/upload/watching} }" class="apHeroDropBrowse"/>
 						<HBox class="apHeroDropFormats sapUiTinyMarginTop" wrap="Wrap" justifyContent="Center">
 							<ObjectStatus text="PDF" inverted="true" class="apFormatChip"/>
-							<ObjectStatus text="PNG" inverted="true" class="apFormatChip"/>
-							<ObjectStatus text="JPEG" inverted="true" class="apFormatChip"/>
 						</HBox>
 					</VBox>
 					<VBox visible="{apData>/busy}" class="apHeroDropBusy" alignItems="Center" justifyContent="Center">

@@ -8,11 +8,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Deployment settings: .env holds committed defaults, .env.local the secrets (git-ignored)."""
+    """Deployment settings and secrets, read from the git-ignored .env (template: .env.example)."""
 
-    model_config = SettingsConfigDict(env_file=(".env", ".env.local"), extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    agentic_api_url: str = "http://127.0.0.1:8001"
+    ap_core_url: str = "http://127.0.0.1:8002"
     port: int = Field(default=8000, ge=1, le=65535)
     http_timeout: float = Field(default=30, gt=0)
 
@@ -27,10 +27,10 @@ class Settings(BaseSettings):
     frontend_dir: Path | None = None
 
     oidc_client_secret: str
+    # Must equal AP_CORE_SERVICE_API_KEY in ap-core-service/.env.
+    ap_core_service_api_key: str
     session_cookie: str = "ap_session"
     session_cookie_secure: bool = False
-    # Until the agentic API verifies tokens itself, also send it the user and role from the token.
-    forward_identity_headers: bool = False
 
 
 @lru_cache
