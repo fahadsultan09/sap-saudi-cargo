@@ -10,7 +10,7 @@ from openpyxl import load_workbook
 
 
 DEFAULT_DATA_DIR = (
-    Path(__file__).resolve().parents[2] / "sap_excel"
+    Path(__file__).resolve().parents[2] / "data" / "sap_excel"
 )
 
 FILES = {
