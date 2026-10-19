@@ -138,3 +138,11 @@ def test_return_needs_a_comment(tmp_path, monkeypatch):
         assert client.post(f"/api/v1/cases/{case}/return",headers=APPROVER,json={"comment":" "}).status_code==422
         r=client.post(f"/api/v1/cases/{case}/return",headers=APPROVER,json={"comment":"Wrong PO"})
         assert r.status_code==200 and r.json()["status"]=="RETURNED"
+
+
+def test_agent_checks_are_kept_when_ap_core_routes_the_case(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case=register(client).json()["case_id"]
+        client.post(f"/internal/v1/cases/{case}/extraction-result",json={"fields":FIELDS,"validation":{"checks":{"po":"matched","duplicate":"clear"}},"idempotency_key":"extract-checks-v1"})
+        checks=client.get(f"/api/v1/cases/{case}").json()["validation"]["checks"]
+        assert checks=={"po":"matched","duplicate":"not_checked"}

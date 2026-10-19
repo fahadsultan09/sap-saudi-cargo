@@ -631,7 +631,8 @@ sap.ui.define([
             if (["passed", "pass", "valid", "clear", "no_duplicate"].indexOf(sLower) >= 0) {
                 return "Success";
             }
-            return sLower === "not_checked" ? "None" : "Error";
+            // "unknown": an agent could not decide (e.g. no PO number), which is not a failure.
+            return ["not_checked", "unknown"].indexOf(sLower) >= 0 ? "None" : "Error";
         },
 
         // One line per review reason code; a case without codes shows its review note as is.

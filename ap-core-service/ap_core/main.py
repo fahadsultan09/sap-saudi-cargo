@@ -252,7 +252,8 @@ def route_case(c, case_id: str, f: dict[str, Any], validation: dict[str, Any], c
     if amount_error: blocking.append(amount_error)
     next_status="NEEDS_REVIEW" if blocking else "READY_FOR_APPROVAL"
     reason=("Potential duplicate invoice; compare with matched case." if duplicate else ("Required fields or validations need human review." if blocking else "Required fields present; awaiting independent approval."))
-    merged_validation={**validation,"blocking":list(dict.fromkeys(blocking)),"missing_fields":missing,"business_duplicate":duplicate,"checks":{"duplicate":"suspected_duplicate" if duplicate else "not_checked"}}
+    # Agent checks (e.g. VECTOR's PO match) are kept; the duplicate check is AP Core's own.
+    merged_validation={**validation,"blocking":list(dict.fromkeys(blocking)),"missing_fields":missing,"business_duplicate":duplicate,"checks":{**validation.get("checks",{}),"duplicate":"suspected_duplicate" if duplicate else "not_checked"}}
     c.execute("UPDATE cases SET invoice_number=?,supplier_id=?,supplier_name=?,company_code=?,currency=?,total_amount=?,invoice_date=?,po_number=?,fields_json=?,validation_json=?,status=?,review_reason=?,updated_at=?,version=version+1 WHERE id=?",
       (invoice or None,supplier_id or None,supplier_name or None,company or None,currency or None,str(amount) if amount is not None else None,f.get("invoice_date"),po_number or None,dumps(f),dumps(merged_validation),next_status,reason,stamp,case_id))
     c.execute("INSERT INTO rule_results(id,case_id,rule_code,outcome,reason,evidence_json,created_at) VALUES(?,?,?,?,?,?,?)",(str(uuid.uuid4()),case_id,"REQUIRED_FIELDS_PRESENT","FAIL" if missing else "PASS",f"Missing fields: {', '.join(missing)}" if missing else "All required invoice fields are present.",dumps({"missing_fields":missing}),stamp))
