@@ -133,3 +133,11 @@ __pycache__/
 node_modules/
 # Fahad's archive of ap-core-service, not source
 ap-core-service/*.rar
+
+
+# SAP / AI credentials
+sap_credentials.json
+ai_core_cred.json
+
+# Document configuration (if contains sensitive data)
+document_types.json

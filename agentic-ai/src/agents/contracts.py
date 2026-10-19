@@ -4,14 +4,21 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 DocumentKind = Literal[
-    "invoice", "credit_note", "supporting_document", "reconciliation",
-    "statement_of_account", "purchase_order_list", "general_correspondence", "other",
+    "invoice",
+    "credit_note",
+    "supporting_document",
+    "reconciliation",
+    "statement_of_account",
+    "purchase_order_list",
+    "general_correspondence",
+    "other",
 ]
 AgentStatus = Literal["completed", "skipped", "failed"]
 
 
 class ClassificationDecision(BaseModel):
     """Validated TOWER result. It is evidence, not an authorization decision."""
+
     model_config = ConfigDict(extra="allow")
     document_type: DocumentKind
     confidence: float = Field(ge=0.0, le=1.0)
@@ -20,11 +27,21 @@ class ClassificationDecision(BaseModel):
     @field_validator("document_type", mode="before")
     @classmethod
     def normalize_document_type(cls, value: Any) -> str:
-        value = str(value or "other").strip().lower().replace("-", "_").replace(" ", "_")
+        value = (
+            str(value or "other").strip().lower().replace("-", "_").replace(" ", "_")
+        )
         aliases = {"statement": "statement_of_account", "other": "other"}
         value = aliases.get(value, value)
-        allowed = {"invoice", "credit_note", "supporting_document", "reconciliation",
-                   "statement_of_account", "purchase_order_list", "general_correspondence", "other"}
+        allowed = {
+            "invoice",
+            "credit_note",
+            "supporting_document",
+            "reconciliation",
+            "statement_of_account",
+            "purchase_order_list",
+            "general_correspondence",
+            "other",
+        }
         return value if value in allowed else "other"
 
 
@@ -42,3 +59,6 @@ class AgentWorkflowResult(BaseModel):
     triage: dict[str, Any] = Field(default_factory=dict)
     agent_trace: list[AgentTrace] = Field(default_factory=list)
     validation: dict[str, Any] = Field(default_factory=dict)
+    matching: dict[str, Any] = Field(default_factory=dict)
+    investigation: dict[str, Any] = Field(default_factory=dict)
+    reconciliation: dict[str, Any] = Field(default_factory=dict)

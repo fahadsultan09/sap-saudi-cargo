@@ -66,6 +66,11 @@ _AI_CORE_TYPE_MAP = {
     "general_correspondence": DocumentType.GENERAL_CORRESPONDENCE,
 }
 
+INVOICE_PROCESSABLE_TYPES = {
+    DocumentType.INVOICE,
+    DocumentType.CREDIT_NOTE,
+}
+
 # Only these go through invoice-type / field extraction. Everything
 # else (statements, PO lists, correspondence, ...) is routed to review untouched.
 _EXTRACTABLE_TYPES = {
@@ -96,6 +101,34 @@ DOX_FIELD_ALIASES = {
     "purchaseOrderNumber": "po_number",
     "paymentTerms": "payment_terms",
 }
+
+
+# Required fields depend on the document type and business rules.
+# These are initial defaults; adapt them to your AP policy.
+DEFAULT_REQUIRED_FIELDS = [
+    "invoice_number",
+    "invoice_date",
+    "supplier_name",
+    "total_amount",
+    "currency",
+]
+
+REQUIRED_FIELDS_BY_INVOICE_TYPE = {
+    "FUEL": DEFAULT_REQUIRED_FIELDS,
+    "CARGO": DEFAULT_REQUIRED_FIELDS,
+    "CHARTER": DEFAULT_REQUIRED_FIELDS,
+    "SERVICE": DEFAULT_REQUIRED_FIELDS,
+    "OTHER": DEFAULT_REQUIRED_FIELDS,
+}
+
+CONDITIONAL_FIELDS_BY_INVOICE_TYPE = {
+    "FUEL": ["po_number"],
+    "CARGO": ["po_number"],
+    "CHARTER": ["po_number"],
+    "SERVICE": ["po_number"],
+    "OTHER": [],
+}
+
 
 # Field-name fragments that hold addresses / bank / contact data; ignored for
 # invoice-type keyword matching.
@@ -259,14 +292,15 @@ def normalize_payload(raw_data: dict[str, Any], doc_index: int = 0) -> dict[str,
 
 
 def determine_document_type(state: TriageState) -> TriageState:
-    """Determine the document type from AI Core extraction or keyword fallback.
+    """Determine document type using SAP AI Core classification or keyword fallback.
 
-    If the AI Core document_type field is present in the extraction, use it
-    directly (mapped to the pipeline's DocumentType enum). Otherwise, fall
-    back to keyword matching against document_types.json.
+    Invoices and credit notes are eligible for invoice-related processing.
+    Other document types are classified but do not continue through the
+    invoice-processing pipeline.
     """
     logger.info("Step 1: Determining document type...")
-    evidence = state.get("evidence", [])
+
+    evidence = list(state.get("evidence", []))
     extraction = state.get("classification_extraction", [])
     extracted_values = build_lookup(extraction)
 
@@ -277,44 +311,94 @@ def determine_document_type(state: TriageState) -> TriageState:
         ai_core_classification.get("document_type", "")
     ).strip().lower()
 
+    # Step 1: Prefer a recognized SAP AI Core classification.
     if ai_core_type and ai_core_type in _AI_CORE_TYPE_MAP:
-
         doc_type = _AI_CORE_TYPE_MAP[ai_core_type]
+
         evidence.append(
             f"Document type determined: {doc_type.value} "
             f"(from SAP AI Core classification: '{ai_core_type}')"
         )
-        logger.info("Document type: %s (from AI Core)", doc_type.value)
-        return {**state, "document_type": doc_type.value, "evidence": evidence}
 
-    if ai_core_classification.get("ai_parse_status") == "failed":
-        evidence.append(
-            "AI Core classification failed validation "
-            f"({ai_core_classification.get('error') or 'invalid reply'}); "
-            "document type unknown"
+        logger.info(
+            "Document type: %s (from AI Core)",
+            doc_type.value,
         )
 
-    # Fallback: keyword matching on the file name / declared document type only
-    # (never on every extracted value: addresses and bank details cause false hits).
-    search_text = " ".join(
-        t for t in (
-            extracted_values.get("document_type", ""),
-            state.get("file_name", ""),
-        ) if t
-    ).lower().replace("_", " ")
-    for category, doc_types in _DOCUMENT_TYPE_CATEGORIES:
-        mapped_type = _CATEGORY_TO_DOC_TYPE.get(category)
-        if mapped_type and any(kw in search_text for kw in doc_types):
-            doc_type = mapped_type
-            break
+    else:
+        # Step 2: Fall back to keyword classification if necessary.
+        if ai_core_classification.get("ai_parse_status") == "failed":
+            evidence.append(
+                "SAP AI Core classification failed validation "
+                f"({ai_core_classification.get('error') or 'invalid reply'}); "
+                "using keyword fallback."
+            )
 
-    evidence.append(
-        f"Document type determined: {doc_type.value} "
-        f"(keyword fallback — no AI Core document_type found)"
-    )
-    logger.info("Document type: %s (keyword fallback)", doc_type.value)
-    return {**state, "document_type": doc_type.value, "evidence": evidence}
+        search_text = " ".join(
+            str(value)
+            for value in (
+                extracted_values.get("document_type", ""),
+                state.get("file_name", ""),
+            )
+            if value
+        ).lower().replace("_", " ")
 
+        for category, doc_types in _DOCUMENT_TYPE_CATEGORIES:
+            mapped_type = _CATEGORY_TO_DOC_TYPE.get(category)
+
+            if mapped_type and any(
+                str(keyword).lower().replace("_", " ") in search_text
+                for keyword in doc_types
+            ):
+                doc_type = mapped_type
+                break
+
+        evidence.append(
+            f"Document type determined: {doc_type.value} "
+            "(keyword fallback)"
+        )
+
+        logger.info(
+            "Document type: %s (keyword fallback)",
+            doc_type.value,
+        )
+
+    # Step 3: Explicit allowlist for invoice-related processing.
+    # Ensure CREDIT_NOTE exists in your DocumentType enum.
+    invoice_processable_types = {
+        DocumentType.INVOICE,
+        DocumentType.CREDIT_NOTE,
+    }
+
+    should_process_invoice = doc_type in invoice_processable_types
+
+    if should_process_invoice:
+        evidence.append(
+            f"Document type '{doc_type.value}' is eligible "
+            "for invoice-related processing."
+        )
+        logger.info(
+            "Invoice-related processing enabled for %s",
+            doc_type.value,
+        )
+    else:
+        evidence.append(
+            f"Document type '{doc_type.value}' is not eligible "
+            "for automatic invoice-related processing. "
+            "Downstream invoice agents must be skipped."
+        )
+        logger.info(
+            "Skipping invoice-related processing for %s",
+            doc_type.value,
+        )
+
+    # Step 4: Return the updated state.
+    return {
+        **state,
+        "document_type": doc_type.value,
+        "should_process_invoice": should_process_invoice,
+        "evidence": evidence,
+    }
 
 # ── Step 3: Determine Invoice Type ─────────────────────────────────────────
 
@@ -451,7 +535,34 @@ def validate_extraction(state: TriageState) -> TriageState:
     field_confidences = state.get("field_confidences", {})
     line_items = state.get("line_items", [])
 
-    required_fields = REQUIRED_HEADER_FIELDS
+    required_fields = REQUIRED_FIELDS_BY_INVOICE_TYPE.get(
+        invoice_type,
+        DEFAULT_REQUIRED_FIELDS,
+    )
+
+    conditional_fields = CONDITIONAL_FIELDS_BY_INVOICE_TYPE.get(
+        invoice_type,
+        [],
+    )
+
+    missing_required = [
+        field
+        for field in required_fields
+        if not header_fields.get(field)
+    ]
+
+    low_confidence = [
+        field
+        for field in required_fields
+        if field in field_confidences
+        and field_confidences[field] < MIN_REQUIRED_FIELD_CONFIDENCE
+    ]
+
+    missing_conditional = [
+        field
+        for field in conditional_fields
+        if not header_fields.get(field)
+    ]
 
     missing_required = [
         f for f in required_fields if f not in header_fields or not header_fields[f]
@@ -482,6 +593,12 @@ def validate_extraction(state: TriageState) -> TriageState:
 
     review_required = len(review_reasons) > 0
     review_reason = "; ".join(review_reasons) if review_reasons else None
+
+    if missing_conditional:
+        evidence.append(
+            "Conditional fields missing: "
+            + ", ".join(missing_conditional)
+        )
 
     evidence.append(
         f"Validation: confidence={overall_confidence:.2f}, "
@@ -514,6 +631,7 @@ def build_triage_result(state: TriageState) -> TriageState:
         review_required=state.get("review_required", True),
         review_reason=state.get("review_reason"),
         missing_fields=state.get("missing_required_fields", []),
+        workflow_steps=state.get("workflow_steps", []),
     )
     result_dict = result.to_dict()
     logger.debug("TriageResult:\n%s", result.to_json())
