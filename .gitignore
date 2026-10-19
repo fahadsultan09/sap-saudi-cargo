@@ -139,3 +139,11 @@ __pycache__/
 
 
 node_modules/
+
+
+# SAP / AI credentials
+sap_credentials.json
+ai_core_cred.json
+
+# Document configuration (if contains sensitive data)
+document_types.json

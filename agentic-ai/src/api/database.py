@@ -56,6 +56,27 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS ix_ap_cases_status_created ON ap_cases(status, created_at);
         CREATE INDEX IF NOT EXISTS ix_ap_cases_sha256 ON ap_cases(sha256);
+        -- A canonical claim makes exact-file deduplication atomic even if two
+        -- uploads arrive concurrently. Historical duplicate cases are retained;
+        -- the oldest case for each hash becomes the canonical case.
+        CREATE TABLE IF NOT EXISTS document_claims (
+            sha256 TEXT PRIMARY KEY,
+            canonical_case_id TEXT NOT NULL REFERENCES ap_cases(id),
+            first_seen_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL,
+            duplicate_count INTEGER NOT NULL DEFAULT 0
+        );
+        INSERT OR IGNORE INTO document_claims
+            (sha256, canonical_case_id, first_seen_at, last_seen_at, duplicate_count)
+        SELECT c.sha256,
+               (SELECT c2.id FROM ap_cases c2
+                WHERE c2.sha256 = c.sha256
+                ORDER BY c2.created_at ASC, c2.id ASC LIMIT 1),
+               MIN(c.created_at), MAX(c.created_at),
+               MAX(0, COUNT(*) - 1)
+        FROM ap_cases c
+        WHERE c.sha256 IS NOT NULL AND TRIM(c.sha256) <> ''
+        GROUP BY c.sha256;
         CREATE TABLE IF NOT EXISTS approval_requests (
             id TEXT PRIMARY KEY,
             case_id TEXT NOT NULL REFERENCES ap_cases(id),

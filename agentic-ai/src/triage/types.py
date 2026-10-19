@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -80,9 +80,25 @@ class TriageResult(BaseModel):
     review_required: bool
     review_reason: Optional[str] = None
     missing_fields: list[str] = Field(default_factory=list)
+    workflow_steps: list[WorkflowStep] = Field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), indent=2, default=str, ensure_ascii=False)
+
+
+
+class WorkflowStep(BaseModel):
+    """One step in the AP invoice workflow."""
+
+    key: str
+    title: str
+    service: str = ""
+    status: Literal["PASS", "INFO", "WARN", "SKIP", "ERROR"] = "INFO"
+    headline: str = ""
+    outcome: str = ""
+    rules: list[str] = Field(default_factory=list)
+    log: list[str] = Field(default_factory=list)
+    lines: list[dict[str, Any]] = Field(default_factory=list)

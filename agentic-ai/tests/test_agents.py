@@ -8,7 +8,11 @@ from agents.tower import TowerTriageAgent
 
 class FakeAICore:
     def upload_and_process(self, file_path, email_metadata=None):
-        return {"document_type": "invoice", "confidence": 0.94, "reason": "Invoice layout and amount due detected."}
+        return {
+            "document_type": "invoice",
+            "confidence": 0.94,
+            "reason": "Invoice layout and amount due detected.",
+        }
 
 
 class FakeDocAI:
@@ -17,14 +21,25 @@ class FakeDocAI:
 
     @staticmethod
     def convert_results(raw):
-        return {"classification_extraction": [], "detailed_extraction": [], "line_items": []}
+        return {
+            "classification_extraction": [],
+            "detailed_extraction": [],
+            "line_items": [],
+        }
 
 
 class FakeRules:
     def run(self, *, file_name, classification, converted):
-        return {"document_type": "INVOICE", "invoice_type": "OTHER", "review_required": True,
-                "review_reason": "Required fields need review", "missing_fields": ["invoice_number"],
-                "extracted_header_fields": {}, "line_items": [], "confidence": 0.5}
+        return {
+            "document_type": "INVOICE",
+            "invoice_type": "OTHER",
+            "review_required": True,
+            "review_reason": "Required fields need review",
+            "missing_fields": ["invoice_number"],
+            "extracted_header_fields": {},
+            "line_items": [],
+            "confidence": 0.5,
+        }
 
 
 def test_tower_validates_classification_output():

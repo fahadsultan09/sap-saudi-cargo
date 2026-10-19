@@ -122,10 +122,91 @@ def test_agents_route_describes_minimum_architecture():
         response = client.get("/api/v1/agents", headers=headers("admin-1", "ADMIN"))
         assert response.status_code == 200
         data = response.json()
-        assert data["execution_order"] == ["TOWER", "LENS", "FINANCE_RULES"]
-        assert (
-            next(agent for agent in data["agents"] if agent["name"] == "VECTOR")[
-                "status"
-            ]
-            == "deferred"
+        assert data["execution_order"] == ["EMAIL_INTAKE", "TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM", "PLUMB"]
+        statuses = {agent["name"]: agent["status"] for agent in data["agents"]}
+        assert statuses["VECTOR"] == "implemented_requires_sap_context"
+        assert statuses["PRISM"] == "implemented_requires_evidence"
+        assert statuses["PLUMB"] == "implemented_requires_payment_data"
+
+
+
+def test_exact_duplicate_upload_returns_existing_case_without_new_case():
+    with TestClient(app) as client:
+        pdf = b"%PDF-1.4\\n% identical invoice for duplicate test\\n%%EOF"
+        h = headers("processor-duplicate", "AP_PROCESSOR")
+
+        first = client.post(
+            "/api/v1/cases/upload",
+            headers=h,
+            files={"file": ("invoice.pdf", pdf, "application/pdf")},
         )
+        assert first.status_code == 202, first.text
+        first_case_id = first.json()["case_id"]
+
+        second = client.post(
+            "/api/v1/cases/upload",
+            headers=h,
+            files={"file": ("renamed-invoice.pdf", pdf, "application/pdf")},
+        )
+        assert second.status_code == 200, second.text
+        body = second.json()
+        assert body["duplicate"] is True
+        assert body["duplicate_type"] == "EXACT_FILE"
+        assert body["case_id"] == first_case_id
+
+        cases = client.get(
+            "/api/v1/cases",
+            headers=headers("admin-duplicate", "ADMIN"),
+        )
+        matching = [item for item in cases.json()["items"] if item["id"] == first_case_id]
+        assert len(matching) == 1
+
+        history = client.get(
+            f"/api/v1/cases/{first_case_id}/history",
+            headers=headers("processor-duplicate", "AP_PROCESSOR"),
+        )
+        assert history.status_code == 200, history.text
+        event_types = [event["event_type"] for event in history.json()["events"]]
+        assert "CASE_UPLOADED" in event_types
+        assert "DUPLICATE_UPLOAD_DETECTED" in event_types
+
+
+
+def test_business_duplicate_uses_supplier_invoice_and_company_identity():
+    from api.database import connect
+    from api.workflow import _find_business_duplicate
+    from api.database import utc_now
+
+    existing_id = str(uuid.uuid4())
+    now = utc_now()
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO ap_cases (
+                id, file_name, stored_path, sha256, status, created_by,
+                invoice_number, supplier_name, company_code, currency,
+                total_amount, extracted_fields_json, line_items_json,
+                validation_json, confirmed_checks_json, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '{}', '[]', '{}', '[]', ?, ?)
+            """,
+            (
+                existing_id, "existing.pdf", "/tmp/existing.pdf",
+                "test-business-duplicate-hash-" + existing_id, "NEEDS_REVIEW",
+                "test-supplier", "INV-BUS-001", "Example Supplier", "1000",
+                "SAR", "1250.00", now, now,
+            ),
+        )
+
+    match = _find_business_duplicate(
+        "new-case-not-in-db",
+        {
+            "invoice_number": " inv-bus-001 ",
+            "supplier_name": "example supplier",
+            "company_code": "1000",
+            "currency": "SAR",
+            "total_amount": "1250.00",
+        },
+    )
+    assert match is not None
+    assert match["matched_case_id"] == existing_id
+    assert match["match_basis"] == "supplier_invoice_number_company_code"
