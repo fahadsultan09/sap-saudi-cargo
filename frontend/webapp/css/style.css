@@ -587,6 +587,13 @@ html, body, .sapUiBody {
 
 .apStep[data-state="pending"] .apStepTitle,
 .apStep[data-state="skipped"] .apStepTitle { color: var(--ap-faint); }
+
+/* SAP data check broken into its steps (fetching the PO, comparing the amount, ...) */
+.apSubStep {
+    gap: 0.75rem;
+    padding: 0.2rem 0 0.2rem 0.6rem;
+    border-left: 2px solid var(--ap-border);
+}
 .apStep[data-state="running"] .apStepTitle { color: var(--ap-live); }
 .apStep[data-state="done"] .apStepTitle { color: var(--ap-brand-dark); }
 

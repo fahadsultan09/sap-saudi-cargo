@@ -9,9 +9,9 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from .config import APP_ENV, DB_PATH, LEASE_SECONDS, MAX_WORK_ATTEMPTS, SERVICE_API_KEY
 from .db import connect, dumps, init_db, loads, now, transaction
-from .schemas import Actor, AgentResult, Decision, ExtractionResult, FieldCorrection, LeaseRequest, RegisterUpload, TransitionRequest, WorkCompletion
+from .schemas import Actor, AgentResult, Decision, ExtractionResult, FieldCorrection, LeaseRequest, ProgressUpdate, RegisterUpload, TransitionRequest, WorkCompletion
 
-app = FastAPI(title="Saudi Cargo AP Core", version="0.1.0", description="Business state authority for AP automation. Agents advise; AP Core commits state and decides next steps.")
+app = FastAPI(title="AP Automation · AP Core", version="0.1.0", description="Business state authority for AP automation. Agents advise; AP Core commits state and decides next steps.")
 
 @app.on_event("startup")
 def startup() -> None:
@@ -268,6 +268,18 @@ def route_case(c, case_id: str, f: dict[str, Any], validation: dict[str, Any], c
     c.execute("INSERT INTO rule_results(id,case_id,rule_code,outcome,reason,evidence_json,created_at) VALUES(?,?,?,?,?,?,?)",(str(uuid.uuid4()),case_id,"BUSINESS_DUPLICATE","FAIL" if duplicate else "PASS" if invoice and company else "UNKNOWN",reason,dumps(duplicate or {}),stamp))
     event(c,case_id,"CASE_ROUTED","RULE_RESULT","ap-core",reason,{"status":next_status,"blocking":merged_validation["blocking"]},correlation_id)
     return {"case_id":case_id,"status":next_status,"blocking":merged_validation["blocking"],"missing_fields":missing,"business_duplicate":duplicate,"next_step":"HUMAN_REVIEW" if next_status=="NEEDS_REVIEW" else "INDEPENDENT_APPROVAL"}
+
+@app.post("/internal/v1/cases/{case_id}/progress", dependencies=[Depends(service_auth)])
+def save_progress(case_id: str, req: ProgressUpdate):
+    """Live progress for the UI while the agents run. Only for a case that is PROCESSING; it changes no
+    business state and is replaced by the extraction result."""
+    with transaction() as c:
+        row=c.execute("SELECT status,validation_json FROM cases WHERE id=?",(case_id,)).fetchone()
+        if not row: raise HTTPException(404,"Case not found")
+        if row["status"]!="PROCESSING": return {"case_id":case_id,"accepted":False}
+        validation={**loads(row["validation_json"],{}),"agent_trace":req.agent_trace,"source_checks":req.source_checks}
+        c.execute("UPDATE cases SET validation_json=?,updated_at=? WHERE id=?",(dumps(validation),now(),case_id))
+    return {"case_id":case_id,"accepted":True}
 
 @app.post("/internal/v1/cases/{case_id}/extraction-result", dependencies=[Depends(service_auth)])
 def submit_extraction(case_id: str, req: ExtractionResult):

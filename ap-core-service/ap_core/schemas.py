@@ -24,6 +24,11 @@ class ExtractionResult(BaseModel):
     idempotency_key: str = Field(min_length=8, max_length=200)
     correlation_id: str | None = None
 
+class ProgressUpdate(BaseModel):
+    """Live agent progress while a case is processing: the finished steps and SAP data checks so far."""
+    agent_trace: list[dict[str, Any]] = Field(default_factory=list)
+    source_checks: list[dict[str, Any]] = Field(default_factory=list)
+
 class LeaseRequest(BaseModel):
     worker_id: str = Field(min_length=1, max_length=200)
     task_types: list[str] = Field(default_factory=lambda: ["PROCESS_DOCUMENT"])

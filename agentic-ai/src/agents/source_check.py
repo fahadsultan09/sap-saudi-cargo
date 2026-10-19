@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from collections.abc import Callable
 from typing import Any
 
 # Words that differ between an invoice's supplier name and the SAP supplier master
@@ -115,50 +116,60 @@ class SourceCheckAgent:
         self.po_reader = po_reader
         self.finance_reader = finance_reader
 
-    def run(self, invoice: dict[str, Any]) -> dict[str, Any]:
+    def run(
+        self, invoice: dict[str, Any], on_check: Callable[[dict[str, Any]], None] | None = None
+    ) -> dict[str, Any]:
+        """on_check receives each comparison as soon as it is done (live progress in the UI)."""
+        report = on_check or (lambda row: None)
         po_number = _text(invoice.get("po_number"))
-        if not po_number:
-            return self._verdict(
-                "NOT_FOUND",
-                [],
-                po_number,
-                None,
-                "There is no PO number on the invoice, so it could not be checked against SAP.",
-            )
-        po = self.po_reader.get_purchase_order_context(po_number)
+        po = self.po_reader.get_purchase_order_context(po_number) if po_number else None
         if po is None:
-            return self._verdict(
-                "NOT_FOUND",
-                [],
-                po_number,
-                None,
-                f"PO {po_number} was not found in the SAP purchase order data.",
-            )
+            if po_number:
+                summary = f"PO {po_number} was not found in the SAP purchase order data."
+                row = _row(
+                    "purchase_order", "Purchase order", po_number, "", "EKKO", "NOT_IN_SAP", summary
+                )
+            else:
+                summary = (
+                    "There is no PO number on the invoice, so it could not be checked against SAP."
+                )
+                row = _row(
+                    "purchase_order", "Purchase order", "", "", "EKKO", "NOT_ON_INVOICE", summary
+                )
+            report(row)
+            return self._verdict("NOT_FOUND", [row], po_number, None, summary, [summary])
 
-        rows = [
-            self._purchase_order(po),
-            *self._supplier(invoice, po),
-            self._same_value(
+        # Same order as the UI steps: PO, supplier (incl. bank), fields, receipt, accounts.
+        checks = (
+            lambda: self._purchase_order(po),
+            lambda: self._supplier(invoice, po),
+            lambda: self._bank(po),
+            lambda: self._same_value(
                 "company_code",
                 "Company code",
                 invoice.get("company_code"),
                 po.get("company_code"),
                 "EKKO",
             ),
-            self._same_value(
+            lambda: self._same_value(
                 "currency",
                 "Currency",
                 _text(invoice.get("currency")).upper(),
                 _text(po.get("currency")).upper(),
                 "EKKO",
             ),
-            self._amount(invoice, po),
-            self._invoice_date(invoice, po),
-            *self._receipts(po_number, po),
-            *self._account_assignments(po_number),
-            self._bank(po),
-        ]
-        rows = [row for row in rows if row]
+            lambda: self._amount(invoice, po),
+            lambda: self._invoice_date(invoice, po),
+            lambda: self._receipts(po_number, po),
+            lambda: self._account_assignments(po_number),
+        )
+        rows: list[dict[str, Any]] = []
+        for check in checks:
+            result = check()
+            for row in result if isinstance(result, list) else [result]:
+                if row:
+                    rows.append(row)
+                    report(row)
 
         discrepancies = [row["message"] for row in rows if row["result"] in DISCREPANCY_RESULTS]
         missing = [
@@ -171,8 +182,8 @@ class SourceCheckAgent:
             status, summary = (
                 "MISMATCH",
                 (
-                    f"{count} difference{'s' if count > 1 else ''} with the SAP data; "
-                    "review before approval."
+                    f"{count} difference{'s' if count > 1 else ''} in invoice fields "
+                    f"{'have' if count > 1 else 'has'} been found."
                 ),
             )
         elif missing:
@@ -634,7 +645,7 @@ class SourceCheckAgent:
                 "bank",
                 "Bank account",
                 "",
-                "none",
+                "",
                 "LFBK",
                 "NOT_IN_SAP",
                 "SAP has no bank account on file for this supplier.",

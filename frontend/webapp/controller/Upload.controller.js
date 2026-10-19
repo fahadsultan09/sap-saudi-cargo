@@ -19,6 +19,11 @@ sap.ui.define([
         },
 
         _onRouteMatched: function () {
+            // Only AP processors upload; anyone else reaching #/upload by address goes to the dashboard.
+            if (!this.getData().getProperty("/permissions/processor")) {
+                this.getRouter().navTo("dashboard", {}, true);
+                return;
+            }
             if (!this.getData().getProperty("/upload/watching")) {
                 this._resetSteps();
             }
@@ -130,9 +135,7 @@ sap.ui.define([
 
         _startWatch: function (sCaseId) {
             var that = this;
-            var iStarted = Date.now();
             this._watchCaseId = sCaseId;
-            this._watchStartedAt = iStarted;
 
             var fnTick = function () {
                 if (that._watchCaseId !== sCaseId) {
@@ -148,19 +151,10 @@ sap.ui.define([
                     that.getData().setProperty("/upload/nowText", oProgress.nowText);
                     that.getData().setProperty("/upload/progressPercent", oProgress.percent);
 
-                    var iElapsed = Date.now() - iStarted;
-                    var bPastAgents = C.PROCESSING_STATUSES.indexOf(oCase.status) < 0;
-                    var oExtract = aSteps.filter(function (oStep) {
-                        return oStep.key === "extract";
-                    })[0];
-                    var bSawExtract = oExtract && (oExtract.state === "running" || oExtract.state === "done");
-                    var bMinDone = iElapsed >= C.UPLOAD_WATCH_MIN_MS;
-                    var bMaxDone = iElapsed >= C.UPLOAD_WATCH_MAX_MS;
-
-                    // Leave once the user has seen at least Classify → Extract motion, or agents finish,
-                    // or we hit the max stay so Clear Desk can take over as the live hero.
-                    if (bPastAgents || bMaxDone || (bMinDone && bSawExtract) || (bMinDone && oProgress.percent >= 45)) {
-                        that._goToReview(sCaseId);
+                    // Stay while the invoice is queued and while the agents work, so every step is seen as
+                    // it completes; once processing is over, show the finished rail briefly, then Clear Desk.
+                    if (C.PROCESSING_STATUSES.indexOf(oCase.status) < 0) {
+                        that._watchTimer = setTimeout(that._goToReview.bind(that, sCaseId), C.UPLOAD_DONE_PAUSE_MS);
                         return;
                     }
                     that._watchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);

@@ -76,7 +76,7 @@ def test_transition_rejects_skipping_approval(tmp_path, monkeypatch):
 
 
 PROCESSOR={"X-User-Id":"faizan","X-User-Role":"AP_PROCESSOR"}
-APPROVER={"X-User-Id":"sara","X-User-Role":"FINANCE_MANAGER"}
+APPROVER={"X-User-Id":"faizan.saleem","X-User-Role":"FINANCE_MANAGER"}
 FIELDS={"invoice_number":"INV-77","supplier_name":"Supplier B","company_code":"1000","currency":"sar","total_amount":"980.50"}
 
 
@@ -181,3 +181,14 @@ def test_full_match_reason_is_not_shown_when_ap_core_blocks(tmp_path, monkeypatc
         client.post(f"/internal/v1/cases/{case}/extraction-result",json={"fields":fields,"validation":{"source_verdict":{"status":"MATCH","summary":"approve right away"}},"idempotency_key":"extract-verdict-blocked"})
         saved=client.get(f"/api/v1/cases/{case}").json()
         assert saved["status"]=="NEEDS_REVIEW" and "approve right away" not in saved["review_reason"]
+
+
+def test_progress_is_saved_only_while_processing(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case=register(client, b"progress").json()["case_id"]
+        progress={"agent_trace":[{"agent":"TOWER","status":"completed"}],"source_checks":[]}
+        assert client.post(f"/internal/v1/cases/{case}/progress",json=progress).json()["accepted"] is False
+        client.post("/internal/v1/work-items/lease",json={"worker_id":"worker-1"})
+        assert client.post(f"/internal/v1/cases/{case}/progress",json=progress).json()["accepted"] is True
+        saved=client.get(f"/api/v1/cases/{case}").json()
+        assert saved["status"]=="PROCESSING" and saved["validation"]["agent_trace"]==progress["agent_trace"]

@@ -11,7 +11,7 @@
 		</Toolbar>
 		<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
 			illustrationType="sapIllus-NoTasks" illustrationSize="Scene"
-			title="Clear Desk is empty" description="Open a case from the Dashboard or upload an invoice to review it here."/>
+			title="Clear Desk is empty" description="{= ${apData>/permissions/processor} ? 'Open a case from the Dashboard or upload an invoice to review it here.' : 'Open a case from the Dashboard to review it here.' }"/>
 		<VBox height="calc(100vh - 7.5rem)" visible="{apData>/selectedInvoice/hasCase}" class="apReviewShell apReviewShell--docked">
 			<HBox class="apReviewSplit" height="100%">
 				<layoutData>
@@ -97,6 +97,13 @@
 														<Text text="{apData>service}" class="apStepService"
 															visible="{= !!${apData>service} }"/>
 														<Text text="{apData>description}" class="apStepText"/>
+														<VBox items="{path: 'apData>checks', templateShareable: false}"
+															visible="{= ${apData>checks}.length > 0 }" class="sapUiTinyMarginTop">
+															<HBox justifyContent="SpaceBetween" alignItems="Center" class="apSubStep">
+																<Text text="{apData>text}" class="apStepText"/>
+																<ObjectStatus text="{apData>result}" state="{apData>state}"/>
+															</HBox>
+														</VBox>
 														<Text text="{apData>meta}" class="apTimelineMeta"
 															visible="{= !!${apData>meta} }"/>
 													</VBox>
@@ -130,10 +137,7 @@
 												<items>
 													<ColumnListItem>
 														<cells>
-															<VBox>
-																<Text text="{apData>label}"/>
-																<Text text="{apData>table}" class="apTimelineMeta"/>
-															</VBox>
+															<Text text="{apData>label}"/>
 															<Text text="{apData>invoice}"/>
 															<Text text="{apData>sap}"/>
 															<ObjectStatus text="{apData>result}" state="{apData>state}" tooltip="{apData>message}"/>
@@ -141,8 +145,6 @@
 													</ColumnListItem>
 												</items>
 											</Table>
-											<Text text="Source: {apData>/selectedInvoice/sourceVerdict/source}" class="apTimelineMeta sapUiTinyMarginTop"
-												visible="{= !!${apData>/selectedInvoice/sourceVerdict/source} }"/>
 										</VBox>
 
 										<VBox visible="{= ${apData>/selectedInvoice/reviewReasons}.length > 0 }"
@@ -182,6 +184,13 @@
 														<Text text="{apData>service}" class="apStepService"
 															visible="{= !!${apData>service} }"/>
 														<Text text="{apData>description}" class="apStepText"/>
+														<VBox items="{path: 'apData>checks', templateShareable: false}"
+															visible="{= ${apData>checks}.length > 0 }" class="sapUiTinyMarginTop">
+															<HBox justifyContent="SpaceBetween" alignItems="Center" class="apSubStep">
+																<Text text="{apData>text}" class="apStepText"/>
+																<ObjectStatus text="{apData>result}" state="{apData>state}"/>
+															</HBox>
+														</VBox>
 														<Text text="{apData>meta}" class="apTimelineMeta"
 															visible="{= !!${apData>meta} }"/>
 													</VBox>

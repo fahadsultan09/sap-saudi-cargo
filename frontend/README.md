@@ -1,6 +1,6 @@
 # AP Console (frontend)
 
-Saudi Cargo accounts payable automation UI — OpenUI5 / Fiori shell served by the gateway (`:8000`), which signs users in with Keycloak and forwards `/api/v1` calls to AP Core (`:8002`).
+AP Automation accounts payable UI — OpenUI5 / Fiori shell served by the gateway (`:8000`), which signs users in with Keycloak and forwards `/api/v1` calls to AP Core (`:8002`).
 
 ## Run
 

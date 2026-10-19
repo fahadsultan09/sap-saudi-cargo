@@ -244,3 +244,41 @@ def test_process_document_runs_po_matching_against_sap_excel_data(monkeypatch):
         assert validation["investigation"]["status"] == "NEEDS_INVESTIGATION"
         after = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
         assert after == before
+
+
+def test_process_document_streams_each_step_then_the_same_result(monkeypatch):
+    import json
+
+    import agents.mock_agents as mock_agents
+
+    class LensWithPurchaseOrder(mock_agents.MockLensAgent):
+        def run(self, file_path, classification):
+            result = super().run(file_path, classification)
+            result["converted"]["invoice_source"] = {
+                "po_number": "4500012345", "supplier_name": "Gulf Aviation Supplies Co.",
+                "currency": "SAR", "net_amount": "57500.00", "total_amount": "66125.00",
+                "invoice_date": "2026-10-01",
+            }
+            return result
+
+    monkeypatch.setattr(mock_agents, "MockLensAgent", LensWithPurchaseOrder)
+    pdf = ("invoice.pdf", b"%PDF-1.4\n% mock\n%%EOF", "application/pdf")
+    with TestClient(app) as client:
+        streamed = client.post("/internal/v1/process-document",
+                               data={"file_name": "invoice.pdf", "stream": "true"}, files={"file": pdf})
+        plain = client.post("/internal/v1/process-document", data={"file_name": "invoice.pdf"}, files={"file": pdf})
+    assert streamed.status_code == 200 and plain.status_code == 200
+    events = [json.loads(line) for line in streamed.text.splitlines() if line]
+
+    steps = [event["step"]["agent"] for event in events if event["type"] == "step"]
+    assert steps == ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM"]
+    checks = [event["check"]["check"] for event in events if event["type"] == "check"]
+    assert checks[0] == "purchase_order" and "amount" in checks
+    # Each SAP data check is reported before the SOURCE_CHECK step finishes.
+    assert events.index(next(e for e in events if e["type"] == "check")) < events.index(
+        next(e for e in events if e["type"] == "step" and e["step"]["agent"] == "SOURCE_CHECK"))
+
+    result = events[-1]
+    assert result["type"] == "result"
+    assert result["validation"]["source_verdict"]["status"] == "MATCH"
+    assert result["fields"] == plain.json()["fields"]

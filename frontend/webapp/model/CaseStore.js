@@ -353,7 +353,7 @@ sap.ui.define([
                 return oStep.state !== "skipped";
             });
             var iDone = aList.filter(function (oStep) {
-                return oStep.state === "done";
+                return oStep.state === "done" || (oStep.state === "failed" && oStep.agent === "SOURCE_CHECK");
             }).length;
             var oRunning = aList.filter(function (oStep) {
                 return oStep.state === "running";
@@ -501,11 +501,17 @@ sap.ui.define([
             var bQueued = sStatus === "RECEIVED";
             var bAgentsRunning = sStatus === "PROCESSING";
             var sRunningAgent = this._inferRunningAgent(aTrace, oByAgent, bAgentsRunning);
+            // The SAP data check steps fill in from its checks: live while it runs, then from the verdict.
+            var aSourceRows = (oValidation.source_verdict || {}).comparisons || oValidation.source_checks || [];
+            var bSourceRunning = bAgentsRunning && sRunningAgent === "SOURCE_CHECK";
+            var bSourceTurnTaken = false;
 
             return C.PIPELINE_STEPS.map(function (oDef) {
                 var oTrace = oDef.agent ? oByAgent[oDef.agent] : null;
                 var sState = "pending";
                 var sDescription = oDef.description;
+                var sResultLabel = "";
+                var aChecks = [];
                 var aMeta = [];
 
                 if (oDef.service) {
@@ -537,6 +543,28 @@ sap.ui.define([
                         sDescription = "Fix extraction on Clear Desk, then send for approval.";
                     } else {
                         sState = "pending";
+                    }
+                } else if (oDef.sourceChecks) {
+                    var aRows = aSourceRows.filter(function (oRow) {
+                        return oDef.sourceChecks.indexOf(oRow.check) >= 0;
+                    });
+                    var aDiffs = aRows.filter(function (oRow) {
+                        return C.SOURCE_DISCREPANCIES.indexOf(oRow.result) >= 0;
+                    }).map(function (oRow) {
+                        return oRow.message;
+                    });
+                    aChecks = this._sourceCheckSteps(aRows);
+                    if (aRows.length) {
+                        sState = aDiffs.length ? "failed" : "done";
+                        sResultLabel = aDiffs.length ? "Differs" : "Matches";
+                        sDescription = aDiffs.length ? aDiffs.join(" ") : "Matches the SAP data.";
+                    } else if (oTrace || (bPastAgents && !bError)) {
+                        sState = "skipped";
+                        sResultLabel = oTrace ? "Not needed" : "";
+                        sDescription = oTrace ? "Not needed for this invoice." : "Did not run for this invoice.";
+                    } else if (bSourceRunning && !bSourceTurnTaken) {
+                        sState = "running";
+                        bSourceTurnTaken = true;
                     }
                 } else if (oTrace) {
                     sState = this._traceToPipelineState(oTrace.status);
@@ -578,11 +606,12 @@ sap.ui.define([
                     if (oDef.key !== "decide" && (!oTrace || !oTrace.summary)) {
                         sDescription = sNowLabel;
                     }
-                } else if (sState === "done" && oDef.key !== "receive" && oDef.key !== "decide" && !oTrace) {
+                } else if (sState === "done" && oDef.key !== "receive" && oDef.key !== "decide" && !oTrace
+                    && !oDef.sourceChecks) {
                     sDescription = oDef.description + " — complete.";
                 }
 
-                var sStatusLabel = C.PIPELINE_STATUS_LABELS[sState] || sState;
+                var sStatusLabel = sResultLabel || C.PIPELINE_STATUS_LABELS[sState] || sState;
                 // Decide is a human step on Clear Desk — not an agent "Working…" cue.
                 if (oDef.key === "decide" && sState === "running" && bNeedsHuman) {
                     sStatusLabel = bAwaitingApproval ? "Awaiting approval" : "Your turn";
@@ -599,6 +628,7 @@ sap.ui.define([
                     description: sDescription,
                     nowLabel: sNowLabel,
                     meta: aMeta.join(" · "),
+                    checks: aChecks,
                     state: sState,
                     statusLabel: sStatusLabel,
                     tone: sState === "done" ? "success"
@@ -703,16 +733,25 @@ sap.ui.define([
                         label: oRow.label,
                         invoice: oRow.invoice || "—",
                         sap: oRow.sap || "—",
-                        table: oRow.sap_table,
                         result: oResult.label,
                         state: oResult.state,
                         message: oRow.message
                     };
-                }),
-                source: oVerdict.fetched_at
-                    ? "SAP data (" + (oVerdict.sources || []).join(", ") + ") · " + this._formatDate(oVerdict.fetched_at)
-                    : ""
+                })
             };
+        },
+
+        // One SAP data check step's checks, e.g. "Fetching the supplier → Found".
+        _sourceCheckSteps: function (aRows) {
+            return aRows.map(function (oRow) {
+                var aStep = C.SOURCE_CHECK_STEPS[oRow.check] || [oRow.label, false];
+                var oResult = C.SOURCE_RESULTS[oRow.result] || { label: oRow.result, state: "None" };
+                return {
+                    text: aStep[0],
+                    result: oRow.result === "MATCH" && aStep[1] ? "Found" : oResult.label,
+                    state: oResult.state
+                };
+            });
         },
 
         // VECTOR's PO match (validation.matching); hidden when VECTOR did not run.

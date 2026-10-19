@@ -1,9 +1,9 @@
 {
-    "name": "Saudi Cargo",
+    "name": "AP Automation",
     "countryCode": "SA",
     "branding": {
         "appTitle": "AP Console",
-        "appSubtitle": "Saudi Cargo · Invoice automation",
+        "appSubtitle": "AP Automation · Invoice processing",
         "markText": "AP",
         "logo": "logo.png",
         "colors": {

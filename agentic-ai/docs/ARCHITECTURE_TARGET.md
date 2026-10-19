@@ -1,4 +1,4 @@
-# Saudi Cargo AP Automation — Target Architecture and Implementation Order
+# AP Automation — Target Architecture and Implementation Order
 
 ## Non-negotiable ownership rules
 

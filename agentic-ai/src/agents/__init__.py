@@ -1,4 +1,4 @@
-"""Agent adapters for the Saudi Cargo AP Automation workflow."""
+"""Agent adapters for the AP Automation workflow."""
 
 from .orchestrator import APAgentOrchestrator
 from .tower import TowerTriageAgent

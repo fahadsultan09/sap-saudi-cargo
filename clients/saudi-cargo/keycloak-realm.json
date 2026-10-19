@@ -1,6 +1,6 @@
 {
     "realm": "saudi-cargo",
-    "displayName": "Saudi Cargo · Accounts Payable",
+    "displayName": "AP Automation · Accounts Payable",
     "enabled": true,
     "loginWithEmailAllowed": true,
     "bruteForceProtected": true,
@@ -106,16 +106,16 @@
             ]
         },
         {
-            "username": "sara",
-            "firstName": "Sara",
-            "lastName": "Khan",
-            "email": "sara@ap-automation.test",
+            "username": "faizan.saleem",
+            "firstName": "Faizan",
+            "lastName": "Saleem",
+            "email": "faizan.saleem@ap-automation.test",
             "emailVerified": true,
             "enabled": true,
             "credentials": [
                 {
                     "type": "password",
-                    "value": "${DEV_PASSWORD_SARA}",
+                    "value": "${DEV_PASSWORD_FAIZAN_SALEEM}",
                     "temporary": false
                 }
             ],

@@ -12,6 +12,6 @@ services:
       AP_PUBLIC_URL: ${AP_PUBLIC_URL:-http://localhost:8000}
       AP_GATEWAY_CLIENT_SECRET: ${AP_GATEWAY_CLIENT_SECRET}
       DEV_PASSWORD_FAIZAN: ${DEV_PASSWORD_FAIZAN}
-      DEV_PASSWORD_SARA: ${DEV_PASSWORD_SARA}
+      DEV_PASSWORD_FAIZAN_SALEEM: ${DEV_PASSWORD_FAIZAN_SALEEM}
     volumes:
       - ../clients/${CLIENT:-saudi-cargo}/keycloak-realm.json:/opt/keycloak/data/import/realm.json:ro
