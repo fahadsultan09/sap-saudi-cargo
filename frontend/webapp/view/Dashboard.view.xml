@@ -8,6 +8,7 @@
 			<HBox class="apWelcome sapUiMediumMarginBottom" alignItems="Center"
 				justifyContent="SpaceBetween" wrap="Wrap">
 				<VBox>
+					<Text text="AP Console · Saudi Cargo" class="apWelcomeBrand"/>
 					<Title text="{apData>/welcome/greeting}" level="H2"/>
 					<Text text="{apData>/welcome/subtitle}" class="sapUiTinyMarginTop"/>
 				</VBox>
@@ -18,25 +19,9 @@
 						press="onGoQueue" visible="{apData>/permissions/approver}" class="apGhostButton"/>
 				</HBox>
 			</HBox>
-			<HBox items="{apData>/kpiCards}" wrap="Wrap" class="apKpiRow sapUiMediumMarginBottom">
-				<VBox class="apKpi">
-					<customData>
-						<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
-					</customData>
-					<HBox justifyContent="SpaceBetween" alignItems="Start">
-						<VBox>
-							<Text text="{apData>label}" class="apKpiLabel"/>
-							<Text text="{apData>value}" class="apKpiValue sapUiTinyMarginTop"/>
-						</VBox>
-						<VBox class="apKpiIcon" alignItems="Center" justifyContent="Center">
-							<core:Icon src="{apData>icon}" size="1.125rem"/>
-						</VBox>
-					</HBox>
-				</VBox>
-			</HBox>
-			<VBox class="apCard">
-				<!-- Wraps instead of overflowing, so the filter stays visible on narrow screens. -->
-				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCardHeader">
+			<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.KpiStrip" type="XML"/>
+			<VBox class="apCaseBoard">
+				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCaseBoardHeader">
 					<Title text="Cases" level="H3" class="apSectionTitle"/>
 					<HBox alignItems="Center">
 						<HBox items="{apData>/filterOptions}" wrap="Wrap" class="apFilter sapUiTinyMarginEnd">
@@ -46,22 +31,55 @@
 						<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh" press="onRefreshCases"/>
 					</HBox>
 				</HBox>
+				<VBox visible="{= !!${apData>/pipelineBanner} }" class="apPipelineBanner sapUiSmallMarginBottom">
+					<HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
+						<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+						<core:Icon src="sap-icon://process" size="0.875rem" class="apReasonIcon sapUiTinyMarginEnd"/>
+						<Text text="{apData>/pipelineBanner}" wrapping="true"/>
+					</HBox>
+					<HBox class="apPipeMini" alignItems="Center" items="{apData>/pipelineBannerDots}">
+						<HBox alignItems="Center" class="apPipeMiniItem">
+							<customData>
+								<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+							</customData>
+							<VBox class="apPipeMiniDot"/>
+							<Text text="{apData>short}" class="apPipeMiniLabel"/>
+							<VBox class="apPipeMiniConnector"/>
+						</HBox>
+					</HBox>
+				</VBox>
 				<Table items="{apData>/pagedCases}" fixedLayout="false" class="apTable">
 					<noData>
 						<IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
 							title="No cases here yet" description="Upload an invoice to start, or change the status filter."/>
 					</noData>
 					<columns>
-						<Column><Text text="Invoice"/></Column>
-						<Column><Text text="Supplier"/></Column>
-						<Column hAlign="End"><Text text="Amount"/></Column>
-						<Column hAlign="Center"><Text text="Status"/></Column>
-						<Column><Text text="Created ({apData>/timeZoneLabel})"/></Column>
+						<Column><Text text="Invoice" wrapping="false"/></Column>
+						<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Supplier" wrapping="false"/></Column>
+						<Column hAlign="End" width="8rem"><Text text="Amount" wrapping="false"/></Column>
+						<Column hAlign="Center" width="9rem"><Text text="Status" wrapping="false"/></Column>
+						<Column minScreenWidth="Tablet" demandPopin="true" importance="Low">
+							<Text text="Created ({apData>/timeZoneLabel})" wrapping="false"/>
+						</Column>
 					</columns>
 					<items>
 						<ColumnListItem type="Navigation" press="onCasePress">
 							<cells>
-								<ObjectIdentifier title="{apData>id}"/>
+								<VBox>
+									<ObjectIdentifier title="{apData>id}"/>
+									<HBox visible="{= !!${apData>processing} }" class="apPipeMini apPipeMini--row sapUiTinyMarginTop"
+										alignItems="Center" items="{apData>pipelineDots}">
+										<HBox alignItems="Center" class="apPipeMiniItem">
+											<customData>
+												<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+											</customData>
+											<VBox class="apPipeMiniDot" tooltip="{apData>title}"/>
+											<VBox class="apPipeMiniConnector"/>
+										</HBox>
+									</HBox>
+									<Text text="{apData>pipelineHint}" class="apPipelineHint"
+										visible="{= !!${apData>pipelineHint} }"/>
+								</VBox>
 								<Text text="{apData>supplier}"/>
 								<Text text="{apData>amount}" class="apAmount"/>
 								<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"

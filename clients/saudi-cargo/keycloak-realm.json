@@ -1,0 +1,127 @@
+{
+    "realm": "saudi-cargo",
+    "displayName": "Saudi Cargo · Accounts Payable",
+    "enabled": true,
+    "loginWithEmailAllowed": true,
+    "bruteForceProtected": true,
+    "accessTokenLifespan": 900,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 36000,
+    "roles": {
+        "realm": [
+            {
+                "name": "AP_PROCESSOR",
+                "description": "Uploads invoices and corrects extracted fields"
+            },
+            {
+                "name": "AP_APPROVER",
+                "description": "Approves, returns or rejects invoices up to the approver limit"
+            },
+            {
+                "name": "FINANCE_MANAGER",
+                "description": "Approves, returns or rejects invoices of any amount"
+            },
+            {
+                "name": "ADMIN",
+                "description": "Uploads and corrects invoices"
+            }
+        ]
+    },
+    "groups": [
+        {
+            "name": "AP Processors",
+            "realmRoles": [
+                "AP_PROCESSOR"
+            ]
+        },
+        {
+            "name": "AP Approvers",
+            "realmRoles": [
+                "AP_APPROVER"
+            ]
+        },
+        {
+            "name": "Finance Managers",
+            "realmRoles": [
+                "FINANCE_MANAGER"
+            ]
+        },
+        {
+            "name": "Administrators",
+            "realmRoles": [
+                "ADMIN"
+            ]
+        }
+    ],
+    "clients": [
+        {
+            "clientId": "ap-gateway",
+            "name": "AP Automation gateway",
+            "enabled": true,
+            "publicClient": false,
+            "secret": "${AP_GATEWAY_CLIENT_SECRET}",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": [
+                "${AP_PUBLIC_URL}/auth/callback"
+            ],
+            "webOrigins": [
+                "${AP_PUBLIC_URL}"
+            ],
+            "attributes": {
+                "pkce.code.challenge.method": "S256",
+                "post.logout.redirect.uris": "${AP_PUBLIC_URL}/*"
+            },
+            "protocolMappers": [
+                {
+                    "name": "gateway-audience",
+                    "protocol": "openid-connect",
+                    "protocolMapper": "oidc-audience-mapper",
+                    "config": {
+                        "included.client.audience": "ap-gateway",
+                        "access.token.claim": "true",
+                        "id.token.claim": "false"
+                    }
+                }
+            ]
+        }
+    ],
+    "users": [
+        {
+            "username": "faizan",
+            "firstName": "Faizan",
+            "lastName": "Ahmed",
+            "email": "faizan@ap-automation.test",
+            "emailVerified": true,
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "${DEV_PASSWORD_FAIZAN}",
+                    "temporary": false
+                }
+            ],
+            "groups": [
+                "/AP Processors"
+            ]
+        },
+        {
+            "username": "sara",
+            "firstName": "Sara",
+            "lastName": "Khan",
+            "email": "sara@ap-automation.test",
+            "emailVerified": true,
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "${DEV_PASSWORD_SARA}",
+                    "temporary": false
+                }
+            ],
+            "groups": [
+                "/Finance Managers"
+            ]
+        }
+    ]
+}

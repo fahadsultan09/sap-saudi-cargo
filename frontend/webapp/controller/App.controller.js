@@ -1,11 +1,12 @@
 sap.ui.define([
     "saudicargo/ap/automation/controller/BaseController",
     "sap/ui/core/Fragment",
-    "sap/m/MessageToast"
-], function (BaseController, Fragment, MessageToast) {
+    "sap/m/MessageToast",
+    "saudicargo/ap/automation/model/api"
+], function (BaseController, Fragment, MessageToast, api) {
     "use strict";
 
-    // The shell around every screen: header, profile menu and side navigation.
+    // The shell around every screen: header, user menu and side navigation.
     return BaseController.extend("saudicargo.ap.automation.controller.App", {
         onInit: function () {
             this._casesLoaded = false;
@@ -39,7 +40,7 @@ sap.ui.define([
             this.navTo(sKey, sKey === "review" && sCaseId ? { caseId: sCaseId } : {});
         },
 
-        // ---------------------------------------------------------------- profile
+        // ------------------------------------------------------------- user menu
 
         onOpenProfileMenu: function (oEvent) {
             var that = this;
@@ -63,17 +64,9 @@ sap.ui.define([
             });
         },
 
-        // A profile switch acts like a new sign-in: close the open case and return to the dashboard.
-        onProfileSelect: function (oEvent) {
-            var oProfile = oEvent.getParameter("listItem").getBindingContext("apData").getObject();
-            var oStore = this.getCaseStore();
-            this.byId("profileMenu").close();
-            this.getConfig().setProperty("/currentUserId", oProfile.id);
-            oStore.applyCurrentUser();
-            oStore.clearCase();
-            oStore.loadCases();
-            this.navTo("dashboard");
-            MessageToast.show("Switched to " + oProfile.name);
+        // Ends the session in the gateway and at the identity provider, then shows the sign-in page.
+        onSignOut: function () {
+            api.signOut();
         }
     });
 });

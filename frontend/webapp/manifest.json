@@ -3,23 +3,23 @@
     "sap.app": {
         "id": "saudicargo.ap.automation",
         "type": "application",
-        "title": "Saudi Cargo - AP Automation",
-        "description": "AP Automation Prototype"
+        "title": "AP Console",
+        "description": "Saudi Cargo accounts payable automation console"
     },
     "sap.ui": {
         "technology": "UI5",
         "deviceTypes": {
             "desktop": true,
             "tablet": true,
-            "phone": false
+            "phone": true
         }
     },
     "sap.ui5": {
         "resources": {
             "css": [
-                {
-                    "uri": "css/style.css"
-                }
+                { "uri": "css/tokens.css" },
+                { "uri": "css/motion.css" },
+                { "uri": "css/style.css" }
             ]
         },
         "rootView": {
@@ -38,12 +38,6 @@
                 "sap.tnt": {},
                 "sap.ui.layout": {},
                 "sap.ui.unified": {}
-            }
-        },
-        "models": {
-            "config": {
-                "type": "sap.ui.model.json.JSONModel",
-                "uri": "model/config.json"
             }
         },
         "routing": {

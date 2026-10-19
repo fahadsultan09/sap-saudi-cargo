@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "npx @ui5/cli serve -o /"
+    "start": "npx @ui5/cli serve --port 8080"
   },
   "keywords": [],
   "author": "",

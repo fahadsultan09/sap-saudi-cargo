@@ -10,8 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import APP_ENV, AUTH_MODE, UPLOAD_DIR, validate_config
 from .database import init_db
 from .routers import agents, approvals, cases, health
-
-from src.api.routers.internal_processing import router as internal_processing_router
+from .routers.internal_processing import router as internal_processing_router
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("ap_api")

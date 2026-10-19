@@ -1,63 +1,26 @@
 /* ==========================================================================
-   Saudi Cargo AP Console: design tokens
+   AP Console v2 — Runway layout & components
    ========================================================================== */
 
-:root {
-    /* Saudia Cargo logo green and its tints. */
-    --ap-brand: #0A6937;
-    --ap-brand-dark: #064D28;
-    --ap-brand-light: #A9D6BA;
-    --ap-brand-soft: #EAF4EE;
-    --ap-bg: #F4F7F5;
-    --ap-card: #FFFFFF;
-    --ap-border: #E0E8E3;
-    --ap-text: #14251C;
-    --ap-muted: #52645A;
-    --ap-info: #2563A6;
-    --ap-success: #1E7B45;
-    --ap-warning: #A8620F;
-    --ap-error: #B3261E;
-    --ap-radius: 12px;
-    --ap-radius-sm: 8px;
-    --ap-shadow: 0 1px 2px rgba(6, 77, 40, 0.06), 0 4px 12px rgba(6, 77, 40, 0.05);
-    --ap-shadow-hover: 0 4px 10px rgba(6, 77, 40, 0.08), 0 12px 28px rgba(6, 77, 40, 0.10);
-    --ap-fast: 150ms;
-    --ap-base: 250ms;
-    --ap-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+html, body, .sapUiBody {
+    font-family: var(--ap-font-body);
 }
-
-/* Point the UI5 theme's own colour variables at the brand green, so standard controls (buttons, links,
-   selections, focus) follow it too. Doubled :root so this wins over the theme stylesheet's :root. */
-:root:root {
-    --sapBrandColor: #0A6937;
-    --sapHighlightColor: #0A6937;
-    --sapSelectedColor: #0A6937;
-    --sapLinkColor: #0A6937;
-    --sapContent_FocusColor: #0A6937;
-    --sapContent_Selected_TextColor: #0A6937;
-    --sapButton_TextColor: #0A6937;
-    --sapButton_IconColor: #0A6937;
-    --sapButton_Lite_TextColor: #0A6937;
-    --sapButton_Emphasized_Background: #0A6937;
-    --sapButton_Emphasized_BorderColor: #0A6937;
-    --sapButton_Emphasized_Hover_Background: #064D28;
-    --sapButton_Emphasized_Hover_BorderColor: #064D28;
-    --sapList_SelectionBackgroundColor: #EAF4EE;
-}
-
-/* ==========================================================================
-   Page and header
-   ========================================================================== */
 
 .apPage .sapTntToolPageMain,
 .apSection > section {
-    background: var(--ap-bg);
+    background: var(--ap-bg-mesh);
+    background-color: var(--ap-bg);
 }
 
+/* --------------------------------------------------------------------------
+   Shell / header — brand as hero signal
+   -------------------------------------------------------------------------- */
+
 .apHeader.sapTntToolHeader {
-    background: var(--ap-card);
-    border-bottom: 3px solid var(--ap-brand);
-    box-shadow: 0 1px 6px rgba(6, 77, 40, 0.08);
+    min-height: 3.5rem;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFA 100%);
+    border-bottom: 1px solid var(--ap-border);
+    box-shadow: 0 1px 0 rgba(11, 122, 66, 0.35), 0 8px 24px rgba(10, 22, 32, 0.04);
 }
 
 .apMenuButton .sapMBtnInner {
@@ -70,11 +33,23 @@
 }
 
 .apHeader.sapTntToolHeader .apMenuButton.sapMBtn .sapMBtnInner.sapMBtnTransparent .sapMBtnIcon {
-    color: var(--ap-brand);
+    color: var(--ap-brand-dark);
 }
 
-.apLogo {
-    display: block;
+.apBrandMark {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 12px;
+    background: linear-gradient(145deg, var(--ap-brand) 0%, var(--ap-brand-deep) 100%);
+    box-shadow: 0 4px 14px var(--ap-brand-glow);
+}
+
+.apBrandMarkLetter.sapMText {
+    color: #fff;
+    font-family: var(--ap-font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
 }
 
 .apBrandText {
@@ -83,26 +58,27 @@
     border-left: 1px solid var(--ap-border);
 }
 
-/* The Bar gives children its full line height; the stacked title and subtitle need a normal one. */
 .apHeader .sapMFlexBox,
 .apHeader .sapMFlexItem,
 .apBrandTitle.sapMTitle,
 .apBrandSubtitle.sapMText,
 .apHeader .sapMText {
-    line-height: 1.25;
+    line-height: 1.2;
 }
 
 .apBrandTitle.sapMTitle {
-    color: var(--ap-brand-dark);
+    font-family: var(--ap-font-display);
+    color: var(--ap-ink);
     font-weight: 700;
-    letter-spacing: 0.3px;
+    letter-spacing: -0.02em;
+    font-size: 1.05rem !important;
 }
 
 .apBrandSubtitle.sapMText {
     color: var(--ap-muted);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    letter-spacing: 1.2px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
@@ -125,86 +101,34 @@
 .apProfileAvatar.sapFAvatar:hover,
 .apProfileAvatar.sapFAvatar:focus-visible {
     box-shadow: 0 0 0 3px var(--ap-brand);
-    transform: scale(1.06);
+    transform: scale(1.05);
     outline: none;
 }
-
-/* Profile menu */
 
 .apProfileMenu.sapMPopover {
     border-radius: var(--ap-radius);
     overflow: hidden;
-    box-shadow: 0 16px 40px rgba(6, 77, 40, 0.25);
+    box-shadow: var(--ap-shadow-lift);
 }
 
 .apProfileHead {
     padding: 1.25rem 1rem 1rem;
-    background: linear-gradient(110deg, var(--ap-brand) 0%, #0E7A43 100%);
+    background: linear-gradient(125deg, var(--ap-ink) 0%, var(--ap-brand-dark) 100%);
 }
 
-.apProfileHead .sapMTitle {
-    color: #FFFFFF;
-}
+.apProfileHead .sapMTitle { color: #fff; font-family: var(--ap-font-display); }
+.apProfileHead .sapMText { color: var(--ap-brand-light); font-size: 0.8125rem; }
+.apProfileHead .sapFAvatar { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35); }
 
-.apProfileHead .sapMText {
-    color: var(--ap-brand-light);
-    font-size: 0.8125rem;
-}
+.apProfileActions { padding: 0.5rem; }
 
-.apProfileHead .sapFAvatar {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
-}
-
-.apProfileSection.sapMText {
-    display: block;
-    padding: 0.875rem 1rem 0.25rem;
-    color: var(--ap-muted);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-}
-
-.apProfileList.sapMList {
-    padding: 0 0.5rem 0.5rem;
-}
-
-.apProfileList .sapMLIB {
-    border-radius: var(--ap-radius-sm);
-    transition: background var(--ap-fast) var(--ap-ease);
-}
-
-.apProfileList .sapMLIB.sapMLIBTypeActive:hover {
-    background: var(--ap-brand-soft);
-}
-
-.apProfileItem {
-    width: 100%;
-    padding: 0.5rem 0.25rem;
-}
-
-.apProfileName.sapMText {
-    color: var(--ap-text);
-    font-weight: 600;
-}
-
-.apProfileRole.sapMText {
-    color: var(--ap-muted);
-    font-size: 0.8125rem;
-}
-
-.apProfileCheck.sapUiIcon {
-    color: var(--ap-success);
-}
-
-/* ==========================================================================
-   Side navigation and section transitions
-   ========================================================================== */
+/* --------------------------------------------------------------------------
+   Side nav
+   -------------------------------------------------------------------------- */
 
 .apSideNav.sapTntSideNavigation {
-    background: var(--ap-card);
+    background: linear-gradient(180deg, #FFFFFF 0%, #F5F8F9 100%);
     border-right: 1px solid var(--ap-border);
-    box-shadow: 2px 0 8px rgba(6, 77, 40, 0.04);
 }
 
 .apSideNav .sapTntNLI.sapTntNLISelected,
@@ -222,559 +146,813 @@
     font-weight: 600;
 }
 
-/* NavContainer shows a section by un-hiding it, which replays this entrance animation. */
-.apSection .sapMPageEnableScrolling > * {
-    animation: apFadeUp var(--ap-base) var(--ap-ease) both;
-}
+/* --------------------------------------------------------------------------
+   Welcome / dashboard hero
+   -------------------------------------------------------------------------- */
 
-@keyframes apFadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-@keyframes apPulse {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(37, 99, 166, 0.40);
-    }
-    50% {
-        box-shadow: 0 0 0 6px rgba(37, 99, 166, 0);
-    }
-}
-
-/* ==========================================================================
-   Cards, welcome strip, KPIs
-   ========================================================================== */
-
-.apCard {
-    background: var(--ap-card);
-    border: 1px solid var(--ap-border);
-    border-radius: var(--ap-radius);
-    box-shadow: var(--ap-shadow);
+.apWelcome {
+    padding: 1.5rem 1.75rem;
+    border-radius: var(--ap-radius-lg);
+    background:
+        linear-gradient(125deg, rgba(10, 22, 32, 0.96) 0%, rgba(6, 83, 44, 0.92) 55%, rgba(14, 143, 138, 0.85) 100%);
+    color: #fff;
+    box-shadow: var(--ap-shadow-lift);
+    position: relative;
     overflow: hidden;
 }
 
-.apWelcome {
-    padding: 1.25rem 1.5rem;
-    border-radius: var(--ap-radius);
-    background:
-        radial-gradient(circle at 92% 20%, rgba(169, 214, 186, 0.30), transparent 40%),
-        linear-gradient(110deg, var(--ap-brand) 0%, #0E7A43 100%);
-    box-shadow: var(--ap-shadow);
+.apWelcome::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(500px 200px at 90% 20%, rgba(196, 163, 90, 0.18), transparent 60%);
+    pointer-events: none;
 }
 
 .apWelcome .sapMTitle {
-    color: #FFFFFF;
-    font-size: 1.5rem;
+    color: #fff !important;
+    font-family: var(--ap-font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: 1.65rem !important;
 }
 
 .apWelcome .sapMText {
     color: rgba(255, 255, 255, 0.82);
 }
 
-.apWelcome .sapMBtn .sapMBtnInner {
-    border-radius: 999px;
-    transition: transform var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease);
-}
-
-.apWelcome .sapMBtn:hover .sapMBtnInner {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
-}
-
-.apLightButton .sapMBtnInner {
-    background: #FFFFFF;
-    border-color: #FFFFFF;
-    color: var(--ap-brand);
-}
-
-.apLightButton .sapMBtnInner .sapMBtnIcon,
-.apLightButton .sapMBtnInner .sapMBtnContent {
-    color: var(--ap-brand);
+.apWelcomeBrand.sapMText {
+    font-size: 0.7rem;
     font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ap-gold) !important;
+    margin-bottom: 0.35rem;
 }
 
-.apGhostButton .sapMBtnInner {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.45);
+.apLightButton.sapMBtn .sapMBtnInner {
+    background: #fff;
+    border-color: #fff;
+    color: var(--ap-ink);
+    font-weight: 600;
+    border-radius: 999px;
 }
 
-.apGhostButton .sapMBtnInner .sapMBtnIcon,
-.apGhostButton .sapMBtnInner .sapMBtnContent {
-    color: #FFFFFF;
+.apGhostButton.sapMBtn .sapMBtnInner {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 999px;
 }
 
-/* A grid instead of the HBox flex so the KPI cards share the row width equally (5, 3 or 2 per row). */
-.apKpiRow.sapMFlexBox {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1rem;
+.apGhostButton.sapMBtn .sapMBtnInner .sapMBtnContent,
+.apGhostButton.sapMBtn .sapMBtnIcon {
+    color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   KPI row — interaction tiles, not decorative cards
+   -------------------------------------------------------------------------- */
+
+.apKpiRow {
+    gap: 0.85rem;
 }
 
 .apKpi {
-    position: relative;
-    box-sizing: border-box;
-    height: 100%;
-    padding: 1rem 1.125rem;
-    background: var(--ap-card);
-    border: 1px solid var(--ap-border);
+    min-width: 10.5rem;
+    flex: 1 1 10.5rem;
+    padding: 1rem 1.1rem;
     border-radius: var(--ap-radius);
+    background: var(--ap-surface);
+    border: 1px solid var(--ap-border);
     box-shadow: var(--ap-shadow);
-    overflow: hidden;
-    transition: transform var(--ap-base) var(--ap-ease), box-shadow var(--ap-base) var(--ap-ease);
-    animation: apFadeUp 350ms var(--ap-ease) both;
-}
-
-/* Short coloured accent line that sweeps across the full card on hover. */
-.apKpi::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: var(--ap-tone, var(--ap-brand));
-    transform: scaleX(0.22);
-    transform-origin: left;
-    transition: transform 400ms var(--ap-ease), height var(--ap-base) var(--ap-ease);
+    transition: transform var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease);
 }
 
 .apKpi:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--ap-shadow-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--ap-shadow-lift);
 }
 
-.apKpi:hover::before {
-    height: 5px;
-    transform: scaleX(1);
+.apKpiLabel.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
-.apKpi:hover .apKpiIcon {
-    transform: scale(1.1);
+.apKpiValue.sapMText {
+    font-family: var(--ap-font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--ap-ink);
+    letter-spacing: -0.03em;
 }
-
-.apKpiRow > :nth-child(2) .apKpi { animation-delay: 60ms; }
-.apKpiRow > :nth-child(3) .apKpi { animation-delay: 120ms; }
-.apKpiRow > :nth-child(4) .apKpi { animation-delay: 180ms; }
-.apKpiRow > :nth-child(5) .apKpi { animation-delay: 240ms; }
-
-.apKpi[data-tone="brand"] { --ap-tone: var(--ap-brand); }
-.apKpi[data-tone="info"] { --ap-tone: var(--ap-info); }
-.apKpi[data-tone="warning"] { --ap-tone: var(--ap-warning); }
-.apKpi[data-tone="success"] { --ap-tone: var(--ap-success); }
-.apKpi[data-tone="error"] { --ap-tone: var(--ap-error); }
 
 .apKpiIcon {
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--ap-tone, var(--ap-brand)) 12%, white);
-    transition: transform var(--ap-base) var(--ap-ease);
-}
-
-.apKpiIcon .sapUiIcon {
-    color: var(--ap-tone, var(--ap-brand));
-}
-
-.apKpiValue.sapMText {
-    color: var(--ap-text);
-    font-size: 2.25rem;
-    font-weight: 700;
-    line-height: 1.1;
-}
-
-.apKpiLabel.sapMText {
-    color: var(--ap-muted);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-}
-
-/* ==========================================================================
-   Tables and lists
-   ========================================================================== */
-
-.apTable.sapMList {
-    border-radius: var(--ap-radius);
-    overflow: hidden;
-}
-
-/* All header cells, including the navigation-arrow column, which has no sapMListTblHeaderCell class. */
-.apTable .sapMListTblHeader > th {
-    background: #F6F9F7;
-    color: var(--ap-muted);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.4px;
-}
-
-.apTable .sapMLIB {
-    transition: background var(--ap-fast) var(--ap-ease);
-}
-
-.apTable .sapMLIB.sapMLIBTypeNavigation:hover,
-.apTable .sapMListTblRow:hover {
     background: var(--ap-brand-soft);
+    color: var(--ap-brand-dark);
 }
 
-.apTable .sapMObjectIdentifierTitle .sapMText,
-.apTable .sapMObjectIdentifierTitle {
-    color: var(--ap-brand);
-    font-weight: 700;
-}
+.apKpi[data-tone="info"] .apKpiIcon { background: #E8F1FB; color: var(--ap-info); }
+.apKpi[data-tone="warning"] .apKpiIcon { background: var(--ap-warning-soft); color: var(--ap-warning); }
+.apKpi[data-tone="success"] .apKpiIcon { background: var(--ap-brand-soft); color: var(--ap-success); }
+.apKpi[data-tone="error"] .apKpiIcon { background: var(--ap-error-soft); color: var(--ap-error); }
+.apKpi[data-tone="brand"] .apKpiIcon { background: var(--ap-ink); color: #fff; }
 
-.apTable .sapMObjStatus,
-.apTable .sapMObjStatusText {
-    white-space: nowrap;
-}
+/* --------------------------------------------------------------------------
+   Case board
+   -------------------------------------------------------------------------- */
 
-.apCardHeader {
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--ap-border);
-}
-
-/* Case filter: one pill per status group, the active one filled brand green. */
-.apFilter {
-    gap: 0.375rem;
-}
-
-.apFilterPill.sapMBtn .sapMBtnInner {
+.apCaseBoard {
+    background: var(--ap-surface);
     border: 1px solid var(--ap-border);
-    border-radius: 999px;
-    background: var(--ap-card);
+    border-radius: var(--ap-radius-lg);
+    box-shadow: var(--ap-shadow);
+    padding: 1.1rem 1.25rem 0.75rem;
 }
 
-.apFilterPill.sapMBtn .sapMBtnInner .sapMBtnContent {
-    color: var(--ap-muted);
-    font-weight: 600;
-}
-
-.apFilterPill.sapMBtn .sapMBtnInner.sapMBtnHoverable:not(.sapMToggleBtnPressed):hover {
-    border-color: var(--ap-brand);
-    background: var(--ap-brand-soft);
-}
-
-.apFilterPill.sapMBtn .sapMBtnInner.sapMToggleBtnPressed,
-.apFilterPill.sapMBtn .sapMBtnInner.sapMBtnHoverable.sapMToggleBtnPressed:hover {
-    border-color: var(--ap-brand);
-    background: var(--ap-brand);
-    box-shadow: 0 2px 6px rgba(6, 77, 40, 0.25);
-}
-
-.apFilterPill.sapMBtn .sapMBtnInner.sapMToggleBtnPressed .sapMBtnContent,
-.apFilterPill.sapMBtn .sapMBtnInner.sapMBtnHoverable.sapMToggleBtnPressed:hover .sapMBtnContent {
-    color: #FFFFFF;
-}
-
-/* A case the agents are still working on: pulsing status pill with a spinning icon. */
-.apTable .sapMObjStatus[data-processing="true"] {
-    border-radius: 999px;
-    animation: apPulse 1.4s ease-in-out infinite;
-}
-
-.apTable .sapMObjStatus[data-processing="true"] .sapMObjStatusIcon {
-    display: inline-block;
-    animation: apSpin 1.2s linear infinite;
-}
-
-@keyframes apSpin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.apPager {
-    padding: 0.5rem 1rem;
-    border-top: 1px solid var(--ap-border);
-}
-
-.apPagerText.sapMText {
-    margin: 0 0.5rem;
-    color: var(--ap-text);
-    font-weight: 600;
-}
-
-/* Status chips: soft tint with dark text instead of the theme's solid, bright fill. */
-.apPage .sapMObjStatus.sapMObjStatusInverted .sapMObjStatusWrapper {
-    padding: 0 0.375rem;
-    border: 1px solid var(--ap-chip-border, var(--ap-border));
-    border-radius: 999px;
-    background: var(--ap-chip-bg, #F1F4F2);
-}
-
-.apPage .sapMObjStatus.sapMObjStatusInverted .sapMObjStatusText,
-.apPage .sapMObjStatus.sapMObjStatusInverted .sapMObjStatusIcon {
-    color: var(--ap-chip-text, var(--ap-muted));
-    font-weight: 600;
-}
-
-.apPage .sapMObjStatusInverted.sapMObjStatusSuccess {
-    --ap-chip-bg: #E7F3EC; --ap-chip-border: #BFDFCB; --ap-chip-text: #145A32;
-}
-.apPage .sapMObjStatusInverted.sapMObjStatusWarning {
-    --ap-chip-bg: #FCF3E6; --ap-chip-border: #F0D6AE; --ap-chip-text: #8A4D0B;
-}
-.apPage .sapMObjStatusInverted.sapMObjStatusError {
-    --ap-chip-bg: #FBEBEA; --ap-chip-border: #F0C6C3; --ap-chip-text: #9B2620;
-}
-.apPage .sapMObjStatusInverted.sapMObjStatusInformation {
-    --ap-chip-bg: #EAF1F9; --ap-chip-border: #C7D9EE; --ap-chip-text: #1F4F86;
-}
-
-/* Approval-queue actions: small round icon chips (the tooltip names the action). */
-.apActions {
-    gap: 0.375rem;
-}
-
-.apActionChip.sapMBtn .sapMBtnInner {
-    width: 2.125rem;
-    height: 2.125rem;
-    min-width: 0;
-    padding: 0;
-    border: 1px solid var(--ap-chip-border);
-    border-radius: 50%;
-    background: var(--ap-chip-bg);
-}
-
-.apActionChip.sapMBtn .sapMBtnInner .sapMBtnIcon {
-    margin: 0;
-    color: var(--ap-chip-text);
-    transition: color var(--ap-fast) var(--ap-ease);
-}
-
-.apActionChip.sapMBtn:hover .sapMBtnInner {
-    border-color: var(--ap-chip-text);
-    background: var(--ap-chip-text);
-}
-
-.apActionChip.sapMBtn:hover .sapMBtnInner .sapMBtnIcon {
-    color: #FFFFFF;
-}
-
-.apActionApprove { --ap-chip-bg: #E7F3EC; --ap-chip-border: #BFDFCB; --ap-chip-text: var(--ap-brand); }
-.apActionReturn { --ap-chip-bg: #F1F4F2; --ap-chip-border: var(--ap-border); --ap-chip-text: var(--ap-muted); }
-.apActionReject { --ap-chip-bg: #FBEBEA; --ap-chip-border: #F0C6C3; --ap-chip-text: var(--ap-error); }
-
-.apAmount.sapMText {
-    font-weight: 700;
-    color: var(--ap-text);
+.apCaseBoardHeader {
+    margin-bottom: 0.85rem;
+    gap: 0.75rem;
 }
 
 .apSectionTitle.sapMTitle {
-    color: var(--ap-brand-dark);
+    font-family: var(--ap-font-display);
+    color: var(--ap-ink);
     font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
-/* ==========================================================================
-   Upload
-   ========================================================================== */
-
-.apDropZone {
-    width: 34rem;
-    max-width: 100%;
-    padding: 2rem 1.5rem;
-    border: 2px dashed #B5C9BC;
-    border-radius: var(--ap-radius);
-    background: var(--ap-card);
-    transition: border-color var(--ap-base) var(--ap-ease), background var(--ap-base) var(--ap-ease),
-        transform var(--ap-base) var(--ap-ease);
+.apFilter {
+    gap: 0.35rem;
 }
 
-.apDropZone:hover,
-.apDropZone:focus-within {
-    border-color: var(--ap-brand);
-    background: var(--ap-brand-soft);
-    transform: translateY(-2px);
-}
-
-.apDropIcon .sapUiIcon,
-.apDropIcon.sapUiIcon {
-    color: var(--ap-brand);
-}
-
-/* ==========================================================================
-   Review, timelines and chips
-   ========================================================================== */
-
-.apBackLink .sapMBtnInner .sapMBtnContent,
-.apBackLink .sapMBtnInner .sapMBtnIcon {
-    color: var(--ap-brand);
+.apFilterPill.sapMToggleBtn .sapMBtnInner,
+.apFilterPill.sapMBtn .sapMBtnInner {
+    border-radius: 999px;
+    border: 1px solid var(--ap-border);
+    background: var(--ap-surface-2);
+    font-size: 0.8125rem;
     font-weight: 600;
 }
 
-.apReasonCard {
-    padding: 0.875rem 1rem;
-    border: 1px solid #CFE3D6;
-    border-left: 4px solid var(--ap-brand);
-    border-radius: var(--ap-radius-sm);
-    background: var(--ap-brand-soft);
+.apFilterPill.sapMToggleBtn.sapMToggleBtnPressed .sapMBtnInner,
+.apFilterPill.sapMBtn.sapMToggleBtnPressed .sapMBtnInner {
+    background: var(--ap-ink);
+    border-color: var(--ap-ink);
+    color: #fff;
 }
 
-.apReasonTitle.sapMTitle {
-    margin-bottom: 0.375rem;
-    color: var(--ap-brand-dark);
-    font-weight: 700;
+.apTable .sapMListTblHeaderCell,
+.apTable .sapMListTblCell {
+    vertical-align: middle;
 }
 
-.apReasonItem {
-    gap: 0.625rem;
-    padding: 0.25rem 0;
+.apAmount.sapMText {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
 }
 
-.apReasonIcon.sapUiIcon {
-    color: var(--ap-brand);
+.apPager {
+    padding: 0.65rem 0.15rem 0.35rem;
+    border-top: 1px solid var(--ap-border);
+    margin-top: 0.35rem;
 }
 
-/* Review tabs (Agent Results / Invoice Fields): selected tab in brand green. */
-.apPage .sapUxAPObjectPageNavigation .sapMITBFilter.sapMITBSelected .sapMITBText {
-    color: var(--ap-brand);
-}
-
-.apPage .sapUxAPObjectPageNavigation .sapMITBFilter.sapMITBSelected .sapMITBContentArrow::after {
-    background: var(--ap-brand);
-}
-
-.apChips {
-    gap: 0.5rem;
-}
-
-.apTimeline .sapMLIB {
-    position: relative;
-    border-bottom: none;
-    background: transparent;
-}
-
-.apTimelineItem {
-    position: relative;
-    padding: 0.25rem 0 1rem 2.25rem;
-}
-
-.apTimelineItem::before {
-    content: "";
-    position: absolute;
-    left: 0.6875rem;
-    top: 1.5rem;
-    bottom: -0.5rem;
-    width: 2px;
-    background: var(--ap-border);
-}
-
-.apTimeline .sapMLIB:last-child .apTimelineItem::before {
-    display: none;
-}
-
-.apTimelineDot {
-    position: absolute;
-    left: 0;
-    top: 0.25rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    background: var(--ap-tone, var(--ap-info));
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ap-tone, var(--ap-info)) 18%, white);
-}
-
-.apTimelineDot .sapUiIcon {
-    color: #FFFFFF;
-}
-
-.apTimelineItem[data-tone="info"] { --ap-tone: var(--ap-info); }
-.apTimelineItem[data-tone="success"] { --ap-tone: var(--ap-success); }
-.apTimelineItem[data-tone="warning"] { --ap-tone: var(--ap-warning); }
-.apTimelineItem[data-tone="error"] { --ap-tone: var(--ap-error); }
-
-.apTimelineTitle.sapMText {
-    color: var(--ap-text);
-    font-weight: 700;
-}
-
-.apTimelineText.sapMText {
-    color: var(--ap-text);
-}
-
+.apPagerText.sapMText,
 .apTimelineMeta.sapMText {
     color: var(--ap-muted);
     font-size: 0.8125rem;
 }
 
-.apFieldsTable .sapMInputBaseContentWrapper {
+.apPipelineBanner {
+    padding: 0.75rem 0.9rem;
     border-radius: var(--ap-radius-sm);
-    transition: box-shadow var(--ap-fast) var(--ap-ease), border-color var(--ap-fast) var(--ap-ease);
+    background: var(--ap-live-soft);
+    border: 1px solid rgba(14, 143, 138, 0.25);
 }
 
-.apFieldsTable .sapMInputBaseContentWrapper:focus-within {
-    border-color: var(--ap-brand);
-    box-shadow: 0 0 0 3px rgba(10, 105, 55, 0.18);
+.apPipelineHint.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.75rem;
 }
 
-/* ==========================================================================
-   Dialogs, buttons, focus, motion preferences
-   ========================================================================== */
+/* Mini pipeline dots in table / banner */
+.apPipeMini {
+    gap: 0;
+}
 
-.apDialog.sapMDialog {
-    border-radius: var(--ap-radius);
-    box-shadow: 0 20px 50px rgba(6, 77, 40, 0.30);
+.apPipeMiniItem {
+    align-items: center;
+}
+
+.apPipeMiniDot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--ap-border-strong);
+    flex-shrink: 0;
+}
+
+.apPipeMiniItem[data-state="done"] .apPipeMiniDot { background: var(--ap-brand); }
+.apPipeMiniItem[data-state="running"] .apPipeMiniDot {
+    background: var(--ap-live);
+    box-shadow: 0 0 0 3px var(--ap-brand-glow);
+}
+.apPipeMiniItem[data-state="failed"] .apPipeMiniDot { background: var(--ap-error); }
+
+.apPipeMiniLabel.sapMText {
+    font-size: 0.65rem;
+    color: var(--ap-muted);
+    margin: 0 0.2rem 0 0.3rem;
+    font-weight: 600;
+}
+
+.apPipeMiniConnector {
+    width: 0.65rem;
+    height: 2px;
+    background: var(--ap-border);
+    margin: 0 0.1rem;
+}
+
+.apPipeMiniItem[data-state="done"] .apPipeMiniConnector { background: var(--ap-brand); }
+
+.apPipeMini--row .apPipeMiniLabel { display: none; }
+
+/* Status chip spinning while processing */
+.apTable .sapMObjStatus[data-processing="true"] .sapUiIcon {
+    animation: apThinkingSpin 1.1s linear infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Upload — runway intake
+   -------------------------------------------------------------------------- */
+
+.apUploadWrap {
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.apUploadKicker.sapMText,
+.apUploadKicker .sapMText {
+    color: var(--ap-brand-dark);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.apUploadTitle.sapMTitle {
+    font-family: var(--ap-font-display);
+    font-size: 2rem !important;
+    letter-spacing: -0.03em;
+}
+
+.apUploadLead.sapMText {
+    color: var(--ap-muted);
+    max-width: 40rem;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.apUploadGrid {
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.apHeroDrop {
+    position: relative;
+    flex: 1 1 22rem;
+    min-height: 22rem;
+    border-radius: var(--ap-radius-lg);
+    border: 2px dashed var(--ap-border-strong);
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(230, 245, 236, 0.55)),
+        radial-gradient(400px 220px at 50% 0%, rgba(11, 122, 66, 0.08), transparent 70%);
+    transition: border-color var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease),
+        transform var(--ap-fast) var(--ap-ease);
     overflow: hidden;
 }
 
-.apDialog .sapMDialogTitleGroup,
-.apDialog .sapMIBar.sapMHeader-CTX {
+.apHeroDrop--dragover {
+    border-color: var(--ap-brand);
+    border-style: solid;
+    box-shadow: 0 0 0 4px var(--ap-brand-glow), var(--ap-shadow-lift);
+    transform: scale(1.01);
+}
+
+.apHeroDrop--busy {
+    border-style: solid;
+    border-color: var(--ap-live);
+}
+
+.apHeroDropInner {
+    padding: 2rem 1.5rem;
+    transition: opacity var(--ap-base) var(--ap-ease);
+}
+
+.apHeroDropBadge {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 16px;
+    background: var(--ap-ink);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(10, 22, 32, 0.25);
+}
+
+.apHeroDropIcon.sapUiIcon { color: #fff; }
+
+.apHeroDropTitle.sapMTitle {
+    font-family: var(--ap-font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.apHeroDropHint.sapMText { color: var(--ap-muted); }
+
+.apFormatChip.sapMObjStatus {
+    margin: 0.15rem;
+}
+
+.apHeroDropBusy {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(4px);
+}
+
+.apHeroDropBusyFile.sapMText {
+    font-weight: 600;
+    color: var(--ap-ink);
+}
+
+.apHeroDropBusyLabel.sapMText {
+    color: var(--ap-live);
+    font-weight: 600;
+}
+
+.apUploadSteps,
+.apPipeRail {
+    flex: 1 1 18rem;
+    min-width: 16rem;
+    padding: 1.15rem 1.2rem;
+    border-radius: var(--ap-radius-lg);
+    background: var(--ap-surface);
+    border: 1px solid var(--ap-border);
+    box-shadow: var(--ap-shadow);
+}
+
+.apUploadStepsLabel.sapMText {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ap-faint);
+}
+
+.apUploadStepsHint.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.apUploadStatus {
+    margin-top: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Pipeline rail + track (first-class journey)
+   -------------------------------------------------------------------------- */
+
+.apStepList {
+    gap: 0;
+}
+
+.apStep {
+    position: relative;
+    padding: 0.55rem 0 0.55rem 0;
+    gap: 0.15rem;
+}
+
+.apStepDot {
+    position: relative;
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 50%;
+    border: 2px solid var(--ap-border-strong);
+    background: var(--ap-surface-2);
+    color: var(--ap-muted);
+    flex-shrink: 0;
+    z-index: 1;
+}
+
+.apStepBody { flex: 1; min-width: 0; }
+
+.apStepTitle.sapMText {
+    font-weight: 700;
+    color: var(--ap-ink);
+    font-size: 0.9rem;
+}
+
+.apStepService.sapMText {
+    color: var(--ap-live);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.apStepText.sapMText {
+    color: var(--ap-muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.apStepStatus.sapMObjStatus .sapMObjStatusText {
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.apStep[data-state="pending"] .apStepTitle,
+.apStep[data-state="skipped"] .apStepTitle { color: var(--ap-faint); }
+.apStep[data-state="running"] .apStepTitle { color: var(--ap-live); }
+.apStep[data-state="done"] .apStepTitle { color: var(--ap-brand-dark); }
+
+/* Vertical connector between step dots */
+.apPipeRailList .apStep:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 0.85rem;
+    top: 2.35rem;
+    bottom: 0;
+    width: 2px;
+    background: var(--ap-border);
+    z-index: 0;
+}
+
+.apPipeRailList .apStep[data-state="done"]:not(:last-child)::after {
     background: var(--ap-brand);
 }
 
-.apDialog .sapMDialogTitleGroup .sapMTitle,
-.apDialog .sapMIBar.sapMHeader-CTX .sapMTitle {
-    color: #FFFFFF;
+.apPipeHero {
+    padding: 1.35rem 1.5rem 1.5rem;
+    border-radius: var(--ap-radius-lg);
+    background:
+        linear-gradient(160deg, rgba(10, 22, 32, 0.97), rgba(6, 83, 44, 0.9));
+    color: #fff;
+    box-shadow: var(--ap-shadow-lift);
 }
 
-.sapMBtn .sapMBtnInner {
-    transition: transform var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease),
-        background var(--ap-fast) var(--ap-ease);
+.apPipeHeroKicker.sapMText,
+.apPipeLiveTitle.sapMTitle {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.72rem !important;
 }
 
-.sapMBtn:active .sapMBtnInner {
-    transform: scale(0.97);
+.apPipeHeroTitle.sapMTitle {
+    color: #fff !important;
+    font-family: var(--ap-font-display);
+    font-size: 1.55rem !important;
+    letter-spacing: -0.02em;
 }
 
-.apPage .sapMBtn:focus-visible .sapMBtnInner,
-.apPage .sapMSlt:focus-visible {
-    outline: 2px solid var(--ap-brand);
-    outline-offset: 2px;
+.apPipeHeroFile.sapMText {
+    color: var(--ap-brand-light);
+    font-weight: 600;
 }
 
-.sapMMessageToast {
+.apPipeTrack {
+    gap: 0.35rem;
+    margin-top: 1.1rem;
+    position: relative;
+}
+
+.apPipeTrackStep {
+    flex: 1 1 5.5rem;
+    position: relative;
+    min-width: 5rem;
+    padding: 0 0.25rem;
+}
+
+.apPipeTrackDot {
+    position: relative;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.apPipeTrackLabel.sapMText {
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.78rem;
+}
+
+.apPipeTrackService.sapMText {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.65rem;
+}
+
+.apPipeTrackConnector {
+    display: none;
+}
+
+.apPipeNow {
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--ap-radius-sm);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.apPipeNowText.sapMText {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.apPipeHero--review {
+    background:
+        linear-gradient(145deg, rgba(10, 22, 32, 0.04), rgba(14, 143, 138, 0.08)),
+        var(--ap-surface);
+    color: var(--ap-ink);
+    border: 1px solid var(--ap-border);
+    box-shadow: var(--ap-shadow);
+}
+
+.apPipeHero--review .apPipeLiveTitle.sapMTitle,
+.apPipeHero--review .apPipeNowText.sapMText,
+.apPipeHero--review .apStepTitle.sapMText {
+    color: var(--ap-ink) !important;
+    text-transform: none;
+    letter-spacing: -0.01em;
+}
+
+.apPipeHero--review .apPipeLiveTitle.sapMTitle {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.72rem !important;
+    color: var(--ap-live) !important;
+}
+
+.apPipeProgress {
+    margin-top: 0.35rem;
+}
+
+/* --------------------------------------------------------------------------
+   Review — Clear Desk + Dock Decide
+   -------------------------------------------------------------------------- */
+
+.apBackLink.sapMBtn .sapMBtnInner {
+    font-weight: 600;
+}
+
+.apReviewShell {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.apReviewSplit {
+    gap: 0.85rem;
+    min-height: 0;
+    padding: 0 0.75rem;
+}
+
+.apPdfPane,
+.apReviewMain {
+    border-radius: var(--ap-radius);
+    background: var(--ap-surface);
+    border: 1px solid var(--ap-border);
+    box-shadow: var(--ap-shadow);
+    overflow: hidden;
+    min-height: 0;
+}
+
+.apPdfPaneHeader,
+.apReviewHeader {
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--ap-border);
+    background: var(--ap-surface-2);
+}
+
+.apPdfPaneHeader .sapMText {
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ap-muted);
+}
+
+.apPdfPaneBody {
+    position: relative;
+    background: #1a2229;
+}
+
+/* Both previews fill the dark pane: PDFs in the frame's viewer, PNG/JPEG scaled to fit. UI5's item wrappers
+   are positioned and have no height, so they must not become the previews' containing block. */
+.apPdfPaneBody > .sapMFlexItem {
+    position: static;
+}
+
+.apPdfFrame,
+.apDocImage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #1a2229;
+}
+
+.apDocImage {
+    object-fit: contain;
+}
+
+.apPdfEmpty {
+    position: absolute;
+    inset: 0;
+    background: var(--ap-surface);
+}
+
+.apReviewHeader .sapMTitle {
+    font-family: var(--ap-font-display);
+    letter-spacing: -0.02em;
+}
+
+/* The tabs fill the panel and their content area takes exactly the remaining height, so each tab's own
+   ScrollContainer (height 100%) scrolls; without this the content grows past the panel and is cut off. */
+.apReviewTabs.sapMITB {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.apReviewTabs .sapMITBContainerContent {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.apReviewTabs .sapMITBContent {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0 !important;
+}
+
+.apReviewBody {
+    box-sizing: border-box;
+    padding: 0.85rem 1rem 1.25rem;
+}
+
+.apReasonCard {
+    padding: 0.85rem 1rem;
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-warning-soft);
+    border: 1px solid rgba(184, 106, 18, 0.25);
+}
+
+.apReasonTitle.sapMTitle {
+    font-family: var(--ap-font-display);
+    color: var(--ap-warning);
+    margin-bottom: 0.4rem;
+}
+
+.apReasonItem {
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.apReasonIcon.sapUiIcon {
+    color: var(--ap-warning);
+}
+
+.apChips {
+    gap: 0.4rem;
+}
+
+.apDecisionBar {
+    margin: 0.65rem 0.75rem 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--ap-radius);
+    background: linear-gradient(90deg, var(--ap-ink) 0%, #123042 100%);
+    box-shadow: var(--ap-shadow-lift);
+    gap: 0.5rem;
+}
+
+.apDecisionBarLabel.sapMText {
+    color: var(--ap-gold);
+    font-family: var(--ap-font-display);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    margin-right: auto;
+}
+
+.apDecisionApprove.sapMBtn .sapMBtnInner {
+    background: var(--ap-brand);
+    border-color: var(--ap-brand);
+    color: #fff;
+    font-weight: 700;
     border-radius: 999px;
-    background: var(--ap-brand-dark);
-    color: #FFFFFF;
-    box-shadow: 0 10px 24px rgba(6, 77, 40, 0.35);
 }
 
-@media (max-width: 1080px) {
-    .apKpiRow.sapMFlexBox {
-        grid-template-columns: repeat(3, 1fr);
-    }
+.apDecisionReturn.sapMBtn .sapMBtnInner {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 999px;
+}
+
+.apDecisionReject.sapMBtn .sapMBtnInner {
+    background: var(--ap-error);
+    border-color: var(--ap-error);
+    color: #fff;
+    font-weight: 700;
+    border-radius: 999px;
+}
+
+.apDecisionReturn.sapMBtn .sapMBtnContent,
+.apDecisionReturn.sapMBtn .sapMBtnIcon,
+.apDecisionApprove.sapMBtn .sapMBtnContent,
+.apDecisionApprove.sapMBtn .sapMBtnIcon,
+.apDecisionReject.sapMBtn .sapMBtnContent,
+.apDecisionReject.sapMBtn .sapMBtnIcon {
+    color: #fff;
+}
+
+/* Approvals action chips */
+.apActions { gap: 0.25rem; }
+.apActionChip.sapMBtn .sapMBtnInner { border-radius: 999px; }
+.apActionApprove.sapMBtn .sapMBtnInner { background: var(--ap-brand-soft); color: var(--ap-brand-dark); }
+.apActionReturn.sapMBtn .sapMBtnInner { background: var(--ap-warning-soft); color: var(--ap-warning); }
+.apActionReject.sapMBtn .sapMBtnInner { background: var(--ap-error-soft); color: var(--ap-error); }
+
+/* Timeline (audit) */
+.apTimelineItem {
+    position: relative;
+    padding: 0.35rem 0 0.85rem 2rem;
+    border-left: 2px solid var(--ap-border);
+    margin-left: 0.65rem;
+}
+
+.apTimelineDot {
+    position: absolute;
+    left: -0.7rem;
+    top: 0.35rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: var(--ap-surface-2);
+    border: 2px solid var(--ap-border-strong);
+    color: var(--ap-muted);
+}
+
+.apTimelineItem[data-tone="success"] .apTimelineDot { background: var(--ap-brand); color: #fff; border-color: var(--ap-brand); }
+.apTimelineItem[data-tone="warning"] .apTimelineDot { background: var(--ap-warning); color: #fff; border-color: var(--ap-warning); }
+.apTimelineItem[data-tone="error"] .apTimelineDot { background: var(--ap-error); color: #fff; border-color: var(--ap-error); }
+.apTimelineItem[data-tone="info"] .apTimelineDot { background: var(--ap-info); color: #fff; border-color: var(--ap-info); }
+
+.apTimelineTitle.sapMText { font-weight: 700; color: var(--ap-ink); }
+.apTimelineText.sapMText { color: var(--ap-muted); font-size: 0.875rem; }
+
+.apCard {
+    background: var(--ap-surface);
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius);
+    box-shadow: var(--ap-shadow);
+    padding: 1rem 1.1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+    .apUploadTitle.sapMTitle { font-size: 1.5rem !important; }
+    .apWelcome .sapMTitle { font-size: 1.3rem !important; }
+    .apReviewSplit { flex-direction: column !important; }
+    .apPdfPane { min-height: 45vh !important; }
+    .apDecisionBar { justify-content: stretch; }
+    .apDecisionBarLabel { width: 100%; margin-bottom: 0.35rem; }
 }
 
 @media (max-width: 600px) {
-    .apKpiRow.sapMFlexBox {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 1ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 1ms !important;
-    }
+    .apBrandSubtitle { display: none; }
+    .apKpi { min-width: 100%; }
+    .apPipeTrackStep { flex-basis: 45%; }
 }

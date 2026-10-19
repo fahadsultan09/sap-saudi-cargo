@@ -2,7 +2,8 @@ sap.ui.define([], function () {
     "use strict";
 
     var PROCESSING_STATUSES = ["RECEIVED", "PROCESSING"];
-    var REVIEW_STATUSES = ["NEEDS_REVIEW", "RETURNED", "PROCESSING_ERROR", "READY_FOR_APPROVAL", "PENDING_APPROVAL"];
+    var REVIEW_STATUSES = ["NEEDS_REVIEW", "RETURNED", "PROCESSING_ERROR"];
+    var APPROVAL_STATUSES = ["READY_FOR_APPROVAL", "PENDING_APPROVAL"];
     var APPROVED_STATUSES = ["APPROVED", "POSTING", "POSTED", "POSTING_ERROR"];
 
     return {
@@ -10,8 +11,13 @@ sap.ui.define([], function () {
         CASES_PER_PAGE: 10,
         // How often the case list refreshes itself while the agents are still processing a case.
         REFRESH_INTERVAL_MS: 3000,
+        // Snappier poll while watching a single case's pipeline (Upload stay-and-watch + Review).
+        PIPELINE_POLL_MS: 1500,
+        // Stay on Upload long enough to see the full 5-step track light up before Clear Desk.
+        UPLOAD_WATCH_MIN_MS: 4200,
+        UPLOAD_WATCH_MAX_MS: 14000,
 
-        // The agentic API stores times in UTC; they are shown in the time zone of config.json's countryCode.
+        // AP Core stores times in UTC; they are shown in the time zone of the client profile's countryCode.
         COUNTRY_TIME_ZONES: {
             SA: { zone: "Asia/Riyadh", label: "KSA time" },
             AE: { zone: "Asia/Dubai", label: "UAE time" },
@@ -26,9 +32,10 @@ sap.ui.define([], function () {
         DEFAULT_TIME_ZONE: { zone: "UTC", label: "UTC" },
 
         PROCESSING_STATUSES: PROCESSING_STATUSES,
-        // The agentic API allows field corrections and approval decisions only in these statuses.
+        // AP Core allows field corrections and approval decisions only in these statuses: a case needing
+        // review is corrected first, and AP Core routes it to approval once its checks pass.
         EDITABLE_STATUSES: ["NEEDS_REVIEW", "RETURNED", "PROCESSING_ERROR"],
-        DECIDABLE_STATUSES: ["NEEDS_REVIEW", "RETURNED"],
+        DECIDABLE_STATUSES: APPROVAL_STATUSES,
         PROCESSOR_ROLES: ["AP_PROCESSOR", "ADMIN"],
         APPROVER_ROLES: ["AP_APPROVER", "FINANCE_MANAGER"],
 
@@ -36,6 +43,7 @@ sap.ui.define([], function () {
         CASE_GROUPS: [
             { key: "processing", label: "In progress", statuses: PROCESSING_STATUSES, icon: "sap-icon://process", tone: "info" },
             { key: "review", label: "Needs review", statuses: REVIEW_STATUSES, icon: "sap-icon://inspect", tone: "warning" },
+            { key: "awaiting", label: "Awaiting approval", statuses: APPROVAL_STATUSES, icon: "sap-icon://approvals", tone: "info" },
             { key: "approved", label: "Approved", statuses: APPROVED_STATUSES, icon: "sap-icon://accept", tone: "success" },
             { key: "rejected", label: "Rejected", statuses: ["REJECTED"], icon: "sap-icon://decline", tone: "error" }
         ],
@@ -70,7 +78,7 @@ sap.ui.define([], function () {
             POSTING_ERROR: "Error"
         },
 
-        // Editable invoice fields of the agentic API, in display order.
+        // Editable invoice fields of AP Core, in display order.
         FIELDS: [
             { key: "supplier_name", label: "Supplier", required: true },
             { key: "supplier_id", label: "Supplier ID" },
@@ -84,6 +92,89 @@ sap.ui.define([], function () {
 
         CHECK_LABELS: { vendor: "Vendor", po: "Purchase order", tax: "Tax", duplicate: "Duplicate" },
 
+        // Full invoice pipeline shown on Upload + Review. agent matches validation.agent_trace[].agent.
+        PIPELINE_STEPS: [
+            {
+                key: "receive",
+                title: "Received",
+                service: "",
+                description: "Your file lands in AP Console and gets a case.",
+                icon: "sap-icon://upload-to-cloud",
+                agent: null
+            },
+            {
+                key: "classify",
+                title: "Classify",
+                service: "TOWER · AI Core",
+                description: "Confirms it is an invoice or credit note.",
+                icon: "sap-icon://inspect",
+                agent: "TOWER"
+            },
+            {
+                key: "extract",
+                title: "Extract",
+                service: "LENS · Document AI",
+                description: "Reads supplier, amounts, PO, dates and line items.",
+                icon: "sap-icon://create-form",
+                agent: "LENS"
+            },
+            {
+                key: "finance",
+                title: "Finance rules",
+                service: "Deterministic checks",
+                description: "AP Core checks required fields and duplicates.",
+                icon: "sap-icon://lab",
+                agent: "FINANCE_RULES"
+            },
+            // traceOnly: shown as done only when the agent reported running (never assumed).
+            {
+                key: "po",
+                title: "PO match",
+                service: "VECTOR · SAP PO data",
+                description: "Compares the invoice with its purchase order in SAP.",
+                icon: "sap-icon://compare",
+                agent: "VECTOR",
+                traceOnly: true
+            },
+            {
+                key: "investigate",
+                title: "Investigation",
+                service: "PRISM",
+                description: "Explains open findings and recommends what to check next.",
+                icon: "sap-icon://search",
+                agent: "PRISM",
+                traceOnly: true
+            },
+            {
+                key: "decide",
+                title: "Needs review / Approve",
+                service: "Clear Desk · Dock Decide",
+                description: "Check fields on Clear Desk, then approve, return or reject on the dock.",
+                icon: "sap-icon://approvals",
+                agent: null
+            }
+        ],
+        // Order the agents run in (validation.agent_trace[].agent).
+        AGENT_ORDER: ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM"],
+        PIPELINE_STATUS_LABELS: {
+            pending: "Pending",
+            running: "Working…",
+            done: "Done",
+            failed: "Failed",
+            skipped: "Not run"
+        },
+
+        // Live status line while a step is active (Upload rail + Review processing banner).
+        PIPELINE_NOW_LABELS: {
+            receive: "Receiving your file and opening a case…",
+            classify: "Now: Classifying document (TOWER · AI Core)…",
+            extract: "Now: Extracting invoice fields (LENS · Document AI)…",
+            finance: "Now: Running finance rules (required fields, duplicates)…",
+            po: "Now: Matching the purchase order (VECTOR)…",
+            investigate: "Now: Investigating findings (PRISM)…",
+            decide: "Now: Handing off to Clear Desk / Dock Decide…"
+        },
+
         // Plain-language text and icon for the agents' review reason codes (validation.review_decision).
         REVIEW_REASONS: {
             MANUAL_MODE_ENABLED: ["sap-icon://employee", "Every invoice is currently checked by a person before approval."],
@@ -96,35 +187,74 @@ sap.ui.define([], function () {
             DUPLICATE_CHECK_FAILED: ["sap-icon://duplicate", "This invoice may already have been submitted."]
         },
 
-        ROLE_LABELS: {
-            AP_PROCESSOR: "AP Processor",
-            AP_APPROVER: "AP Approver",
-            FINANCE_MANAGER: "Finance Manager",
-            ADMIN: "Administrator"
-        },
-
         // Timeline colour and icon per audit event type; anything else is shown as information.
         EVENT_TONES: {
             FIELDS_CORRECTED: ["warning", "sap-icon://edit"],
             APPROVAL_APPROVED: ["success", "sap-icon://accept"],
             APPROVAL_RETURNED: ["warning", "sap-icon://undo"],
             APPROVAL_REJECTED: ["error", "sap-icon://decline"],
-            APPROVAL_REJECTD: ["error", "sap-icon://decline"],
-            POSTING_WAITING_FOR_INTEGRATION: ["info", "sap-icon://pending"],
-            CASE_UPLOADED: ["info", "sap-icon://upload"]
+            CASE_REGISTERED: ["info", "sap-icon://upload"],
+            DUPLICATE_UPLOAD_DETECTED: ["warning", "sap-icon://duplicate"],
+            WORK_ITEM_COMPLETED: ["info", "sap-icon://process"]
         },
 
-        // Readable audit-trail titles per agentic API event type.
+        // Readable audit-trail titles per AP Core event type.
         EVENT_TITLES: {
-            CASE_UPLOADED: "Invoice uploaded",
-            PROCESSING_STARTED: "Agent processing started",
-            PROCESSING_FINISHED: "Agent processing finished",
+            CASE_REGISTERED: "Invoice uploaded",
+            DUPLICATE_UPLOAD_DETECTED: "Same file uploaded again",
+            WORK_ITEM_LEASED: "Agent processing started",
+            WORK_ITEM_COMPLETED: "Agent processing finished",
+            MODEL_JUDGEMENT_RECORDED: "Agent recommendation recorded",
+            EXTRACTION_ACCEPTED: "Extracted fields received",
+            CASE_ROUTED: "Checks run and case routed",
+            STATE_TRANSITION: "Status changed",
             FIELDS_CORRECTED: "Fields corrected",
             APPROVAL_APPROVED: "Approved",
             APPROVAL_RETURNED: "Returned to processor",
-            APPROVAL_REJECTED: "Rejected",
-            APPROVAL_REJECTD: "Rejected",
-            POSTING_WAITING_FOR_INTEGRATION: "Waiting for SAP posting integration"
+            APPROVAL_REJECTED: "Rejected"
+        },
+
+        // Plain-language text for AP Core's blocking flags (validation.blocking); others show as is.
+        BLOCKING_TEXTS: {
+            REQUIRED_FIELDS_MISSING: "Some required invoice details are missing.",
+            POTENTIAL_BUSINESS_DUPLICATE: "An invoice with the same number, supplier and company code already exists.",
+            AMOUNT_INVALID: "The total amount is not a valid number.",
+            AMOUNT_NOT_FINITE: "The total amount is not a valid number.",
+            PO_MATCH_FAILED: "The invoice does not match its purchase order in SAP.",
+            TRIAGE_REVIEW_REQUIRED: "The agents' finance rules flagged this invoice for review.",
+            EXTRACTION_NOT_COMPLETED: "The agents could not read all invoice details."
+        },
+
+        // VECTOR's PO match: status label and plain-language reasons (validation.matching).
+        PO_MATCH_LABELS: { PASS: "Matches the PO", FAIL: "Does not match the PO", UNKNOWN: "Could not be checked" },
+        PO_MATCH_REASONS: {
+            PO_NUMBER_MISSING: "No PO number was found on the invoice.",
+            SAP_PO_CONTEXT_UNAVAILABLE: "This PO number was not found in the SAP purchase order data.",
+            SUPPLIER_MISMATCH: "The supplier on the invoice is not the supplier on the PO.",
+            COMPANY_CODE_MISMATCH: "The company code differs from the PO's company code.",
+            CURRENCY_MISMATCH: "The currency differs from the PO's currency.",
+            INVOICE_EXCEEDS_PO_AVAILABLE_AMOUNT: "The invoice total is more than the amount left on the PO.",
+            VECTOR_EXECUTION_FAILED: "PO matching could not run."
+        },
+
+        // PRISM's investigation: status label and follow-up actions (validation.investigation).
+        INVESTIGATION_LABELS: {
+            CLEAR: "No issues found",
+            NEEDS_INVESTIGATION: "Needs investigation",
+            INSUFFICIENT_EVIDENCE: "Not enough evidence",
+            ERROR: "Could not run"
+        },
+        // Readable names for the rule codes PRISM investigates.
+        INVESTIGATION_TOPICS: {
+            TRIAGE_REVIEW_REQUIRED: "finance rules",
+            REQUIRED_FIELDS_MISSING: "required fields",
+            VECTOR_PO_MATCH: "PO match"
+        },
+        FOLLOW_UP_TEXTS: {
+            obtain_missing_evidence: "Get the missing evidence for: {0}",
+            review_discrepancy: "Review the discrepancy: {0}",
+            fetch_read_only_sap_observations: "Check the supplier, PO and goods receipt in SAP",
+            request_human_field_review: "Check this field against the PDF: {0}"
         }
     };
 });

@@ -1,0 +1,12 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+	<HBox class="apDecisionBar" alignItems="Center" justifyContent="End" wrap="Wrap"
+		visible="{apData>/selectedInvoice/canDecide}">
+		<Text text="Dock Decide" class="apDecisionBarLabel"/>
+		<Button text="Approve" icon="sap-icon://accept" press="onApproveInvoice"
+			class="apDecisionApprove sapUiTinyMarginBegin"/>
+		<Button text="Return" icon="sap-icon://undo" press="onReturnInvoice"
+			class="apDecisionReturn sapUiTinyMarginBegin"/>
+		<Button text="Reject" icon="sap-icon://decline" press="onRejectInvoice"
+			class="apDecisionReject sapUiTinyMarginBegin"/>
+	</HBox>
+</core:FragmentDefinition>

@@ -210,3 +210,36 @@ def test_business_duplicate_uses_supplier_invoice_and_company_identity():
     assert match is not None
     assert match["matched_case_id"] == existing_id
     assert match["match_basis"] == "supplier_invoice_number_company_code"
+
+
+def test_process_document_runs_po_matching_against_sap_excel_data(monkeypatch):
+    import agents.mock_agents as mock_agents
+
+    class LensWithPurchaseOrder(mock_agents.MockLensAgent):
+        def run(self, file_path, classification):
+            result = super().run(file_path, classification)
+            # PO 4500000002 exists in the EKKO export with supplier 1000001001 (company MAH1, INR).
+            result["converted"]["invoice_source"] = {
+                "po_number": "4500000002", "vendor_number": "9999999999",
+                "company_code": "MAH1", "currency": "INR", "total_amount": "100.00",
+            }
+            return result
+
+    monkeypatch.setattr(mock_agents, "MockLensAgent", LensWithPurchaseOrder)
+    with TestClient(app) as client:
+        before = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
+        response = client.post(
+            "/internal/v1/process-document",
+            data={"file_name": "invoice.pdf"},
+            files={"file": ("invoice.pdf", b"%PDF-1.4\n% mock\n%%EOF", "application/pdf")},
+        )
+        assert response.status_code == 200, response.text
+        validation = response.json()["validation"]
+        agents_run = [step["agent"] for step in validation["agent_trace"]]
+        assert agents_run == ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM"]
+        assert validation["checks"]["po"] == "FAIL"
+        assert "SUPPLIER_MISMATCH" in validation["matching"]["reason_codes"]
+        assert validation["matching"]["evidence"][0]["source"] == "LOCAL_SAP_EXCEL_EXPORT"
+        assert validation["investigation"]["status"] == "NEEDS_INVESTIGATION"
+        after = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
+        assert after == before
