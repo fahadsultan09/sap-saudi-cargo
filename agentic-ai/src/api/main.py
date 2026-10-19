@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import tempfile
 import uuid
 from decimal import Decimal, InvalidOperation
 from contextlib import asynccontextmanager
@@ -15,6 +16,7 @@ from fastapi import (
     Depends,
     FastAPI,
     File,
+    Form,
     Header,
     HTTPException,
     Query,
@@ -52,7 +54,7 @@ from .schemas import (
     HealthResponse,
     SubmitForApproval,
 )
-from .workflow import process_case
+from .workflow import build_orchestrator, process_case
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("ap_api")
@@ -201,6 +203,31 @@ def health() -> HealthResponse:
     return HealthResponse(
         status="ok", service="sacc-ap-workflow-api", auth_mode=AUTH_MODE
     )
+
+
+@app.post("/internal/v1/process-document")
+def process_document(file: UploadFile = File(...), file_name: str = Form(...)) -> dict[str, Any]:
+    """Run the agents on one PDF for AP Core's worker and return what they found.
+
+    AP Core owns the case and decides its route, so nothing is stored here and no case changes.
+    Called service to service only: the API listens on 127.0.0.1 and is not exposed to browsers.
+    """
+    if AGENT_MODE == "disabled":
+        raise HTTPException(status_code=503, detail="Agent processing is disabled")
+    content = file.file.read(MAX_UPLOAD_MB * 1024 * 1024 + 1)
+    if len(content) > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"Maximum upload size is {MAX_UPLOAD_MB} MB")
+    if not content.startswith(b"%PDF-"):
+        raise HTTPException(status_code=415, detail="The uploaded file does not look like a PDF")
+    name = Path(file_name).name or "invoice.pdf"
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / name
+        path.write_bytes(content)
+        result = build_orchestrator().run(path, name)
+    validation = {**result.validation, "agent_mode": AGENT_MODE}
+    if AGENT_MODE == "mock":
+        validation["blocking"] = [*validation.get("blocking", []), "MOCK_AGENT_MODE_NOT_FOR_PRODUCTION"]
+    return {"fields": dict(result.triage.get("extracted_header_fields", {})), "validation": validation}
 
 
 @app.get("/api/v1/me")

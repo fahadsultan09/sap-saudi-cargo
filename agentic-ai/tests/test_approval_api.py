@@ -129,3 +129,31 @@ def test_agents_route_describes_minimum_architecture():
             ]
             == "deferred"
         )
+
+
+def test_process_document_returns_agent_observations_without_storing_a_case():
+    with TestClient(app) as client:
+        pdf = b"%PDF-1.4\n% mock test document\n%%EOF"
+        before = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
+
+        result = client.post(
+            "/internal/v1/process-document",
+            data={"file_name": "invoice.pdf"},
+            files={"file": ("invoice.pdf", pdf, "application/pdf")},
+        )
+        assert result.status_code == 200, result.text
+        body = result.json()
+        assert isinstance(body["fields"], dict)
+        assert body["validation"]["agent_mode"] == "mock"
+        assert "MOCK_AGENT_MODE_NOT_FOR_PRODUCTION" in body["validation"]["blocking"]
+        assert [step["agent"] for step in body["validation"]["agent_trace"]] == ["TOWER", "LENS", "FINANCE_RULES"]
+
+        after = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
+        assert after == before
+
+        not_pdf = client.post(
+            "/internal/v1/process-document",
+            data={"file_name": "scan.png"},
+            files={"file": ("scan.png", b"\x89PNG\r\n\x1a\n", "image/png")},
+        )
+        assert not_pdf.status_code == 415
