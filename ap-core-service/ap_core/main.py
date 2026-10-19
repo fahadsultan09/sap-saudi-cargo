@@ -219,8 +219,11 @@ def save_agent_judgement(case_id: str, req: AgentResult):
             event(c,case_id,"MODEL_JUDGEMENT_RECORDED","MODEL_JUDGEMENT",req.agent_name,"Agent recommendation stored; no business state transition performed.",{"judgement_type":req.judgement_type,"idempotency_key":req.idempotency_key},req.correlation_id)
     return {"accepted":True,"duplicate_submission":cur.rowcount==0,"decision_class":"MODEL_JUDGEMENT","state_changed":False}
 
-def route_case(c, case_id: str, f: dict[str, Any], validation: dict[str, Any], correlation_id: str | None) -> dict[str, Any]:
-    """Apply the deterministic checks to a case's fields and commit the route. Used for agent extraction and human corrections alike."""
+def route_case(c, case_id: str, f: dict[str, Any], validation: dict[str, Any], correlation_id: str | None, summary: str | None = None) -> dict[str, Any]:
+    """Apply the deterministic checks to a case's fields and commit the route. Used for agent extraction and human corrections alike.
+
+    summary: the review reason to show instead of the generic one (the SAP data check's verdict).
+    """
     stamp=now()
     # Normalize business identity. The extraction itself is an external observation, not a final decision.
     invoice=str(f.get("invoice_number") or "").strip()
@@ -251,7 +254,12 @@ def route_case(c, case_id: str, f: dict[str, Any], validation: dict[str, Any], c
         except (InvalidOperation, ValueError): amount_error="AMOUNT_INVALID"
     if amount_error: blocking.append(amount_error)
     next_status="NEEDS_REVIEW" if blocking else "READY_FOR_APPROVAL"
-    reason=("Potential duplicate invoice; compare with matched case." if duplicate else ("Required fields or validations need human review." if blocking else "Required fields present; awaiting independent approval."))
+    full_match=(validation.get("source_verdict") or {}).get("status")=="MATCH"
+    if duplicate: reason="Potential duplicate invoice; compare with matched case."
+    # A full-match verdict says "approve right away"; it must not be shown when AP Core's own checks block.
+    elif summary and not (blocking and full_match): reason=summary
+    elif blocking: reason="Required fields or validations need human review."
+    else: reason="Required fields present; awaiting independent approval."
     # Agent checks (e.g. VECTOR's PO match) are kept; the duplicate check is AP Core's own.
     merged_validation={**validation,"blocking":list(dict.fromkeys(blocking)),"missing_fields":missing,"business_duplicate":duplicate,"checks":{**validation.get("checks",{}),"duplicate":"suspected_duplicate" if duplicate else "not_checked"}}
     c.execute("UPDATE cases SET invoice_number=?,supplier_id=?,supplier_name=?,company_code=?,currency=?,total_amount=?,invoice_date=?,po_number=?,fields_json=?,validation_json=?,status=?,review_reason=?,updated_at=?,version=version+1 WHERE id=?",
@@ -273,10 +281,23 @@ def submit_extraction(case_id: str, req: ExtractionResult):
         event(c,case_id,"EXTRACTION_ACCEPTED","EXTERNAL_OBSERVATION","agentic-ai","Extraction persisted; deterministic routing applied next.",{"fields":sorted(req.fields)},req.correlation_id)
         # Marks that the agents delivered fields; it stays on the case through later corrections.
         validation={**req.validation,"agents_completed":True}
-        # VECTOR's PO match is a recommendation: a FAIL sends the case to a reviewer, UNKNOWN does not block.
-        if str(validation.get("checks",{}).get("po","")).upper()=="FAIL":
-            validation["blocking"]=[*validation.get("blocking",[]),"PO_MATCH_FAILED"]
-        return route_case(c,case_id,req.fields,validation,req.correlation_id)
+        blocking=list(validation.get("blocking",[]))
+        verdict=validation.get("source_verdict") or {}
+        if verdict.get("status")=="MATCH":
+            # Every compared field is confirmed by the SAP data, so the agents' own review flags no longer
+            # apply; AP Core's checks (required fields, duplicates, amount) still run in route_case.
+            blocking=[code for code in blocking if code not in AGENT_REVIEW_FLAGS]
+        elif verdict.get("status") in SOURCE_VERDICT_BLOCKS:
+            blocking.append(SOURCE_VERDICT_BLOCKS[verdict["status"]])
+        elif str(validation.get("checks",{}).get("po","")).upper()=="FAIL":
+            # Without a verdict, VECTOR's PO match decides: a FAIL sends the case to a reviewer, UNKNOWN does not block.
+            blocking.append("PO_MATCH_FAILED")
+        validation["blocking"]=blocking
+        return route_case(c,case_id,req.fields,validation,req.correlation_id,verdict.get("summary"))
+
+# The SAP data check's verdict (agentic-ai SOURCE_CHECK): anything but a full match goes to a reviewer.
+SOURCE_VERDICT_BLOCKS={"MISMATCH":"SOURCE_DATA_MISMATCH","NOT_FOUND":"SOURCE_DATA_NOT_FOUND","INCOMPLETE":"SOURCE_DATA_INCOMPLETE","ERROR":"SOURCE_DATA_CHECK_FAILED"}
+AGENT_REVIEW_FLAGS={"TRIAGE_REVIEW_REQUIRED","EXTRACTION_NOT_COMPLETED"}
 
 ALLOWED_TRANSITIONS={
  "RECEIVED":{"PROCESSING","NEEDS_REVIEW","PROCESSING_ERROR"},

@@ -11,7 +11,9 @@ from .config import AGENT_MODE, SAP_PROCESSING_ENABLED
 from .database import audit, connect, json_dump, row_to_case, utc_now
 
 from agents.orchestrator import APAgentOrchestrator
+from agents.source_check import SourceCheckAgent
 from agents.vector import VectorMatchingAgent
+from integrations.excel_sap_finance_reader import ExcelSAPFinanceReader
 from integrations.excel_sap_reader import ExcelSAPReadOnlyReader
 
 
@@ -440,18 +442,22 @@ def _build_workflow_report(
 
 
 def build_agent_run() -> tuple[APAgentOrchestrator, dict[str, Any] | None]:
-    """The agents for AGENT_MODE, plus the context that switches on VECTOR and PRISM.
+    """The agents for AGENT_MODE, plus the context that switches on VECTOR, SOURCE_CHECK and PRISM.
 
-    VECTOR reads purchase orders read-only from the local SAP Excel exports, so PO matching
-    also runs with the mock TOWER/LENS agents.
+    VECTOR and SOURCE_CHECK read the local SAP Excel exports read-only, so PO matching and the
+    SAP data check also run with the mock TOWER/LENS agents.
     """
     if AGENT_MODE not in {"mock", "sap"}:
         return APAgentOrchestrator(), None
-    vector = VectorMatchingAgent(sap_reader=ExcelSAPReadOnlyReader())
+    po_reader = ExcelSAPReadOnlyReader()
+    sap_agents = {
+        "vector": VectorMatchingAgent(sap_reader=po_reader),
+        "source_check": SourceCheckAgent(po_reader, ExcelSAPFinanceReader()),
+    }
     if AGENT_MODE == "mock":
         from agents.mock_agents import MockLensAgent, MockTowerAgent
-        return APAgentOrchestrator(tower=MockTowerAgent(), lens=MockLensAgent(), vector=vector), {}
-    return APAgentOrchestrator(vector=vector), {}
+        return APAgentOrchestrator(tower=MockTowerAgent(), lens=MockLensAgent(), **sap_agents), {}
+    return APAgentOrchestrator(**sap_agents), {}
 
 
 def process_case(case_id: str) -> None:

@@ -70,11 +70,22 @@ sap.ui.define([
                 var sCaseId = (oResult && (oResult.case_id || oResult.id)) || "";
                 // AP Core recognises the exact same file and returns its existing case instead of a new one.
                 if (oResult && oResult.duplicate) {
-                    MessageToast.show(oFile.name + " was already uploaded — opening the existing invoice.");
                     oData.setProperty("/upload/visible", false);
                     oData.setProperty("/busy", false);
                     that._setDropZoneBusy(false);
-                    that._goToReview(sCaseId);
+                    // A dialog, not a toast: the user must know this is the earlier invoice, not a new run.
+                    MessageBox.information(
+                        "“" + oFile.name + "” was already uploaded, so it is not processed again. "
+                        + "The existing invoice opens instead (status: "
+                        + (C.STATUS_LABELS[oResult.status] || oResult.status) + ").",
+                        {
+                            title: "Already uploaded",
+                            actions: ["Open existing invoice"],
+                            onClose: function () {
+                                that._goToReview(sCaseId);
+                            }
+                        }
+                    );
                     return;
                 }
                 that._setStepState("receive", "done");

@@ -44,6 +44,7 @@ sap.ui.define([
                 pagedCases: [],
                 approvals: [],
                 pipelineBanner: "",
+                queueWarning: "",
                 pipelineBannerDots: [],
                 reviewTabKey: "agents",
                 selectedCaseId: "",
@@ -134,6 +135,7 @@ sap.ui.define([
                     return C.DECIDABLE_STATUSES.indexOf(oCase.status) >= 0;
                 }).map(that._mapCaseToRow.bind(that)));
                 that._model.setProperty("/pipelineBanner", that._pipelineBanner(aCases));
+                that._model.setProperty("/queueWarning", that._queueWarning(aCases));
                 that._model.setProperty("/pipelineBannerDots", that._pipelineBannerDots(aCases));
                 that.applyStatusFilter();
                 that._watchProcessing(aCases);
@@ -226,6 +228,21 @@ sap.ui.define([
             };
         },
 
+        // Uploads wait in AP Core's queue until the worker picks them up; a long wait means it is stopped.
+        _queuedTooLong: function (oCase) {
+            return oCase.status === "RECEIVED" && Date.now() - Date.parse(oCase.created_at) > C.QUEUE_WARNING_MS;
+        },
+
+        _queueWarning: function (aCases) {
+            var iWaiting = aCases.filter(this._queuedTooLong).length;
+            if (!iWaiting) {
+                return "";
+            }
+            return (iWaiting === 1 ? "1 invoice has" : iWaiting + " invoices have") + " been waiting more than "
+                + C.QUEUE_WARNING_MS / 60000 + " minutes for processing to start. "
+                + "The processing service (worker) may be stopped.";
+        },
+
         // Short dashboard hint while any case is still in the agent pipeline.
         _pipelineBanner: function (aCases) {
             var iProcessing = aCases.filter(function (oCase) {
@@ -267,7 +284,7 @@ sap.ui.define([
         _pipelineDotsFromStatus: function (sStatus) {
             var oStates;
             if (sStatus === "RECEIVED") {
-                oStates = { receive: "done", classify: "running" };
+                oStates = { receive: "running" };
             } else if (sStatus === "PROCESSING") {
                 oStates = { receive: "done", classify: "done", extract: "running" };
             } else if (sStatus === "PROCESSING_ERROR") {
@@ -394,6 +411,8 @@ sap.ui.define([
                 pipelineNow: "",
                 pipelinePercent: 0,
                 pipelineSummary: "",
+                queueWarning: "",
+                sourceVerdict: { visible: false },
                 poMatch: { visible: false },
                 investigation: { visible: false },
                 reconciliation: { visible: false }
@@ -431,6 +450,10 @@ sap.ui.define([
                 pipelineSteps: aPipeline,
                 isProcessing: bProcessing,
                 pipelineNow: oProgress.nowText,
+                queueWarning: this._queuedTooLong(oCase)
+                    ? "Processing has not started after more than " + C.QUEUE_WARNING_MS / 60000
+                        + " minutes. The processing service (worker) may be stopped."
+                    : "",
                 pipelinePercent: oProgress.percent,
                 pipelineSummary: oProgress.doneCount + " of " + oProgress.total + " steps complete",
                 agentTrace: aPipeline.filter(function (oStep) {
@@ -441,6 +464,7 @@ sap.ui.define([
                     return { name: C.CHECK_LABELS[sKey], value: sValue.replace(/_/g, " ").toLowerCase(), state: this._checkState(sValue) };
                 }, this),
                 findings: this._mapFindings(oValidation),
+                sourceVerdict: this._mapSourceVerdict(oValidation.source_verdict),
                 poMatch: this._mapPoMatch(oValidation.matching),
                 investigation: this._mapInvestigation(oValidation.investigation),
                 reconciliation: this._mapReconciliation(oValidation.reconciliation),
@@ -465,7 +489,6 @@ sap.ui.define([
                 oByAgent[oStep.agent] = oStep;
             });
             var sStatus = oCase.status;
-            var bProcessing = C.PROCESSING_STATUSES.indexOf(sStatus) >= 0;
             var bError = sStatus === "PROCESSING_ERROR";
             var bNeedsHuman = ["NEEDS_REVIEW", "RETURNED", "READY_FOR_APPROVAL", "PENDING_APPROVAL"].indexOf(sStatus) >= 0;
             // An invoice awaiting approval is the approver's turn, so everyone else sees it as waiting.
@@ -474,7 +497,10 @@ sap.ui.define([
             var bApproved = ["APPROVED", "POSTING", "POSTED"].indexOf(sStatus) >= 0;
             var bRejected = sStatus === "REJECTED";
             var bPastAgents = bNeedsHuman || bApproved || bRejected || bError;
-            var sRunningAgent = this._inferRunningAgent(aTrace, oByAgent, bProcessing);
+            // RECEIVED means queued for the worker; the agents only run once it is PROCESSING.
+            var bQueued = sStatus === "RECEIVED";
+            var bAgentsRunning = sStatus === "PROCESSING";
+            var sRunningAgent = this._inferRunningAgent(aTrace, oByAgent, bAgentsRunning);
 
             return C.PIPELINE_STEPS.map(function (oDef) {
                 var oTrace = oDef.agent ? oByAgent[oDef.agent] : null;
@@ -487,7 +513,7 @@ sap.ui.define([
                 }
 
                 if (oDef.key === "receive") {
-                    sState = "done";
+                    sState = bQueued ? "running" : "done";
                     sDescription = oCase.file_name
                         ? "Received “" + oCase.file_name + "” and opened a case."
                         : oDef.description;
@@ -538,14 +564,11 @@ sap.ui.define([
                     } else {
                         sState = "pending";
                     }
-                } else if (bProcessing && oDef.agent && oDef.agent === sRunningAgent) {
+                } else if (bAgentsRunning && oDef.agent && oDef.agent === sRunningAgent) {
                     sState = "running";
                     sDescription = oDef.description;
-                } else if (bProcessing && oDef.agent && this._agentIndex(oDef.agent) < this._agentIndex(sRunningAgent)) {
+                } else if (bAgentsRunning && oDef.agent && this._agentIndex(oDef.agent) < this._agentIndex(sRunningAgent)) {
                     sState = "done";
-                } else if (bProcessing && sStatus === "RECEIVED" && oDef.agent === "TOWER") {
-                    // File accepted; agents about to start — show Classify as live immediately.
-                    sState = "running";
                 }
 
                 var sNowLabel = "";
@@ -564,6 +587,8 @@ sap.ui.define([
                 if (oDef.key === "decide" && sState === "running" && bNeedsHuman) {
                     sStatusLabel = bAwaitingApproval ? "Awaiting approval" : "Your turn";
                     sNowLabel = "";
+                } else if (oDef.key === "receive" && sState === "running") {
+                    sStatusLabel = "Queued";
                 }
 
                 return {
@@ -656,6 +681,39 @@ sap.ui.define([
         },
 
         // ------------------------------------------------------- agent results
+
+        // SOURCE_CHECK's verdict (validation.source_verdict): every compared field, invoice vs SAP.
+        _mapSourceVerdict: function (oVerdict) {
+            var oLabel = oVerdict && C.SOURCE_VERDICTS[oVerdict.status];
+            if (!oLabel) {
+                return { visible: false };
+            }
+            return {
+                visible: true,
+                label: oLabel.label,
+                state: oLabel.state,
+                stripType: oLabel.strip,
+                summary: oVerdict.summary,
+                discrepancies: (oVerdict.discrepancies || []).map(function (sText) {
+                    return { text: sText };
+                }),
+                comparisons: (oVerdict.comparisons || []).map(function (oRow) {
+                    var oResult = C.SOURCE_RESULTS[oRow.result] || { label: oRow.result, state: "None" };
+                    return {
+                        label: oRow.label,
+                        invoice: oRow.invoice || "—",
+                        sap: oRow.sap || "—",
+                        table: oRow.sap_table,
+                        result: oResult.label,
+                        state: oResult.state,
+                        message: oRow.message
+                    };
+                }),
+                source: oVerdict.fetched_at
+                    ? "SAP data (" + (oVerdict.sources || []).join(", ") + ") · " + this._formatDate(oVerdict.fetched_at)
+                    : ""
+            };
+        },
 
         // VECTOR's PO match (validation.matching); hidden when VECTOR did not run.
         _mapPoMatch: function (oMatch) {

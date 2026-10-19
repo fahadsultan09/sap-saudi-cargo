@@ -31,6 +31,8 @@
 						<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh" press="onRefreshCases"/>
 					</HBox>
 				</HBox>
+				<MessageStrip text="{apData>/queueWarning}" type="Warning" showIcon="true"
+					visible="{= !!${apData>/queueWarning} }" class="sapUiSmallMarginBottom"/>
 				<VBox visible="{= !!${apData>/pipelineBanner} }" class="apPipelineBanner sapUiSmallMarginBottom">
 					<HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
 						<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>

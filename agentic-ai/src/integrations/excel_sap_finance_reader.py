@@ -422,6 +422,29 @@ class ExcelSAPFinanceReader:
             ],
         }
 
+    def find_gl_account(self, gl_account: str) -> dict[str, Any]:
+        """Look a GL account up in every chart of accounts.
+
+        EKKN does not carry the chart of accounts, and SAP pads account numbers with
+        leading zeros, so the account is compared without them.
+        """
+        wanted = _key(gl_account).lstrip("0")
+        accounts = {
+            (_key(_value(row, "Chart of Accounts")), _key(_value(row, "G/L Account")))
+            for row in self._data["gl_accounts"]
+            if wanted and _key(_value(row, "G/L Account")).lstrip("0") == wanted
+        }
+        records = [
+            record
+            for chart, account in sorted(accounts)
+            for record in self.get_gl_account(chart, account)["records"]
+        ]
+        return {
+            "status": "FOUND" if records else "NOT_FOUND",
+            "records": records,
+            "source": [FILES["gl_accounts"], FILES["gl_texts"]],
+        }
+
     def get_cost_center(
         self,
         controlling_area: str,

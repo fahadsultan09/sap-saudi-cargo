@@ -122,7 +122,7 @@ def test_agents_route_describes_minimum_architecture():
         response = client.get("/api/v1/agents", headers=headers("admin-1", "ADMIN"))
         assert response.status_code == 200
         data = response.json()
-        assert data["execution_order"] == ["EMAIL_INTAKE", "TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM", "PLUMB"]
+        assert data["execution_order"] == ["EMAIL_INTAKE", "TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM", "PLUMB"]
         statuses = {agent["name"]: agent["status"] for agent in data["agents"]}
         assert statuses["VECTOR"] == "implemented_requires_sap_context"
         assert statuses["PRISM"] == "implemented_requires_evidence"
@@ -236,7 +236,8 @@ def test_process_document_runs_po_matching_against_sap_excel_data(monkeypatch):
         assert response.status_code == 200, response.text
         validation = response.json()["validation"]
         agents_run = [step["agent"] for step in validation["agent_trace"]]
-        assert agents_run == ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM"]
+        assert agents_run == ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM"]
+        assert validation["source_verdict"]["status"] == "MISMATCH"
         assert validation["checks"]["po"] == "FAIL"
         assert "SUPPLIER_MISMATCH" in validation["matching"]["reason_codes"]
         assert validation["matching"]["evidence"][0]["source"] == "LOCAL_SAP_EXCEL_EXPORT"

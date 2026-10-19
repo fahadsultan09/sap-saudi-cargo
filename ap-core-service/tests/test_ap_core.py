@@ -157,3 +157,27 @@ def test_failed_po_match_needs_review_but_unknown_does_not_block(tmp_path, monke
         fields={**FIELDS,"invoice_number":"INV-78"}
         r=client.post(f"/internal/v1/cases/{unknown}/extraction-result",json={"fields":fields,"validation":{"checks":{"po":"UNKNOWN"}},"idempotency_key":"extract-po-unknown-v1"})
         assert r.json()["status"]=="READY_FOR_APPROVAL"
+
+
+def test_sap_data_check_verdict_decides_the_route(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        match={"status":"MATCH","summary":"All invoice fields match the SAP data; the approver can approve right away."}
+        case=register(client, b"verdict-match").json()["case_id"]
+        r=client.post(f"/internal/v1/cases/{case}/extraction-result",json={"fields":FIELDS,"validation":{"blocking":["TRIAGE_REVIEW_REQUIRED"],"source_verdict":match},"idempotency_key":"extract-verdict-match"})
+        assert r.json()["status"]=="READY_FOR_APPROVAL"
+        assert client.get(f"/api/v1/cases/{case}").json()["review_reason"]==match["summary"]
+
+        mismatch={"status":"MISMATCH","summary":"1 difference with the SAP data; review before approval."}
+        case=register(client, b"verdict-mismatch").json()["case_id"]
+        r=client.post(f"/internal/v1/cases/{case}/extraction-result",json={"fields":{**FIELDS,"invoice_number":"INV-91"},"validation":{"source_verdict":mismatch},"idempotency_key":"extract-verdict-mismatch"})
+        assert r.json()["status"]=="NEEDS_REVIEW" and "SOURCE_DATA_MISMATCH" in r.json()["blocking"]
+        assert client.get(f"/api/v1/cases/{case}").json()["review_reason"]==mismatch["summary"]
+
+
+def test_full_match_reason_is_not_shown_when_ap_core_blocks(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case=register(client, b"verdict-match-missing").json()["case_id"]
+        fields={k:v for k,v in FIELDS.items() if k!="company_code"}
+        client.post(f"/internal/v1/cases/{case}/extraction-result",json={"fields":fields,"validation":{"source_verdict":{"status":"MATCH","summary":"approve right away"}},"idempotency_key":"extract-verdict-blocked"})
+        saved=client.get(f"/api/v1/cases/{case}").json()
+        assert saved["status"]=="NEEDS_REVIEW" and "approve right away" not in saved["review_reason"]

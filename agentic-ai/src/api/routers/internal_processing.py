@@ -42,13 +42,21 @@ async def process_document(
             converted = result.extraction.get("converted", {})
             invoice = converted.get("invoice_source", {})
 
+            # Invoices rarely print the company code; as in SAP, it then comes from the matched PO.
+            verdict = result.validation.get("source_verdict") or {}
+            po_company_code = next(
+                (row["sap"] for row in verdict.get("comparisons", [])
+                 if row["check"] == "company_code" and row["result"] == "NOT_ON_INVOICE"),
+                None,
+            )
+
             # AP Core's schema is deliberately explicit.
             fields = {
                 "invoice_number": invoice.get("invoice_number") or None,
                 "invoice_date": invoice.get("invoice_date") or None,
                 "supplier_name": invoice.get("supplier_name") or None,
                 "supplier_id": invoice.get("vendor_number") or None,
-                "company_code": invoice.get("company_code") or None,
+                "company_code": invoice.get("company_code") or po_company_code or None,
                 "currency": invoice.get("currency") or None,
                 "total_amount": invoice.get("total_amount") or None,
                 "po_number": invoice.get("po_number") or None,
