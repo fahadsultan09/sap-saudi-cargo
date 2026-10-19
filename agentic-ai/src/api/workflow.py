@@ -41,16 +41,6 @@ def _set_status(case_id: str, status: str, *, reason: str, actor_id: str = "syst
         conn.commit()
 
 
-def build_orchestrator():
-    """The agent flow for AGENT_MODE: real SAP agents, or the mock agents for local demos."""
-    from agents.orchestrator import APAgentOrchestrator
-
-    if AGENT_MODE == "mock":
-        from agents.mock_agents import MockLensAgent, MockTowerAgent
-        return APAgentOrchestrator(tower=MockTowerAgent(), lens=MockLensAgent())
-    return APAgentOrchestrator()
-
-
 def process_case(case_id: str) -> None:
     """Run existing AI Core -> Document AI -> triage modules for an uploaded case.
 
@@ -69,7 +59,14 @@ def process_case(case_id: str) -> None:
         return
 
     try:
-        agent_result = build_orchestrator().run(row["stored_path"], row["file_name"])
+        from agents.orchestrator import APAgentOrchestrator
+
+        if AGENT_MODE == "mock":
+            from agents.mock_agents import MockLensAgent, MockTowerAgent
+            orchestrator = APAgentOrchestrator(tower=MockTowerAgent(), lens=MockLensAgent())
+        else:
+            orchestrator = APAgentOrchestrator()
+        agent_result = orchestrator.run(row["stored_path"], row["file_name"])
         result = agent_result.triage
         classification = agent_result.classification
         extraction = agent_result.extraction
