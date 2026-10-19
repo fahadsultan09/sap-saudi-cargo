@@ -36,7 +36,7 @@ def list_agents(actor: Actor = Depends(get_actor)) -> dict[str, Any]:
     return {
         "mode": AGENT_MODE,
         "orchestrator": "APAgentOrchestrator",
-        "execution_order": ["EMAIL_INTAKE", "TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM", "PLUMB"],
+        "execution_order": ["EMAIL_INTAKE", "TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM", "PLUMB"],
         "agents": [
             {"name": "EMAIL_INTAKE", "kind": "source acquisition worker/agent", "status": "implemented",
              "purpose": "Fetch and enrich Microsoft Graph messages and attachments; does not classify them.",
@@ -48,6 +48,9 @@ def list_agents(actor: Actor = Depends(get_actor)) -> dict[str, Any]:
             {"name": "VECTOR", "kind": "read-only matching recommendation agent", "status": "implemented_requires_sap_context",
              "purpose": "Compare invoice facts to supplied/read-only SAP PO context; missing evidence returns UNKNOWN.",
              "side_effects": "none; does not write SAP or approve invoices"},
+            {"name": "SOURCE_CHECK", "kind": "deterministic SAP reference-data check", "status": "implemented_uses_sap_excel_exports",
+             "purpose": "Compare the extracted invoice with the SAP PO, supplier, receipt, account and bank data and write a verdict.",
+             "side_effects": "none; read-only, does not approve invoices"},
             {"name": "PRISM", "kind": "evidence-grounded investigation agent", "status": "implemented_requires_evidence",
              "purpose": "Group failed/unknown rule results and produce follow-up investigation recommendations.",
              "side_effects": "none; does not invent SAP facts or execute actions"},

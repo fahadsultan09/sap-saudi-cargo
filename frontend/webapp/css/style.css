@@ -385,6 +385,12 @@ html, body, .sapUiBody {
 
 .apPipeMini--row .apPipeMiniLabel { display: none; }
 
+/* Status chips stay on one line ("Ready for Approval"), however narrow the column gets */
+.apTable .sapMObjStatusInverted,
+.apTable .sapMObjStatusInverted .sapMObjStatusText {
+    white-space: nowrap;
+}
+
 /* Status chip spinning while processing */
 .apTable .sapMObjStatus[data-processing="true"] .sapUiIcon {
     animation: apThinkingSpin 1.1s linear infinite;

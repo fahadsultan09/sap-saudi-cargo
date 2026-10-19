@@ -34,6 +34,7 @@ class APAgentOrchestrator:
         vector: Any | None = None,
         prism: Any | None = None,
         plumb: Any | None = None,
+        source_check: Any | None = None,
     ):
         self.tower = tower or TowerTriageAgent()
         self.lens = lens or LensExtractionAgent()
@@ -41,6 +42,8 @@ class APAgentOrchestrator:
         self.vector = vector or VectorMatchingAgent()
         self.prism = prism or PrismInvestigationAgent()
         self.plumb = plumb or PlumbReconciliationAgent()
+        # Optional: needs the SAP reference data readers (see api.workflow.build_agent_run).
+        self.source_check = source_check
 
     def run(self, file_path: str | Path, file_name: str, *, extended_context: dict[str, Any] | None = None) -> AgentWorkflowResult:
         trace: list[AgentTrace] = []
@@ -251,6 +254,50 @@ class APAgentOrchestrator:
         if matching:
             validation["vector_matching"] = matching
 
+        # SOURCE_CHECK: compare the invoice with the SAP reference data and write a verdict.
+        source_verdict: dict[str, Any] = {}
+        if run_extended and self.source_check is not None and document_type in {"invoice", "credit_note"}:
+            started = time.perf_counter()
+            try:
+                source_verdict = self.source_check.run(invoice_fields)
+                trace.append(
+                    AgentTrace(
+                        agent="SOURCE_CHECK",
+                        status="completed",
+                        duration_ms=int((time.perf_counter() - started) * 1000),
+                        summary=source_verdict["summary"],
+                        details={
+                            "verdict": source_verdict["status"],
+                            "discrepancies": len(source_verdict["discrepancies"]),
+                        },
+                    )
+                )
+                # The verdict compares more than VECTOR does, so it decides the PO and vendor checks.
+                outcome = {"MATCH": "PASS", "MISMATCH": "FAIL"}
+                validation["checks"]["po"] = outcome.get(source_verdict["status"], "UNKNOWN")
+                supplier = next((row for row in source_verdict["comparisons"] if row["check"] == "supplier"), None)
+                validation["checks"]["vendor"] = (
+                    {"MATCH": "PASS", "MISMATCH": "FAIL"}.get(supplier["result"], "UNKNOWN") if supplier else "UNKNOWN"
+                )
+            except Exception as exc:
+                logger.exception("SOURCE_CHECK failed for %s", file_name)
+                source_verdict = {
+                    "agent": "SOURCE_CHECK",
+                    "status": "ERROR",
+                    "summary": f"The SAP data check could not run: {type(exc).__name__}.",
+                    "comparisons": [],
+                    "discrepancies": [],
+                }
+                trace.append(
+                    AgentTrace(
+                        agent="SOURCE_CHECK",
+                        status="failed",
+                        duration_ms=int((time.perf_counter() - started) * 1000),
+                        summary=source_verdict["summary"],
+                    )
+                )
+            validation["source_verdict"] = source_verdict
+
         # PRISM: investigate rule findings and missing evidence.
         # No SAP observations are fabricated if none were supplied.
         if run_extended:
@@ -281,6 +328,14 @@ class APAgentOrchestrator:
                             "reason": ", ".join(
                                 matching.get("reason_codes", [])
                             ) or "PO matching requires review.",
+                        })
+
+                    if source_verdict.get("status") in {"MISMATCH", "NOT_FOUND", "ERROR"}:
+                        rule_results.append({
+                            "rule_code": "SAP_DATA_CHECK",
+                            "outcome": "FAIL" if source_verdict["status"] == "MISMATCH" else "UNKNOWN",
+                            "reason": "; ".join(source_verdict.get("discrepancies", []))
+                            or source_verdict.get("summary", ""),
                         })
 
                 sap_observations = context.get("sap_observations", [])

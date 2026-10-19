@@ -71,6 +71,8 @@
 							<IconTabFilter text="Agent Results" key="agents">
 								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
 									<VBox>
+										<MessageStrip text="{apData>/selectedInvoice/queueWarning}" type="Warning" showIcon="true"
+											visible="{= !!${apData>/selectedInvoice/queueWarning} }" class="sapUiSmallMarginBottom"/>
 										<VBox visible="{apData>/selectedInvoice/isProcessing}" class="apPipeHero apPipeHero--review sapUiSmallMarginBottom">
 											<HBox alignItems="Center" class="sapUiTinyMarginBottom">
 												<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
@@ -111,6 +113,38 @@
 												state="Information" showValue="true"/>
 										</VBox>
 
+										<VBox visible="{apData>/selectedInvoice/sourceVerdict/visible}" class="sapUiSmallMarginBottom">
+											<Title text="SAP data check" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+											<MessageStrip text="{apData>/selectedInvoice/sourceVerdict/summary}"
+												type="{apData>/selectedInvoice/sourceVerdict/stripType}" showIcon="true" class="sapUiTinyMarginBottom"/>
+											<List items="{apData>/selectedInvoice/sourceVerdict/discrepancies}" showNoData="false" headerText="Differences">
+												<StandardListItem title="{apData>text}" icon="sap-icon://error" wrapping="true"/>
+											</List>
+											<Table items="{apData>/selectedInvoice/sourceVerdict/comparisons}" fixedLayout="false" class="apTable sapUiTinyMarginTop">
+												<columns>
+													<Column><Text text="Field"/></Column>
+													<Column><Text text="Invoice"/></Column>
+													<Column><Text text="SAP"/></Column>
+													<Column hAlign="End"><Text text="Result"/></Column>
+												</columns>
+												<items>
+													<ColumnListItem>
+														<cells>
+															<VBox>
+																<Text text="{apData>label}"/>
+																<Text text="{apData>table}" class="apTimelineMeta"/>
+															</VBox>
+															<Text text="{apData>invoice}"/>
+															<Text text="{apData>sap}"/>
+															<ObjectStatus text="{apData>result}" state="{apData>state}" tooltip="{apData>message}"/>
+														</cells>
+													</ColumnListItem>
+												</items>
+											</Table>
+											<Text text="Source: {apData>/selectedInvoice/sourceVerdict/source}" class="apTimelineMeta sapUiTinyMarginTop"
+												visible="{= !!${apData>/selectedInvoice/sourceVerdict/source} }"/>
+										</VBox>
+
 										<VBox visible="{= ${apData>/selectedInvoice/reviewReasons}.length > 0 }"
 											class="apReasonCard sapUiSmallMarginBottom">
 											<Title text="Why this invoice needs attention" level="H5" class="apReasonTitle"/>
@@ -129,7 +163,7 @@
 
 										<VBox visible="{= !${apData>/selectedInvoice/isProcessing} }" class="apPipeRail sapUiTinyMarginBottom">
 											<Title text="Pipeline" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
-											<Text text="Received → Classify (TOWER) → Extract (LENS) → Finance rules → PO match (VECTOR) → Investigation (PRISM) → Clear Desk / Dock Decide."
+											<Text text="Received → Classify (TOWER) → Extract (LENS) → Finance rules → PO match (VECTOR) → SAP data check → Investigation (PRISM) → Clear Desk / Dock Decide."
 												class="apTimelineMeta sapUiTinyMarginBottom"/>
 											<VBox items="{apData>/selectedInvoice/pipelineSteps}" class="apStepList apPipeRailList">
 												<HBox alignItems="Start" class="apStep">

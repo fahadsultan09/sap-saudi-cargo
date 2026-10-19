@@ -13,6 +13,8 @@ sap.ui.define([], function () {
         REFRESH_INTERVAL_MS: 3000,
         // Snappier poll while watching a single case's pipeline (Upload stay-and-watch + Review).
         PIPELINE_POLL_MS: 1500,
+        // An invoice still queued after this long means the processing worker is probably not running.
+        QUEUE_WARNING_MS: 2 * 60 * 1000,
         // Stay on Upload long enough to see the full 5-step track light up before Clear Desk.
         UPLOAD_WATCH_MIN_MS: 4200,
         UPLOAD_WATCH_MAX_MS: 14000,
@@ -137,6 +139,15 @@ sap.ui.define([], function () {
                 traceOnly: true
             },
             {
+                key: "sapcheck",
+                title: "SAP data check",
+                service: "SOURCE_CHECK · SAP data",
+                description: "Compares every invoice field with the SAP data and writes a verdict.",
+                icon: "sap-icon://validate",
+                agent: "SOURCE_CHECK",
+                traceOnly: true
+            },
+            {
                 key: "investigate",
                 title: "Investigation",
                 service: "PRISM",
@@ -155,7 +166,7 @@ sap.ui.define([], function () {
             }
         ],
         // Order the agents run in (validation.agent_trace[].agent).
-        AGENT_ORDER: ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM"],
+        AGENT_ORDER: ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM"],
         PIPELINE_STATUS_LABELS: {
             pending: "Pending",
             running: "Working…",
@@ -166,11 +177,12 @@ sap.ui.define([], function () {
 
         // Live status line while a step is active (Upload rail + Review processing banner).
         PIPELINE_NOW_LABELS: {
-            receive: "Receiving your file and opening a case…",
+            receive: "Queued: waiting for the processing worker to pick up the invoice…",
             classify: "Now: Classifying document (TOWER · AI Core)…",
             extract: "Now: Extracting invoice fields (LENS · Document AI)…",
             finance: "Now: Running finance rules (required fields, duplicates)…",
             po: "Now: Matching the purchase order (VECTOR)…",
+            sapcheck: "Now: Checking the invoice against the SAP data…",
             investigate: "Now: Investigating findings (PRISM)…",
             decide: "Now: Handing off to Clear Desk / Dock Decide…"
         },
@@ -222,7 +234,28 @@ sap.ui.define([], function () {
             AMOUNT_NOT_FINITE: "The total amount is not a valid number.",
             PO_MATCH_FAILED: "The invoice does not match its purchase order in SAP.",
             TRIAGE_REVIEW_REQUIRED: "The agents' finance rules flagged this invoice for review.",
-            EXTRACTION_NOT_COMPLETED: "The agents could not read all invoice details."
+            EXTRACTION_NOT_COMPLETED: "The agents could not read all invoice details.",
+            SOURCE_DATA_MISMATCH: "The invoice differs from the SAP data; see the SAP data check.",
+            SOURCE_DATA_NOT_FOUND: "The invoice's PO could not be found in the SAP data.",
+            SOURCE_DATA_INCOMPLETE: "The invoice could not be fully checked against the SAP data.",
+            SOURCE_DATA_CHECK_FAILED: "The SAP data check could not run."
+        },
+
+        // SOURCE_CHECK verdict (validation.source_verdict): label and MessageStrip type per status.
+        SOURCE_VERDICTS: {
+            MATCH: { label: "Matches SAP", strip: "Success", state: "Success" },
+            MISMATCH: { label: "Differs from SAP", strip: "Error", state: "Error" },
+            NOT_FOUND: { label: "Not found in SAP", strip: "Warning", state: "Warning" },
+            INCOMPLETE: { label: "Partly checked", strip: "Warning", state: "Warning" },
+            ERROR: { label: "Check failed", strip: "Error", state: "Error" }
+        },
+        // One row of the verdict's comparison table: result label and colour.
+        SOURCE_RESULTS: {
+            MATCH: { label: "Match", state: "Success" },
+            MISMATCH: { label: "Differs", state: "Error" },
+            NOT_IN_SAP: { label: "Not in SAP", state: "Error" },
+            NOT_ON_INVOICE: { label: "Not on invoice", state: "None" },
+            NOT_COMPARABLE: { label: "Not comparable", state: "None" }
         },
 
         // VECTOR's PO match: status label and plain-language reasons (validation.matching).
@@ -248,7 +281,8 @@ sap.ui.define([], function () {
         INVESTIGATION_TOPICS: {
             TRIAGE_REVIEW_REQUIRED: "finance rules",
             REQUIRED_FIELDS_MISSING: "required fields",
-            VECTOR_PO_MATCH: "PO match"
+            VECTOR_PO_MATCH: "PO match",
+            SAP_DATA_CHECK: "SAP data check"
         },
         FOLLOW_UP_TEXTS: {
             obtain_missing_evidence: "Get the missing evidence for: {0}",
