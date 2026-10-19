@@ -36,7 +36,8 @@
 						<tnt:SideNavigation selectedKey="{apData>/section}" itemSelect="onSectionSelect" class="apSideNav">
 							<tnt:NavigationList>
 								<tnt:NavigationListItem key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard"/>
-								<tnt:NavigationListItem key="upload" text="Upload" icon="sap-icon://upload-to-cloud"/>
+								<tnt:NavigationListItem key="upload" text="Upload" icon="sap-icon://upload-to-cloud"
+									visible="{apData>/permissions/processor}"/>
 								<tnt:NavigationListItem key="review" text="Clear Desk" icon="sap-icon://inspect"/>
 								<tnt:NavigationListItem key="approvals" text="Approvals" icon="sap-icon://approvals"
 									visible="{apData>/permissions/approver}"/>

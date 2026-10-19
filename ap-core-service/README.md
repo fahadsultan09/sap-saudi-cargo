@@ -1,4 +1,4 @@
-# Saudi Cargo AP Core (first runnable service)
+# AP Automation · AP Core (first runnable service)
 
 AP Core is the authority for invoice case state, deterministic routing, work scheduling, idempotency and audit. Agentic AI submits observations and recommendations; it cannot directly change the case state by submitting a model judgement. AP Core makes the routing decision from extracted fields and deterministic checks.
 

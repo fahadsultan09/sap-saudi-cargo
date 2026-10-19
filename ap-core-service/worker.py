@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
@@ -24,6 +25,39 @@ DB_PATH = Path(
     os.getenv("AP_CORE_DB_PATH", "./runtime_data/ap_core.sqlite3")
 ).resolve()
 DOCUMENTS_DIR = DB_PATH.parent / "documents"
+
+
+def process_with_progress(client: APCoreClient, case_id: str, pdf_path: Path, file_name: str) -> dict:
+    """Send the PDF to the agents and pass each finished step on to AP Core while they run,
+    so the review screen moves live. Returns the agents' final result."""
+    agent_trace: list[dict] = []
+    source_checks: list[dict] = []
+    with pdf_path.open("rb") as pdf, httpx.stream(
+        "POST",
+        f"{AGENTIC_AI_URL}/internal/v1/process-document",
+        data={"file_name": file_name, "stream": "true"},
+        files={"file": (file_name, pdf, "application/pdf")},
+        timeout=300,
+    ) as response:
+        response.raise_for_status()
+        for line in response.iter_lines():
+            if not line:
+                continue
+            event = json.loads(line)
+            if event["type"] == "result":
+                return event
+            if event["type"] == "error":
+                raise RuntimeError(event["detail"])
+            if event["type"] == "step":
+                agent_trace.append(event["step"])
+            else:
+                source_checks.append(event["check"])
+            try:
+                client.submit_progress(case_id, agent_trace=agent_trace, source_checks=source_checks)
+            except httpx.HTTPError:
+                # Progress is only for display; processing goes on without it.
+                logger.warning("Could not report progress for case %s", case_id)
+    raise RuntimeError("Agentic AI stream ended without a result")
 
 
 def process_once() -> bool:
@@ -63,22 +97,7 @@ def process_once() -> bool:
 
             logger.info("Processing case %s", case_id)
 
-            with pdf_path.open("rb") as pdf:
-                response = httpx.post(
-                    f"{AGENTIC_AI_URL}/internal/v1/process-document",
-                    data={"file_name": file_name},
-                    files={
-                        "file": (
-                            file_name,
-                            pdf,
-                            "application/pdf",
-                        )
-                    },
-                    timeout=300,
-                )
-
-            response.raise_for_status()
-            result = response.json()
+            result = process_with_progress(client, case_id, pdf_path, file_name)
 
             fields = result.get("fields")
             if not isinstance(fields, dict):

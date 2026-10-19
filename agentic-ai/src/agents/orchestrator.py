@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 from pydantic import ValidationError
@@ -45,13 +46,21 @@ class APAgentOrchestrator:
         # Optional: needs the SAP reference data readers (see api.workflow.build_agent_run).
         self.source_check = source_check
 
-    def run(self, file_path: str | Path, file_name: str, *, extended_context: dict[str, Any] | None = None) -> AgentWorkflowResult:
+    def run(self, file_path: str | Path, file_name: str, *, extended_context: dict[str, Any] | None = None,
+            on_progress: Callable[[dict[str, Any]], None] | None = None) -> AgentWorkflowResult:
+        """on_progress receives each finished step (and each SAP data check) as it happens."""
         trace: list[AgentTrace] = []
+        progress = on_progress or (lambda event: None)
+
+        def record(entry: AgentTrace) -> None:
+            trace.append(entry)
+            progress({"type": "step", "step": entry.model_dump()})
+
         overall_start = time.perf_counter()
         tower_start = time.perf_counter()
         try:
             classification = self.tower.run(file_path, file_name)
-            trace.append(
+            record(
                 AgentTrace(
                     agent="TOWER",
                     status="completed",
@@ -65,7 +74,7 @@ class APAgentOrchestrator:
             )
         except Exception as exc:
             logger.exception("TOWER failed for %s", file_name)
-            trace.append(
+            record(
                 AgentTrace(
                     agent="TOWER",
                     status="failed",
@@ -80,7 +89,7 @@ class APAgentOrchestrator:
         lens_start = time.perf_counter()
         try:
             extraction = self.lens.run(file_path, classification)
-            trace.append(
+            record(
                 AgentTrace(
                     agent="LENS",
                     status=extraction.get("status", "completed"),
@@ -94,7 +103,7 @@ class APAgentOrchestrator:
             )
         except Exception as exc:
             logger.exception("LENS failed for %s", file_name)
-            trace.append(
+            record(
                 AgentTrace(
                     agent="LENS",
                     status="failed",
@@ -110,7 +119,7 @@ class APAgentOrchestrator:
             triage = self.rules.run(
                 file_name=file_name, classification=classification, converted=converted
             )
-            trace.append(
+            record(
                 AgentTrace(
                     agent="FINANCE_RULES",
                     status="completed",
@@ -124,7 +133,7 @@ class APAgentOrchestrator:
             )
         except Exception as exc:
             logger.exception("Finance rules failed for %s", file_name)
-            trace.append(
+            record(
                 AgentTrace(
                     agent="FINANCE_RULES",
                     status="failed",
@@ -208,7 +217,7 @@ class APAgentOrchestrator:
                     invoice_fields or {},
                     sap_observation,
                 )
-                trace.append(
+                record(
                     AgentTrace(
                         agent="VECTOR",
                         status="completed",
@@ -239,7 +248,7 @@ class APAgentOrchestrator:
                     "reason_codes": ["VECTOR_EXECUTION_FAILED"],
                     "error_type": type(exc).__name__,
                 }
-                trace.append(
+                record(
                     AgentTrace(
                         agent="VECTOR",
                         status="failed",
@@ -259,8 +268,10 @@ class APAgentOrchestrator:
         if run_extended and self.source_check is not None and document_type in {"invoice", "credit_note"}:
             started = time.perf_counter()
             try:
-                source_verdict = self.source_check.run(invoice_fields)
-                trace.append(
+                source_verdict = self.source_check.run(
+                    invoice_fields, on_check=lambda row: progress({"type": "check", "check": row})
+                )
+                record(
                     AgentTrace(
                         agent="SOURCE_CHECK",
                         status="completed",
@@ -288,7 +299,7 @@ class APAgentOrchestrator:
                     "comparisons": [],
                     "discrepancies": [],
                 }
-                trace.append(
+                record(
                     AgentTrace(
                         agent="SOURCE_CHECK",
                         status="failed",
@@ -349,7 +360,7 @@ class APAgentOrchestrator:
                         "missing_fields": triage.get("missing_fields", [])
                     },
                 )
-                trace.append(
+                record(
                     AgentTrace(
                         agent="PRISM",
                         status="completed",
@@ -375,7 +386,7 @@ class APAgentOrchestrator:
                     "recommendation": "manual_review",
                     "error_type": type(exc).__name__,
                 }
-                trace.append(
+                record(
                     AgentTrace(
                         agent="PRISM",
                         status="failed",
@@ -399,7 +410,7 @@ class APAgentOrchestrator:
                         payment_advice,
                         posted_invoices,
                     )
-                    trace.append(
+                    record(
                         AgentTrace(
                             agent="PLUMB",
                             status="completed",
@@ -428,7 +439,7 @@ class APAgentOrchestrator:
                         "side_effects_performed": False,
                         "error_type": type(exc).__name__,
                     }
-                    trace.append(
+                    record(
                         AgentTrace(
                             agent="PLUMB",
                             status="failed",

@@ -8,7 +8,7 @@
 			<HBox class="apWelcome sapUiMediumMarginBottom" alignItems="Center"
 				justifyContent="SpaceBetween" wrap="Wrap">
 				<VBox>
-					<Text text="AP Console · Saudi Cargo" class="apWelcomeBrand"/>
+					<Text text="AP Console · AP Automation" class="apWelcomeBrand"/>
 					<Title text="{apData>/welcome/greeting}" level="H2"/>
 					<Text text="{apData>/welcome/subtitle}" class="sapUiTinyMarginTop"/>
 				</VBox>
@@ -53,7 +53,7 @@
 				<Table items="{apData>/pagedCases}" fixedLayout="false" class="apTable">
 					<noData>
 						<IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
-							title="No cases here yet" description="Upload an invoice to start, or change the status filter."/>
+							title="No cases here yet" description="{= ${apData>/permissions/processor} ? 'Upload an invoice to start, or change the status filter.' : 'No invoices match this status filter yet.' }"/>
 					</noData>
 					<columns>
 						<Column><Text text="Invoice" wrapping="false"/></Column>

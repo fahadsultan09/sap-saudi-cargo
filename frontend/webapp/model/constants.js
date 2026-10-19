@@ -15,9 +15,10 @@ sap.ui.define([], function () {
         PIPELINE_POLL_MS: 1500,
         // An invoice still queued after this long means the processing worker is probably not running.
         QUEUE_WARNING_MS: 2 * 60 * 1000,
-        // Stay on Upload long enough to see the full 5-step track light up before Clear Desk.
+        // Upload without a case id: how long the local step animation runs before the dashboard opens.
         UPLOAD_WATCH_MIN_MS: 4200,
-        UPLOAD_WATCH_MAX_MS: 14000,
+        // How long the finished pipeline stays on Upload before Clear Desk opens.
+        UPLOAD_DONE_PAUSE_MS: 1500,
 
         // AP Core stores times in UTC; they are shown in the time zone of the client profile's countryCode.
         COUNTRY_TIME_ZONES: {
@@ -132,20 +133,62 @@ sap.ui.define([], function () {
             {
                 key: "po",
                 title: "PO match",
-                service: "VECTOR · SAP PO data",
+                service: "VECTOR",
                 description: "Compares the invoice with its purchase order in SAP.",
                 icon: "sap-icon://compare",
                 agent: "VECTOR",
                 traceOnly: true
             },
+            // The SAP data check (agent SOURCE_CHECK) as its own steps; sourceChecks are the checks each covers.
             {
-                key: "sapcheck",
-                title: "SAP data check",
-                service: "SOURCE_CHECK · SAP data",
-                description: "Compares every invoice field with the SAP data and writes a verdict.",
-                icon: "sap-icon://validate",
+                key: "sapPo",
+                title: "Fetch purchase order",
+                service: "SAP data check",
+                description: "Finds the invoice's purchase order in SAP.",
+                icon: "sap-icon://sales-order",
                 agent: "SOURCE_CHECK",
-                traceOnly: true
+                traceOnly: true,
+                sourceChecks: ["purchase_order"]
+            },
+            {
+                key: "sapSupplier",
+                title: "Verify supplier",
+                service: "SAP data check",
+                description: "Checks the supplier, that it is active, and its bank details in SAP.",
+                icon: "sap-icon://supplier",
+                agent: "SOURCE_CHECK",
+                traceOnly: true,
+                sourceChecks: ["supplier", "supplier_status", "bank"]
+            },
+            {
+                key: "sapFields",
+                title: "Compare invoice fields",
+                service: "SAP data check",
+                description: "Compares currency, company code, amount and date with the purchase order.",
+                icon: "sap-icon://compare",
+                agent: "SOURCE_CHECK",
+                traceOnly: true,
+                sourceChecks: ["company_code", "currency", "amount", "invoice_date"]
+            },
+            {
+                key: "sapReceipt",
+                title: "Check goods receipt",
+                service: "SAP data check",
+                description: "Checks the goods or services were received in SAP.",
+                icon: "sap-icon://shipping-status",
+                agent: "SOURCE_CHECK",
+                traceOnly: true,
+                sourceChecks: ["goods_receipt", "service_entry"]
+            },
+            {
+                key: "sapAccounts",
+                title: "Check account assignment",
+                service: "SAP data check",
+                description: "Checks the PO's GL accounts and cost centers exist and are open.",
+                icon: "sap-icon://accounting-document-verification",
+                agent: "SOURCE_CHECK",
+                traceOnly: true,
+                sourceChecks: ["gl_account", "cost_center"]
             },
             {
                 key: "investigate",
@@ -182,7 +225,11 @@ sap.ui.define([], function () {
             extract: "Now: Extracting invoice fields (LENS · Document AI)…",
             finance: "Now: Running finance rules (required fields, duplicates)…",
             po: "Now: Matching the purchase order (VECTOR)…",
-            sapcheck: "Now: Checking the invoice against the SAP data…",
+            sapPo: "Now: Fetching the purchase order from SAP…",
+            sapSupplier: "Now: Verifying the supplier in SAP…",
+            sapFields: "Now: Comparing the invoice fields with the purchase order…",
+            sapReceipt: "Now: Checking the goods receipt in SAP…",
+            sapAccounts: "Now: Checking the account assignment in SAP…",
             investigate: "Now: Investigating findings (PRISM)…",
             decide: "Now: Handing off to Clear Desk / Dock Decide…"
         },
@@ -249,9 +296,29 @@ sap.ui.define([], function () {
             INCOMPLETE: { label: "Partly checked", strip: "Warning", state: "Warning" },
             ERROR: { label: "Check failed", strip: "Error", state: "Error" }
         },
+        // The SAP data check broken into steps: what each check does, and whether it fetches data
+        // ("Found") or compares a value ("Matches").
+        SOURCE_CHECK_STEPS: {
+            purchase_order: ["Fetching the purchase order", true],
+            supplier: ["Fetching the supplier", true],
+            supplier_status: ["Checking the supplier is active", false],
+            company_code: ["Comparing the company code", false],
+            currency: ["Comparing the currency", false],
+            amount: ["Comparing the net amount", false],
+            invoice_date: ["Checking the invoice date", false],
+            goods_receipt: ["Fetching goods receipts", true],
+            service_entry: ["Fetching service entry sheets", true],
+            gl_account: ["Checking the GL accounts", false],
+            cost_center: ["Checking the cost centers", false],
+            bank: ["Fetching the bank details", true]
+        },
+
+        // SAP data check results that count as a difference.
+        SOURCE_DISCREPANCIES: ["MISMATCH", "NOT_IN_SAP"],
+
         // One row of the verdict's comparison table: result label and colour.
         SOURCE_RESULTS: {
-            MATCH: { label: "Match", state: "Success" },
+            MATCH: { label: "Matches", state: "Success" },
             MISMATCH: { label: "Differs", state: "Error" },
             NOT_IN_SAP: { label: "Not in SAP", state: "Error" },
             NOT_ON_INVOICE: { label: "Not on invoice", state: "None" },
