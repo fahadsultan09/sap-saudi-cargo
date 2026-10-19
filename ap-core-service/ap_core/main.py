@@ -272,7 +272,11 @@ def submit_extraction(case_id: str, req: ExtractionResult):
         c.execute("INSERT OR IGNORE INTO model_judgements(id,case_id,agent_name,judgement_type,payload_json,model_version,idempotency_key,created_at) VALUES(?,?,?,?,?,?,?,?)",(str(uuid.uuid4()),case_id,"LENS","EXTRACTION_RESULT",dumps(req.fields),None,req.idempotency_key,now()))
         event(c,case_id,"EXTRACTION_ACCEPTED","EXTERNAL_OBSERVATION","agentic-ai","Extraction persisted; deterministic routing applied next.",{"fields":sorted(req.fields)},req.correlation_id)
         # Marks that the agents delivered fields; it stays on the case through later corrections.
-        return route_case(c,case_id,req.fields,{**req.validation,"agents_completed":True},req.correlation_id)
+        validation={**req.validation,"agents_completed":True}
+        # VECTOR's PO match is a recommendation: a FAIL sends the case to a reviewer, UNKNOWN does not block.
+        if str(validation.get("checks",{}).get("po","")).upper()=="FAIL":
+            validation["blocking"]=[*validation.get("blocking",[]),"PO_MATCH_FAILED"]
+        return route_case(c,case_id,req.fields,validation,req.correlation_id)
 
 ALLOWED_TRANSITIONS={
  "RECEIVED":{"PROCESSING","NEEDS_REVIEW","PROCESSING_ERROR"},

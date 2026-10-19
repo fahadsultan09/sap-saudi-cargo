@@ -11,6 +11,8 @@ from .config import AGENT_MODE, SAP_PROCESSING_ENABLED
 from .database import audit, connect, json_dump, row_to_case, utc_now
 
 from agents.orchestrator import APAgentOrchestrator
+from agents.vector import VectorMatchingAgent
+from integrations.excel_sap_reader import ExcelSAPReadOnlyReader
 
 
 logger = logging.getLogger("ap_workflow")
@@ -437,6 +439,21 @@ def _build_workflow_report(
     return steps
 
 
+def build_agent_run() -> tuple[APAgentOrchestrator, dict[str, Any] | None]:
+    """The agents for AGENT_MODE, plus the context that switches on VECTOR and PRISM.
+
+    VECTOR reads purchase orders read-only from the local SAP Excel exports, so PO matching
+    also runs with the mock TOWER/LENS agents.
+    """
+    if AGENT_MODE not in {"mock", "sap"}:
+        return APAgentOrchestrator(), None
+    vector = VectorMatchingAgent(sap_reader=ExcelSAPReadOnlyReader())
+    if AGENT_MODE == "mock":
+        from agents.mock_agents import MockLensAgent, MockTowerAgent
+        return APAgentOrchestrator(tower=MockTowerAgent(), lens=MockLensAgent(), vector=vector), {}
+    return APAgentOrchestrator(vector=vector), {}
+
+
 def process_case(case_id: str) -> None:
     """Run existing AI Core -> Document AI -> triage modules for an uploaded case.
 
@@ -467,38 +484,7 @@ def process_case(case_id: str) -> None:
         return
 
     try:
-        from agents.orchestrator import APAgentOrchestrator
-
-
-
-        from agents.orchestrator import APAgentOrchestrator
-
-        extended_context = None
-
-
-        if AGENT_MODE == "mock":
-            from agents.mock_agents import MockLensAgent, MockTowerAgent
-
-            orchestrator = APAgentOrchestrator(
-                tower=MockTowerAgent(),
-                lens=MockLensAgent(),
-            )
-            extended_context = None
-
-        elif AGENT_MODE == "sap":
-            from agents.vector import VectorMatchingAgent
-            from integrations.excel_sap_reader import ExcelSAPReadOnlyReader
-
-            excel_reader = ExcelSAPReadOnlyReader()
-            orchestrator = APAgentOrchestrator(
-                vector=VectorMatchingAgent(sap_reader=excel_reader)
-            )
-            extended_context = {}
-
-        else:
-            orchestrator = APAgentOrchestrator()
-            extended_context = None
-
+        orchestrator, extended_context = build_agent_run()
         agent_result = orchestrator.run(
             row["stored_path"],
             row["file_name"],

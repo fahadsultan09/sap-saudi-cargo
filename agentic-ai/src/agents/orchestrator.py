@@ -15,8 +15,6 @@ from .vector import VectorMatchingAgent
 from .prism import PrismInvestigationAgent
 from .plumb import PlumbReconciliationAgent
 
-from src.integrations.excel_sap_reader import ExcelSAPReadOnlyReader
-
 logger = logging.getLogger("sacc_agents")
 
 

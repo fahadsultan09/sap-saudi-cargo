@@ -129,7 +129,7 @@
 
 										<VBox visible="{= !${apData>/selectedInvoice/isProcessing} }" class="apPipeRail sapUiTinyMarginBottom">
 											<Title text="Pipeline" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
-											<Text text="Received → Classify (TOWER) → Extract (LENS) → Finance rules → Clear Desk / Dock Decide."
+											<Text text="Received → Classify (TOWER) → Extract (LENS) → Finance rules → PO match (VECTOR) → Investigation (PRISM) → Clear Desk / Dock Decide."
 												class="apTimelineMeta sapUiTinyMarginBottom"/>
 											<VBox items="{apData>/selectedInvoice/pipelineSteps}" class="apStepList apPipeRailList">
 												<HBox alignItems="Start" class="apStep">
@@ -163,6 +163,40 @@
 										<List items="{apData>/selectedInvoice/findings}" noDataText="No findings">
 											<StandardListItem title="{apData>text}" icon="{apData>icon}" wrapping="true"/>
 										</List>
+
+										<VBox visible="{apData>/selectedInvoice/poMatch/visible}" class="sapUiSmallMarginTop">
+											<Title text="PO match (VECTOR)" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+											<HBox wrap="Wrap" alignItems="Center" class="sapUiTinyMarginBottom">
+												<ObjectStatus text="{apData>/selectedInvoice/poMatch/status}" state="{apData>/selectedInvoice/poMatch/state}"
+													inverted="true" class="sapUiSmallMarginEnd"/>
+												<ObjectStatus title="PO number" text="{apData>/selectedInvoice/poMatch/poNumber}"/>
+											</HBox>
+											<List items="{apData>/selectedInvoice/poMatch/reasons}" showNoData="false">
+												<StandardListItem title="{apData>text}" icon="sap-icon://compare" wrapping="true"/>
+											</List>
+											<Text text="Missing for a full check: {apData>/selectedInvoice/poMatch/missing}" class="apTimelineMeta"
+												visible="{= !!${apData>/selectedInvoice/poMatch/missing} }"/>
+											<Text text="Source: {apData>/selectedInvoice/poMatch/source}" class="apTimelineMeta"
+												visible="{= !!${apData>/selectedInvoice/poMatch/source} }"/>
+										</VBox>
+
+										<VBox visible="{apData>/selectedInvoice/investigation/visible}" class="sapUiSmallMarginTop">
+											<Title text="Investigation (PRISM)" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+											<ObjectStatus text="{apData>/selectedInvoice/investigation/status}"
+												state="{apData>/selectedInvoice/investigation/state}" inverted="true" class="sapUiTinyMarginBottom"/>
+											<List items="{apData>/selectedInvoice/investigation/findings}" showNoData="false" headerText="Findings">
+												<StandardListItem title="{apData>text}" icon="sap-icon://search" wrapping="true"/>
+											</List>
+											<List items="{apData>/selectedInvoice/investigation/followUps}" showNoData="false" headerText="What to check next">
+												<StandardListItem title="{apData>text}" icon="sap-icon://action" wrapping="true"/>
+											</List>
+										</VBox>
+
+										<VBox visible="{apData>/selectedInvoice/reconciliation/visible}" class="sapUiSmallMarginTop">
+											<Title text="Payment reconciliation (PLUMB)" level="H5" class="apSectionTitle sapUiTinyMarginBottom"/>
+											<ObjectStatus title="{apData>/selectedInvoice/reconciliation/status}"
+												text="{apData>/selectedInvoice/reconciliation/summary}"/>
+										</VBox>
 									</VBox>
 								</ScrollContainer>
 							</IconTabFilter>

@@ -265,22 +265,22 @@ sap.ui.define([
 
         // Status-only mini rail for dashboard rows (full fidelity is on Upload / Review).
         _pipelineDotsFromStatus: function (sStatus) {
-            var aStates;
+            var oStates;
             if (sStatus === "RECEIVED") {
-                aStates = ["done", "running", "pending", "pending", "pending"];
+                oStates = { receive: "done", classify: "running" };
             } else if (sStatus === "PROCESSING") {
-                aStates = ["done", "done", "running", "pending", "pending"];
+                oStates = { receive: "done", classify: "done", extract: "running" };
             } else if (sStatus === "PROCESSING_ERROR") {
-                aStates = ["done", "failed", "pending", "pending", "pending"];
+                oStates = { receive: "done", classify: "failed" };
             } else {
                 return [];
             }
-            return C.PIPELINE_STEPS.map(function (oDef, iIndex) {
+            return C.PIPELINE_STEPS.map(function (oDef) {
                 return {
                     key: oDef.key,
                     title: oDef.title,
                     short: oDef.title.split(" ")[0],
-                    state: aStates[iIndex] || "pending"
+                    state: oStates[oDef.key] || "pending"
                 };
             });
         },
@@ -393,7 +393,10 @@ sap.ui.define([
                 isProcessing: false,
                 pipelineNow: "",
                 pipelinePercent: 0,
-                pipelineSummary: ""
+                pipelineSummary: "",
+                poMatch: { visible: false },
+                investigation: { visible: false },
+                reconciliation: { visible: false }
             };
         },
 
@@ -435,9 +438,12 @@ sap.ui.define([
                 }),
                 checks: Object.keys(C.CHECK_LABELS).map(function (sKey) {
                     var sValue = String((oValidation.checks || {})[sKey] || "not_checked");
-                    return { name: C.CHECK_LABELS[sKey], value: sValue.replace(/_/g, " "), state: this._checkState(sValue) };
+                    return { name: C.CHECK_LABELS[sKey], value: sValue.replace(/_/g, " ").toLowerCase(), state: this._checkState(sValue) };
                 }, this),
                 findings: this._mapFindings(oValidation),
+                poMatch: this._mapPoMatch(oValidation.matching),
+                investigation: this._mapInvestigation(oValidation.investigation),
+                reconciliation: this._mapReconciliation(oValidation.reconciliation),
                 fields: aFields,
                 fieldsGuidance: this._fieldsGuidance(sStatus, oPermissions.processor, aFields),
                 fileName: oCase.file_name,
@@ -516,11 +522,13 @@ sap.ui.define([
                     }
                 } else if (bPastAgents && !bError) {
                     // No per-step trace: AP Core's own checks always ran, the agents only if they delivered fields.
-                    if (oDef.key === "finance" || oValidation.agents_completed) {
+                    if (oDef.key === "finance" || (oValidation.agents_completed && !oDef.traceOnly)) {
                         sState = "done";
                     } else {
                         sState = "skipped";
-                        sDescription = "Did not run — the invoice details were entered on Clear Desk.";
+                        sDescription = oValidation.agents_completed
+                            ? "Did not run for this invoice."
+                            : "Did not run — the invoice details were entered on Clear Desk.";
                     }
                 } else if (bError) {
                     // An agent without a trace never ran; with no trace at all, processing stopped at the first one.
@@ -595,9 +603,8 @@ sap.ui.define([
         },
 
         _agentIndex: function (sAgent) {
-            var aOrder = ["TOWER", "LENS", "FINANCE_RULES"];
-            var i = aOrder.indexOf(sAgent);
-            return i < 0 ? aOrder.length : i;
+            var i = C.AGENT_ORDER.indexOf(sAgent);
+            return i < 0 ? C.AGENT_ORDER.length : i;
         },
 
         // Next agent that has not completed yet while the case is still PROCESSING/RECEIVED.
@@ -605,7 +612,7 @@ sap.ui.define([
             if (!bProcessing) {
                 return null;
             }
-            var aOrder = ["TOWER", "LENS", "FINANCE_RULES"];
+            var aOrder = C.AGENT_ORDER;
             var i;
             for (i = 0; i < aOrder.length; i++) {
                 var oStep = oByAgent[aOrder[i]];
@@ -623,7 +630,7 @@ sap.ui.define([
                     return aOrder[i];
                 }
             }
-            return "FINANCE_RULES";
+            return aOrder[aOrder.length - 1];
         },
 
         _checkState: function (sValue) {
@@ -646,6 +653,84 @@ sap.ui.define([
                 var aReason = C.REVIEW_REASONS[sCode] || ["sap-icon://hint", aTexts[i] || sCode];
                 return { icon: aReason[0], text: aReason[1] };
             });
+        },
+
+        // ------------------------------------------------------- agent results
+
+        // VECTOR's PO match (validation.matching); hidden when VECTOR did not run.
+        _mapPoMatch: function (oMatch) {
+            if (!oMatch || !oMatch.match_status) {
+                return { visible: false };
+            }
+            var oEvidence = (oMatch.evidence || [])[0] || {};
+            return {
+                visible: true,
+                status: C.PO_MATCH_LABELS[oMatch.match_status] || oMatch.match_status,
+                state: this._checkState(oMatch.match_status),
+                poNumber: oMatch.po_number || "—",
+                reasons: (oMatch.reason_codes || []).map(function (sCode) {
+                    return { text: C.PO_MATCH_REASONS[sCode] || sCode.replace(/_/g, " ").toLowerCase() };
+                }),
+                missing: (oMatch.missing_evidence || []).map(function (sName) {
+                    return sName.replace(/_/g, " ");
+                }).join(", "),
+                source: oEvidence.source
+                    ? oEvidence.source.replace(/_/g, " ").toLowerCase() + " · " + this._formatDate(oEvidence.fetched_at)
+                    : ""
+            };
+        },
+
+        // PRISM's investigation (validation.investigation): findings and what to check next.
+        _mapInvestigation: function (oInvestigation) {
+            if (!oInvestigation || !oInvestigation.status) {
+                return { visible: false };
+            }
+            var fnName = function (sValue) {
+                return C.INVESTIGATION_TOPICS[sValue] || String(sValue || "").replace(/_/g, " ").toLowerCase();
+            };
+            // A reason can be a list of VECTOR codes ("SUPPLIER_MISMATCH, CURRENCY_MISMATCH"); other text stays as is.
+            var fnReason = function (sReason) {
+                var aParts = String(sReason).split(", ");
+                var bCodes = aParts.every(function (sPart) {
+                    return !!C.PO_MATCH_REASONS[sPart];
+                });
+                return bCodes ? aParts.map(function (sPart) {
+                    return C.PO_MATCH_REASONS[sPart];
+                }).join(" ") : sReason;
+            };
+            var fnSentence = function (sText) {
+                return sText.charAt(0).toUpperCase() + sText.slice(1);
+            };
+            return {
+                visible: true,
+                status: C.INVESTIGATION_LABELS[oInvestigation.status] || oInvestigation.status,
+                state: oInvestigation.status === "CLEAR" ? "Success" : "Warning",
+                findings: (oInvestigation.findings || []).map(function (oFinding) {
+                    return {
+                        text: oFinding.code === "MISSING_FIELD"
+                            ? "Missing field: " + fnName(oFinding.field)
+                            : fnSentence(fnName(oFinding.code)) + (oFinding.reason ? " — " + fnReason(oFinding.reason) : "")
+                    };
+                }),
+                followUps: (oInvestigation.follow_up_actions || []).map(function (oAction) {
+                    var sText = C.FOLLOW_UP_TEXTS[oAction.action] || fnName(oAction.action) + ": {0}";
+                    return { text: sText.replace("{0}", fnName(oAction["for"])) };
+                })
+            };
+        },
+
+        // PLUMB's payment reconciliation (validation.reconciliation); only for payment advice.
+        _mapReconciliation: function (oReconciliation) {
+            if (!oReconciliation || !oReconciliation.status) {
+                return { visible: false };
+            }
+            return {
+                visible: true,
+                status: oReconciliation.status.replace(/_/g, " ").toLowerCase(),
+                summary: (oReconciliation.matched_count || 0) + " matched · "
+                    + (oReconciliation.unmatched_count || 0) + " unmatched · "
+                    + (oReconciliation.ambiguous_count || 0) + " ambiguous"
+            };
         },
 
         _mapFindings: function (oValidation) {

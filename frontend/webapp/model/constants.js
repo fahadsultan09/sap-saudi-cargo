@@ -126,6 +126,25 @@ sap.ui.define([], function () {
                 icon: "sap-icon://lab",
                 agent: "FINANCE_RULES"
             },
+            // traceOnly: shown as done only when the agent reported running (never assumed).
+            {
+                key: "po",
+                title: "PO match",
+                service: "VECTOR · SAP PO data",
+                description: "Compares the invoice with its purchase order in SAP.",
+                icon: "sap-icon://compare",
+                agent: "VECTOR",
+                traceOnly: true
+            },
+            {
+                key: "investigate",
+                title: "Investigation",
+                service: "PRISM",
+                description: "Explains open findings and recommends what to check next.",
+                icon: "sap-icon://search",
+                agent: "PRISM",
+                traceOnly: true
+            },
             {
                 key: "decide",
                 title: "Needs review / Approve",
@@ -135,6 +154,8 @@ sap.ui.define([], function () {
                 agent: null
             }
         ],
+        // Order the agents run in (validation.agent_trace[].agent).
+        AGENT_ORDER: ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "PRISM"],
         PIPELINE_STATUS_LABELS: {
             pending: "Pending",
             running: "Working…",
@@ -149,6 +170,8 @@ sap.ui.define([], function () {
             classify: "Now: Classifying document (TOWER · AI Core)…",
             extract: "Now: Extracting invoice fields (LENS · Document AI)…",
             finance: "Now: Running finance rules (required fields, duplicates)…",
+            po: "Now: Matching the purchase order (VECTOR)…",
+            investigate: "Now: Investigating findings (PRISM)…",
             decide: "Now: Handing off to Clear Desk / Dock Decide…"
         },
 
@@ -196,7 +219,42 @@ sap.ui.define([], function () {
             REQUIRED_FIELDS_MISSING: "Some required invoice details are missing.",
             POTENTIAL_BUSINESS_DUPLICATE: "An invoice with the same number, supplier and company code already exists.",
             AMOUNT_INVALID: "The total amount is not a valid number.",
-            AMOUNT_NOT_FINITE: "The total amount is not a valid number."
+            AMOUNT_NOT_FINITE: "The total amount is not a valid number.",
+            PO_MATCH_FAILED: "The invoice does not match its purchase order in SAP.",
+            TRIAGE_REVIEW_REQUIRED: "The agents' finance rules flagged this invoice for review.",
+            EXTRACTION_NOT_COMPLETED: "The agents could not read all invoice details."
+        },
+
+        // VECTOR's PO match: status label and plain-language reasons (validation.matching).
+        PO_MATCH_LABELS: { PASS: "Matches the PO", FAIL: "Does not match the PO", UNKNOWN: "Could not be checked" },
+        PO_MATCH_REASONS: {
+            PO_NUMBER_MISSING: "No PO number was found on the invoice.",
+            SAP_PO_CONTEXT_UNAVAILABLE: "This PO number was not found in the SAP purchase order data.",
+            SUPPLIER_MISMATCH: "The supplier on the invoice is not the supplier on the PO.",
+            COMPANY_CODE_MISMATCH: "The company code differs from the PO's company code.",
+            CURRENCY_MISMATCH: "The currency differs from the PO's currency.",
+            INVOICE_EXCEEDS_PO_AVAILABLE_AMOUNT: "The invoice total is more than the amount left on the PO.",
+            VECTOR_EXECUTION_FAILED: "PO matching could not run."
+        },
+
+        // PRISM's investigation: status label and follow-up actions (validation.investigation).
+        INVESTIGATION_LABELS: {
+            CLEAR: "No issues found",
+            NEEDS_INVESTIGATION: "Needs investigation",
+            INSUFFICIENT_EVIDENCE: "Not enough evidence",
+            ERROR: "Could not run"
+        },
+        // Readable names for the rule codes PRISM investigates.
+        INVESTIGATION_TOPICS: {
+            TRIAGE_REVIEW_REQUIRED: "finance rules",
+            REQUIRED_FIELDS_MISSING: "required fields",
+            VECTOR_PO_MATCH: "PO match"
+        },
+        FOLLOW_UP_TEXTS: {
+            obtain_missing_evidence: "Get the missing evidence for: {0}",
+            review_discrepancy: "Review the discrepancy: {0}",
+            fetch_read_only_sap_observations: "Check the supplier, PO and goods receipt in SAP",
+            request_human_field_review: "Check this field against the PDF: {0}"
         }
     };
 });

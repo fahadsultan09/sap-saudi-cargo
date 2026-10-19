@@ -4,10 +4,10 @@ from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from src.agents.orchestrator import APAgentOrchestrator
+from ..config import AGENT_MODE
+from ..workflow import build_agent_run
 
 router = APIRouter(prefix="/internal/v1", tags=["Internal Processing"])
-orchestrator = APAgentOrchestrator()
 
 
 @router.post("/process-document")
@@ -15,6 +15,8 @@ async def process_document(
     file: UploadFile = File(...),
     file_name: str = Form(...),
 ):
+    if AGENT_MODE == "disabled":
+        raise HTTPException(503, "Agent processing is disabled")
     if not file_name.lower().endswith(".pdf"):
         raise HTTPException(415, "Only PDF invoices are supported")
 
@@ -34,7 +36,9 @@ async def process_document(
                 if source.read(5) != b"%PDF-":
                     raise HTTPException(415, "Invalid PDF signature")
 
-            result = orchestrator.run(pdf_path, file_name)
+            # Built per request, with the context that also runs VECTOR (PO match) and PRISM.
+            orchestrator, extended_context = build_agent_run()
+            result = orchestrator.run(pdf_path, file_name, extended_context=extended_context)
             converted = result.extraction.get("converted", {})
             invoice = converted.get("invoice_source", {})
 

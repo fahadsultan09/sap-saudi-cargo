@@ -146,3 +146,14 @@ def test_agent_checks_are_kept_when_ap_core_routes_the_case(tmp_path, monkeypatc
         client.post(f"/internal/v1/cases/{case}/extraction-result",json={"fields":FIELDS,"validation":{"checks":{"po":"matched","duplicate":"clear"}},"idempotency_key":"extract-checks-v1"})
         checks=client.get(f"/api/v1/cases/{case}").json()["validation"]["checks"]
         assert checks=={"po":"matched","duplicate":"not_checked"}
+
+
+def test_failed_po_match_needs_review_but_unknown_does_not_block(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        failed=register(client, b"po-fail").json()["case_id"]
+        r=client.post(f"/internal/v1/cases/{failed}/extraction-result",json={"fields":FIELDS,"validation":{"checks":{"po":"FAIL"}},"idempotency_key":"extract-po-fail-v1"})
+        assert r.json()["status"]=="NEEDS_REVIEW" and "PO_MATCH_FAILED" in r.json()["blocking"]
+        unknown=register(client, b"po-unknown").json()["case_id"]
+        fields={**FIELDS,"invoice_number":"INV-78"}
+        r=client.post(f"/internal/v1/cases/{unknown}/extraction-result",json={"fields":fields,"validation":{"checks":{"po":"UNKNOWN"}},"idempotency_key":"extract-po-unknown-v1"})
+        assert r.json()["status"]=="READY_FOR_APPROVAL"
