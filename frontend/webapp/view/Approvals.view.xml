@@ -3,6 +3,10 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns="sap.m">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
+		<Toolbar style="Clear" class="apBackBar">
+			<Button text="Back to dashboard" icon="sap-icon://nav-back" type="Transparent" press="onNavBack"
+				class="apBackLink"/>
+		</Toolbar>
 		<VBox class="sapUiMediumMargin">
 			<Title text="Dock Decide queue" level="H3" class="apSectionTitle sapUiTinyMarginBottom"/>
 			<Text text="Invoices waiting for Approve, Return, or Reject."

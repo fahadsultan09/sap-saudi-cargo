@@ -38,7 +38,7 @@ def test_each_step_is_reported_before_the_result(tmp_path, monkeypatch):
     pdf = tmp_path / "invoice.pdf"
     pdf.write_bytes(b"%PDF-1.4")
     use_stream(monkeypatch, [
-        {"type": "step", "step": {"agent": "TOWER"}},
+        {"type": "step", "step": {"agent": "CLASSIFIER"}},
         {"type": "check", "check": {"check": "purchase_order"}},
         {"type": "step", "step": {"agent": "SOURCE_CHECK"}},
         {"type": "result", "fields": {"invoice_number": "INV-1"}, "validation": {}},

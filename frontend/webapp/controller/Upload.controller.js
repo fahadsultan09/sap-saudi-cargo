@@ -6,8 +6,8 @@ sap.ui.define([
 ], function (BaseController, MessageToast, MessageBox, C) {
     "use strict";
 
-    // After the file lands, stay on Upload and poll the case so Classify → Extract light up live,
-    // then open Clear Desk (Review) where the full pipeline keeps updating while PROCESSING.
+    // After the file lands, stay on Upload and poll the case so every step lights up live. When processing ends,
+    // offer the next step: Review invoice (or Needs review) and Go to dashboard. Approving is the approver's job.
     return BaseController.extend("saudicargo.ap.automation.controller.Upload", {
         onInit: function () {
             this._resetSteps();
@@ -42,11 +42,15 @@ sap.ui.define([
             this._uploadInvoiceFile(oFile);
         },
 
-        onOpenLiveCase: function () {
-            var sCaseId = this.getData().getProperty("/upload/caseId");
-            if (sCaseId) {
-                this._goToReview(sCaseId);
-            }
+        onReviewInvoice: function () {
+            this._goToReview(this.getData().getProperty("/upload/caseId"));
+        },
+
+        onGoToDashboard: function () {
+            this._resetSteps();
+            this.getData().setProperty("/upload/visible", false);
+            this.getCaseStore().loadCases();
+            this.navTo("dashboard");
         },
 
         _uploadInvoiceFile: function (oFile) {
@@ -65,7 +69,8 @@ sap.ui.define([
                 watching: false,
                 nowText: C.PIPELINE_NOW_LABELS.receive,
                 progressPercent: 8,
-                caseId: ""
+                caseId: "",
+                result: ""
             });
             oData.setProperty("/busy", true);
             that._setDropZoneBusy(true);
@@ -119,7 +124,8 @@ sap.ui.define([
                     watching: false,
                     nowText: "",
                     progressPercent: 0,
-                    caseId: ""
+                    caseId: "",
+                    result: ""
                 });
                 that._setStepState("receive", "failed");
                 MessageBox.error(oError.message);
@@ -152,9 +158,17 @@ sap.ui.define([
                     that.getData().setProperty("/upload/progressPercent", oProgress.percent);
 
                     // Stay while the invoice is queued and while the agents work, so every step is seen as
-                    // it completes; once processing is over, show the finished rail briefly, then Clear Desk.
+                    // it completes; once processing is over, keep the finished rail and show the next action.
                     if (C.PROCESSING_STATUSES.indexOf(oCase.status) < 0) {
-                        that._watchTimer = setTimeout(that._goToReview.bind(that, sCaseId), C.UPLOAD_DONE_PAUSE_MS);
+                        var bReady = oCase.status === "READY_FOR_APPROVAL";
+                        that._stopWatch();
+                        that._setDropZoneBusy(false);
+                        that.getData().setProperty("/busy", false);
+                        that.getData().setProperty("/upload/result", bReady ? "ready" : "review");
+                        that.getData().setProperty("/upload/nowText", bReady
+                            ? "Done: every detail matches SAP. The invoice now waits for an approver."
+                            : "Done: the invoice needs a review before it can be approved.");
+                        that.getData().setProperty("/upload/message", "Processing finished.");
                         return;
                     }
                     that._watchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
@@ -242,6 +256,7 @@ sap.ui.define([
             oData.setProperty("/upload/nowText", "");
             oData.setProperty("/upload/progressPercent", 0);
             oData.setProperty("/upload/caseId", "");
+            oData.setProperty("/upload/result", "");
         },
 
         _setStepState: function (sKey, sState) {

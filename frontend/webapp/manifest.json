@@ -56,15 +56,13 @@
                 { "name": "dashboard", "pattern": "dashboard", "target": "dashboard" },
                 { "name": "upload", "pattern": "upload", "target": "upload" },
                 { "name": "review", "pattern": "review/:caseId:", "target": "review" },
-                { "name": "approvals", "pattern": "approvals", "target": "approvals" },
-                { "name": "audit", "pattern": "audittrail", "target": "audit" }
+                { "name": "approvals", "pattern": "approvals", "target": "approvals" }
             ],
             "targets": {
                 "dashboard": { "id": "dashboard", "name": "Dashboard" },
                 "upload": { "id": "upload", "name": "Upload" },
                 "review": { "id": "review", "name": "Review" },
-                "approvals": { "id": "approvals", "name": "Approvals" },
-                "audit": { "id": "audit", "name": "Audit" }
+                "approvals": { "id": "approvals", "name": "Approvals" }
             }
         }
     }

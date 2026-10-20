@@ -12,7 +12,7 @@ from .database import audit, connect, json_dump, row_to_case, utc_now
 
 from agents.orchestrator import APAgentOrchestrator
 from agents.source_check import SourceCheckAgent
-from agents.vector import VectorMatchingAgent
+from agents.verifier import VerifierMatchingAgent
 from integrations.excel_sap_finance_reader import ExcelSAPFinanceReader
 from integrations.excel_sap_reader import ExcelSAPReadOnlyReader
 
@@ -147,7 +147,7 @@ def _build_workflow_report(
     """Build an evidence-based workflow report for the case detail UI."""
 
     checks = validation.get("checks") or {}
-    matching = validation.get("vector_matching") or {}
+    matching = validation.get("verifier_matching") or {}
     missing_fields = (
         result.get("missing_fields")
         or validation.get("missing_fields")
@@ -199,7 +199,7 @@ def _build_workflow_report(
     steps.append({
         "key": "document_classified",
         "title": "Document classified",
-        "service": "TOWER / Classification",
+        "service": "CLASSIFIER / Classification",
         "status": classification_status,
         "headline": f"Document type: {document_type}",
         "outcome": (
@@ -283,7 +283,7 @@ def _build_workflow_report(
     steps.append({
         "key": "purchase_order",
         "title": "Purchase order",
-        "service": "VECTOR / PO matching",
+        "service": "VERIFIER / PO matching",
         "status": po_step_status,
         "headline": f"PO match status: {po_status}",
         "outcome": (
@@ -442,21 +442,24 @@ def _build_workflow_report(
 
 
 def build_agent_run() -> tuple[APAgentOrchestrator, dict[str, Any] | None]:
-    """The agents for AGENT_MODE, plus the context that switches on VECTOR, SOURCE_CHECK and PRISM.
+    """The agents for AGENT_MODE, plus the context that switches on VERIFIER, SOURCE_CHECK and
+    RECONCILER.
 
-    VECTOR and SOURCE_CHECK read the local SAP Excel exports read-only, so PO matching and the
-    SAP data check also run with the mock TOWER/LENS agents.
+    VERIFIER and SOURCE_CHECK read the local SAP Excel exports read-only, so PO matching and the
+    SAP data check also run with the mock CLASSIFIER/SCANNER agents.
     """
     if AGENT_MODE not in {"mock", "sap"}:
         return APAgentOrchestrator(), None
     po_reader = ExcelSAPReadOnlyReader()
     sap_agents = {
-        "vector": VectorMatchingAgent(sap_reader=po_reader),
+        "verifier": VerifierMatchingAgent(sap_reader=po_reader),
         "source_check": SourceCheckAgent(po_reader, ExcelSAPFinanceReader()),
     }
     if AGENT_MODE == "mock":
-        from agents.mock_agents import MockLensAgent, MockTowerAgent
-        return APAgentOrchestrator(tower=MockTowerAgent(), lens=MockLensAgent(), **sap_agents), {}
+        from agents.mock_agents import MockClassifierAgent, MockScannerAgent
+        return APAgentOrchestrator(
+            classifier=MockClassifierAgent(), scanner=MockScannerAgent(), **sap_agents
+        ), {}
     return APAgentOrchestrator(**sap_agents), {}
 
 

@@ -6,14 +6,14 @@ sap.ui.define([
 ], function (BaseController, Fragment, MessageToast, api) {
     "use strict";
 
-    // The shell around every screen: header, user menu and side navigation.
+    // The shell around every screen: header and user menu.
     return BaseController.extend("saudicargo.ap.automation.controller.App", {
         onInit: function () {
             this._casesLoaded = false;
             this.getRouter().attachRouteMatched(this._onRouteMatched, this);
         },
 
-        // Keeps the side navigation in sync with the route and refreshes the lists where they are shown.
+        // Remembers the current screen and refreshes the lists where they are shown.
         _onRouteMatched: function (oEvent) {
             var sRoute = oEvent.getParameter("name");
             // The bare address shows the dashboard under its own name, #/dashboard (replacing the history entry).
@@ -26,18 +26,6 @@ sap.ui.define([
                 this._casesLoaded = true;
                 this.getCaseStore().loadCases();
             }
-        },
-
-        onToggleSideNav: function () {
-            var oToolPage = this.byId("toolPage");
-            oToolPage.setSideExpanded(!oToolPage.getSideExpanded());
-        },
-
-        // Invoice Review reopens the case that was last selected.
-        onSectionSelect: function (oEvent) {
-            var sKey = oEvent.getParameter("item").getKey();
-            var sCaseId = this.getData().getProperty("/selectedCaseId");
-            this.navTo(sKey, sKey === "review" && sCaseId ? { caseId: sCaseId } : {});
         },
 
         // ------------------------------------------------------------- user menu

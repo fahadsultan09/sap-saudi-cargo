@@ -36,8 +36,8 @@ def test_agent_judgement_does_not_change_business_state(tmp_path, monkeypatch):
     with setup_client(tmp_path, monkeypatch) as client:
         case=register(client).json()["case_id"]
         r=client.post(f"/internal/v1/cases/{case}/agent-judgements", json={
-            "agent_name":"TOWER","judgement_type":"CLASSIFICATION","payload":{"document_type":"invoice"},
-            "idempotency_key":"tower-classification-v1"
+            "agent_name":"CLASSIFIER","judgement_type":"CLASSIFICATION","payload":{"document_type":"invoice"},
+            "idempotency_key":"classifier-classification-v1"
         })
         assert r.status_code==200
         assert r.json()["state_changed"] is False
@@ -186,7 +186,7 @@ def test_full_match_reason_is_not_shown_when_ap_core_blocks(tmp_path, monkeypatc
 def test_progress_is_saved_only_while_processing(tmp_path, monkeypatch):
     with setup_client(tmp_path, monkeypatch) as client:
         case=register(client, b"progress").json()["case_id"]
-        progress={"agent_trace":[{"agent":"TOWER","status":"completed"}],"source_checks":[]}
+        progress={"agent_trace":[{"agent":"CLASSIFIER","status":"completed"}],"source_checks":[]}
         assert client.post(f"/internal/v1/cases/{case}/progress",json=progress).json()["accepted"] is False
         client.post("/internal/v1/work-items/lease",json={"worker_id":"worker-1"})
         assert client.post(f"/internal/v1/cases/{case}/progress",json=progress).json()["accepted"] is True

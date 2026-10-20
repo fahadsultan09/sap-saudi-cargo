@@ -260,7 +260,7 @@ def route_case(c, case_id: str, f: dict[str, Any], validation: dict[str, Any], c
     elif summary and not (blocking and full_match): reason=summary
     elif blocking: reason="Required fields or validations need human review."
     else: reason="Required fields present; awaiting independent approval."
-    # Agent checks (e.g. VECTOR's PO match) are kept; the duplicate check is AP Core's own.
+    # Agent checks (e.g. VERIFIER's PO match) are kept; the duplicate check is AP Core's own.
     merged_validation={**validation,"blocking":list(dict.fromkeys(blocking)),"missing_fields":missing,"business_duplicate":duplicate,"checks":{**validation.get("checks",{}),"duplicate":"suspected_duplicate" if duplicate else "not_checked"}}
     c.execute("UPDATE cases SET invoice_number=?,supplier_id=?,supplier_name=?,company_code=?,currency=?,total_amount=?,invoice_date=?,po_number=?,fields_json=?,validation_json=?,status=?,review_reason=?,updated_at=?,version=version+1 WHERE id=?",
       (invoice or None,supplier_id or None,supplier_name or None,company or None,currency or None,str(amount) if amount is not None else None,f.get("invoice_date"),po_number or None,dumps(f),dumps(merged_validation),next_status,reason,stamp,case_id))
@@ -289,7 +289,7 @@ def submit_extraction(case_id: str, req: ExtractionResult):
         if not row: raise HTTPException(404,"Case not found")
         previous=c.execute("SELECT 1 FROM model_judgements WHERE idempotency_key=?",(req.idempotency_key,)).fetchone()
         if previous: return {"case_id":case_id,"duplicate_submission":True,"status":row["status"]}
-        c.execute("INSERT OR IGNORE INTO model_judgements(id,case_id,agent_name,judgement_type,payload_json,model_version,idempotency_key,created_at) VALUES(?,?,?,?,?,?,?,?)",(str(uuid.uuid4()),case_id,"LENS","EXTRACTION_RESULT",dumps(req.fields),None,req.idempotency_key,now()))
+        c.execute("INSERT OR IGNORE INTO model_judgements(id,case_id,agent_name,judgement_type,payload_json,model_version,idempotency_key,created_at) VALUES(?,?,?,?,?,?,?,?)",(str(uuid.uuid4()),case_id,"SCANNER","EXTRACTION_RESULT",dumps(req.fields),None,req.idempotency_key,now()))
         event(c,case_id,"EXTRACTION_ACCEPTED","EXTERNAL_OBSERVATION","agentic-ai","Extraction persisted; deterministic routing applied next.",{"fields":sorted(req.fields)},req.correlation_id)
         # Marks that the agents delivered fields; it stays on the case through later corrections.
         validation={**req.validation,"agents_completed":True}
@@ -302,7 +302,7 @@ def submit_extraction(case_id: str, req: ExtractionResult):
         elif verdict.get("status") in SOURCE_VERDICT_BLOCKS:
             blocking.append(SOURCE_VERDICT_BLOCKS[verdict["status"]])
         elif str(validation.get("checks",{}).get("po","")).upper()=="FAIL":
-            # Without a verdict, VECTOR's PO match decides: a FAIL sends the case to a reviewer, UNKNOWN does not block.
+            # Without a verdict, VERIFIER's PO match decides: a FAIL sends the case to a reviewer, UNKNOWN does not block.
             blocking.append("PO_MATCH_FAILED")
         validation["blocking"]=blocking
         return route_case(c,case_id,req.fields,validation,req.correlation_id,verdict.get("summary"))

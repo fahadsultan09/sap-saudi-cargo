@@ -44,7 +44,8 @@ async def process_document(
     finally:
         await file.close()
 
-    # Built per request, with the context that also runs VECTOR (PO match), SOURCE_CHECK and PRISM.
+    # Built per request, with the context that also runs VERIFIER (PO match), SOURCE_CHECK and
+    # RECONCILER.
     orchestrator, extended_context = build_agent_run()
     if stream:
         return StreamingResponse(

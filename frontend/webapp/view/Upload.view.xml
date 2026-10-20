@@ -5,13 +5,17 @@
 	xmlns:core="sap.ui.core"
 	xmlns:u="sap.ui.unified">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection apUploadPage">
+		<Toolbar style="Clear" class="apBackBar">
+			<Button text="Back to dashboard" icon="sap-icon://nav-back" type="Transparent" press="onNavBack"
+				class="apBackLink"/>
+		</Toolbar>
 		<VBox class="sapUiLargeMargin apUploadWrap">
 			<HBox alignItems="Center" class="apUploadKicker sapUiTinyMarginBottom">
 				<core:Icon src="sap-icon://flight" size="0.75rem" class="sapUiTinyMarginEnd"/>
 				<Text text="Runway intake · one invoice at a time"/>
 			</HBox>
 			<Title text="Start the AP pipeline" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
-			<Text text="Drop a file and watch the full cycle light up: Received → Classify (TOWER) → Extract (LENS) → Finance rules → Clear Desk."
+			<Text text="Drop a file and watch the full cycle light up: Received → Classify (CLASSIFIER) → Extract (SCANNER) → Finance rules → Clear Desk."
 				class="apUploadLead sapUiMediumMarginBottom"
 				visible="{= !${apData>/upload/watching} }"/>
 
@@ -75,12 +79,18 @@
 						<Title text="Watch the complete cycle" level="H3" class="apPipeHeroTitle"/>
 						<Text text="{apData>/upload/fileName}" class="apPipeHeroFile sapUiTinyMarginTop"/>
 					</VBox>
-					<Button text="Open Clear Desk now" type="Emphasized" icon="sap-icon://inspect"
-						visible="{= !!${apData>/upload/caseId} }" press="onOpenLiveCase"/>
+					<!-- Once processing ends: Review invoice (or Needs review) and Go to dashboard -->
+					<HBox alignItems="Center" visible="{= !!${apData>/upload/result} }" class="apUploadActions">
+						<Button text="Go to dashboard" icon="sap-icon://home" press="onGoToDashboard"
+							class="apLightButton sapUiTinyMarginEnd"/>
+						<Button text="Review invoice" icon="sap-icon://inspect" type="Emphasized" press="onReviewInvoice"
+							visible="{= ${apData>/upload/result} === 'ready' }"/>
+						<Button text="Needs review" icon="sap-icon://alert" type="Attention" press="onReviewInvoice"
+							visible="{= ${apData>/upload/result} === 'review' }"/>
+					</HBox>
 				</HBox>
 
-				<HBox class="apPipeTrack" wrap="Wrap" justifyContent="SpaceBetween"
-					items="{apData>/uploadSteps}">
+				<HBox class="apPipeTrack" renderType="Bare" items="{apData>/uploadSteps}">
 					<VBox class="apPipeTrackStep" alignItems="Center">
 						<customData>
 							<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>

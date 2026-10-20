@@ -9,18 +9,18 @@ from typing import Any
 from pydantic import ValidationError
 
 from .contracts import AgentTrace, AgentWorkflowResult
-from .lens import LensExtractionAgent
+from .scanner import ScannerExtractionAgent
 from .rules import DeterministicTriageRules
-from .tower import TowerTriageAgent
-from .vector import VectorMatchingAgent
-from .prism import PrismInvestigationAgent
+from .classifier import ClassifierTriageAgent
+from .verifier import VerifierMatchingAgent
+from .reconciler import ReconcilerInvestigationAgent
 from .plumb import PlumbReconciliationAgent
 
 logger = logging.getLogger("sacc_agents")
 
 
 class APAgentOrchestrator:
-    """Coordinates the minimum Tier 1 AP agent flow: TOWER -> LENS -> rules.
+    """Coordinates the minimum Tier 1 AP agent flow: CLASSIFIER -> SCANNER -> rules.
 
     It does not approve invoices, mutate case state, perform SAP matching, or
     post financial transactions. Those remain backend workflow responsibilities.
@@ -29,19 +29,19 @@ class APAgentOrchestrator:
     def __init__(
         self,
         *,
-        tower: Any | None = None,
-        lens: Any | None = None,
+        classifier: Any | None = None,
+        scanner: Any | None = None,
         rules: Any | None = None,
-        vector: Any | None = None,
-        prism: Any | None = None,
+        verifier: Any | None = None,
+        reconciler: Any | None = None,
         plumb: Any | None = None,
         source_check: Any | None = None,
     ):
-        self.tower = tower or TowerTriageAgent()
-        self.lens = lens or LensExtractionAgent()
+        self.classifier = classifier or ClassifierTriageAgent()
+        self.scanner = scanner or ScannerExtractionAgent()
         self.rules = rules or DeterministicTriageRules()
-        self.vector = vector or VectorMatchingAgent()
-        self.prism = prism or PrismInvestigationAgent()
+        self.verifier = verifier or VerifierMatchingAgent()
+        self.reconciler = reconciler or ReconcilerInvestigationAgent()
         self.plumb = plumb or PlumbReconciliationAgent()
         # Optional: needs the SAP reference data readers (see api.workflow.build_agent_run).
         self.source_check = source_check
@@ -57,14 +57,14 @@ class APAgentOrchestrator:
             progress({"type": "step", "step": entry.model_dump()})
 
         overall_start = time.perf_counter()
-        tower_start = time.perf_counter()
+        classifier_start = time.perf_counter()
         try:
-            classification = self.tower.run(file_path, file_name)
+            classification = self.classifier.run(file_path, file_name)
             record(
                 AgentTrace(
-                    agent="TOWER",
+                    agent="CLASSIFIER",
                     status="completed",
-                    duration_ms=int((time.perf_counter() - tower_start) * 1000),
+                    duration_ms=int((time.perf_counter() - classifier_start) * 1000),
                     summary=f"Classified document as {classification.get('document_type', 'other')}.",
                     details={
                         "document_type": classification.get("document_type"),
@@ -73,27 +73,27 @@ class APAgentOrchestrator:
                 )
             )
         except Exception as exc:
-            logger.exception("TOWER failed for %s", file_name)
+            logger.exception("CLASSIFIER failed for %s", file_name)
             record(
                 AgentTrace(
-                    agent="TOWER",
+                    agent="CLASSIFIER",
                     status="failed",
-                    duration_ms=int((time.perf_counter() - tower_start) * 1000),
+                    duration_ms=int((time.perf_counter() - classifier_start) * 1000),
                     summary=f"Classification failed: {type(exc).__name__}.",
                 )
             )
             raise RuntimeError(
-                f"TOWER classification failed: {type(exc).__name__}"
+                f"CLASSIFIER classification failed: {type(exc).__name__}"
             ) from exc
 
-        lens_start = time.perf_counter()
+        scanner_start = time.perf_counter()
         try:
-            extraction = self.lens.run(file_path, classification)
+            extraction = self.scanner.run(file_path, classification)
             record(
                 AgentTrace(
-                    agent="LENS",
+                    agent="SCANNER",
                     status=extraction.get("status", "completed"),
-                    duration_ms=int((time.perf_counter() - lens_start) * 1000),
+                    duration_ms=int((time.perf_counter() - scanner_start) * 1000),
                     summary=extraction.get("reason", "Extraction step completed."),
                     details={
                         "job_id": extraction.get("raw_job", {}).get("id"),
@@ -102,16 +102,16 @@ class APAgentOrchestrator:
                 )
             )
         except Exception as exc:
-            logger.exception("LENS failed for %s", file_name)
+            logger.exception("SCANNER failed for %s", file_name)
             record(
                 AgentTrace(
-                    agent="LENS",
+                    agent="SCANNER",
                     status="failed",
-                    duration_ms=int((time.perf_counter() - lens_start) * 1000),
+                    duration_ms=int((time.perf_counter() - scanner_start) * 1000),
                     summary=f"Extraction failed: {type(exc).__name__}.",
                 )
             )
-            raise RuntimeError(f"LENS extraction failed: {type(exc).__name__}") from exc
+            raise RuntimeError(f"SCANNER extraction failed: {type(exc).__name__}") from exc
 
         rules_start = time.perf_counter()
         try:
@@ -183,7 +183,7 @@ class APAgentOrchestrator:
         if invoice_fields is None:
             invoice_fields = converted.get("invoice_source", {})
 
-        # Normalize invoice fields for VECTOR without inventing missing values.
+        # Normalize invoice fields for VERIFIER without inventing missing values.
         invoice_fields = dict(invoice_fields or {})
 
         if not invoice_fields.get("supplier_id"):
@@ -205,7 +205,7 @@ class APAgentOrchestrator:
         sap_observation = context.get("sap_observation")
         
         
-        # VECTOR: run for invoices and credit notes when extended execution is enabled.
+        # VERIFIER: run for invoices and credit notes when extended execution is enabled.
         # Missing PO/SAP evidence must remain UNKNOWN, not PASS.
         if run_extended and (
             document_type in {"invoice", "credit_note"}
@@ -213,13 +213,13 @@ class APAgentOrchestrator:
         ):
             started = time.perf_counter()
             try:
-                matching = self.vector.run(
+                matching = self.verifier.run(
                     invoice_fields or {},
                     sap_observation,
                 )
                 record(
                     AgentTrace(
-                        agent="VECTOR",
+                        agent="VERIFIER",
                         status="completed",
                         duration_ms=int(
                             (time.perf_counter() - started) * 1000
@@ -240,17 +240,17 @@ class APAgentOrchestrator:
                     "match_status", "UNKNOWN"
                 )
             except Exception as exc:
-                logger.exception("VECTOR failed for %s", file_name)
+                logger.exception("VERIFIER failed for %s", file_name)
                 matching = {
-                    "agent": "VECTOR",
+                    "agent": "VERIFIER",
                     "status": "ERROR",
                     "match_status": "UNKNOWN",
-                    "reason_codes": ["VECTOR_EXECUTION_FAILED"],
+                    "reason_codes": ["VERIFIER_EXECUTION_FAILED"],
                     "error_type": type(exc).__name__,
                 }
                 record(
                     AgentTrace(
-                        agent="VECTOR",
+                        agent="VERIFIER",
                         status="failed",
                         duration_ms=int(
                             (time.perf_counter() - started) * 1000
@@ -261,7 +261,7 @@ class APAgentOrchestrator:
 
         # Preserve full PO matching evidence for the API and reviewer UI.
         if matching:
-            validation["vector_matching"] = matching
+            validation["verifier_matching"] = matching
 
         # SOURCE_CHECK: compare the invoice with the SAP reference data and write a verdict.
         source_verdict: dict[str, Any] = {}
@@ -283,7 +283,7 @@ class APAgentOrchestrator:
                         },
                     )
                 )
-                # The verdict compares more than VECTOR does, so it decides the PO and vendor checks.
+                # The verdict compares more than VERIFIER does, so it decides the PO and vendor checks.
                 outcome = {"MATCH": "PASS", "MISMATCH": "FAIL"}
                 validation["checks"]["po"] = outcome.get(source_verdict["status"], "UNKNOWN")
                 supplier = next((row for row in source_verdict["comparisons"] if row["check"] == "supplier"), None)
@@ -309,7 +309,7 @@ class APAgentOrchestrator:
                 )
             validation["source_verdict"] = source_verdict
 
-        # PRISM: investigate rule findings and missing evidence.
+        # RECONCILER: investigate rule findings and missing evidence.
         # No SAP observations are fabricated if none were supplied.
         if run_extended:
             started = time.perf_counter()
@@ -334,7 +334,7 @@ class APAgentOrchestrator:
 
                     if matching and matching.get("status") in {"FAIL", "UNKNOWN"}:
                         rule_results.append({
-                            "rule_code": "VECTOR_PO_MATCH",
+                            "rule_code": "VERIFIER_PO_MATCH",
                             "outcome": matching["status"],
                             "reason": ", ".join(
                                 matching.get("reason_codes", [])
@@ -353,7 +353,7 @@ class APAgentOrchestrator:
                 if sap_observation and not sap_observations:
                     sap_observations = [sap_observation]
 
-                investigation = self.prism.run(
+                investigation = self.reconciler.run(
                     rule_results=rule_results,
                     sap_observations=sap_observations,
                     extraction={
@@ -362,7 +362,7 @@ class APAgentOrchestrator:
                 )
                 record(
                     AgentTrace(
-                        agent="PRISM",
+                        agent="RECONCILER",
                         status="completed",
                         duration_ms=int(
                             (time.perf_counter() - started) * 1000
@@ -379,16 +379,16 @@ class APAgentOrchestrator:
                     )
                 )
             except Exception as exc:
-                logger.exception("PRISM failed for %s", file_name)
+                logger.exception("RECONCILER failed for %s", file_name)
                 investigation = {
-                    "agent": "PRISM",
+                    "agent": "RECONCILER",
                     "status": "ERROR",
                     "recommendation": "manual_review",
                     "error_type": type(exc).__name__,
                 }
                 record(
                     AgentTrace(
-                        agent="PRISM",
+                        agent="RECONCILER",
                         status="failed",
                         duration_ms=int(
                             (time.perf_counter() - started) * 1000

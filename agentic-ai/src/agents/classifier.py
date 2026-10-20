@@ -6,13 +6,13 @@ from typing import Any
 from .contracts import ClassificationDecision
 
 
-class TowerTriageAgent:
-    """TOWER: classifies an attachment and recommends the next processing path.
+class ClassifierTriageAgent:
+    """CLASSIFIER: classifies an attachment and recommends the next processing path.
 
     AI Core does the model inference. This wrapper validates the result and
     never changes case status or makes an approval/posting decision.
     """
-    name = "TOWER"
+    name = "CLASSIFIER"
 
     def __init__(self, client: Any | None = None):
         self._client = client

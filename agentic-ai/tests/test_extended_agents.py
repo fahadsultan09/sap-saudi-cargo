@@ -1,16 +1,16 @@
-from agents.vector import VectorMatchingAgent
-from agents.prism import PrismInvestigationAgent
+from agents.verifier import VerifierMatchingAgent
+from agents.reconciler import ReconcilerInvestigationAgent
 from agents.plumb import PlumbReconciliationAgent
 
 
-def test_vector_returns_unknown_when_sap_evidence_is_missing():
-    result = VectorMatchingAgent().run({"po_number": "450001", "supplier_id": "V1"})
+def test_verifier_returns_unknown_when_sap_evidence_is_missing():
+    result = VerifierMatchingAgent().run({"po_number": "450001", "supplier_id": "V1"})
     assert result["status"] == "UNKNOWN"
     assert result["recommendation"] == "manual_review"
 
 
-def test_vector_matches_only_with_complete_consistent_evidence():
-    result = VectorMatchingAgent().run(
+def test_verifier_matches_only_with_complete_consistent_evidence():
+    result = VerifierMatchingAgent().run(
         {"po_number": "450001", "supplier_id": "V1", "company_code": "1000", "currency": "SAR", "total_amount": "100.00"},
         {"supplier_id": "V1", "company_code": "1000", "currency": "SAR", "available_amount": "125.00", "snapshot_hash": "abc", "fetched_at": "2026-10-16T10:00:00Z"},
     )
@@ -18,8 +18,8 @@ def test_vector_matches_only_with_complete_consistent_evidence():
     assert result["decision_class"] == "MODEL_JUDGEMENT"
 
 
-def test_vector_fails_supplier_mismatch():
-    result = VectorMatchingAgent().run(
+def test_verifier_fails_supplier_mismatch():
+    result = VerifierMatchingAgent().run(
         {"po_number": "450001", "supplier_id": "V1", "company_code": "1000", "currency": "SAR", "total_amount": "100"},
         {"supplier_id": "V2", "company_code": "1000", "currency": "SAR", "available_amount": "125"},
     )
@@ -27,8 +27,8 @@ def test_vector_fails_supplier_mismatch():
     assert "SUPPLIER_MISMATCH" in result["reason_codes"]
 
 
-def test_prism_uses_only_supplied_evidence_and_returns_followups():
-    result = PrismInvestigationAgent().run(
+def test_reconciler_uses_only_supplied_evidence_and_returns_followups():
+    result = ReconcilerInvestigationAgent().run(
         rule_results=[{"rule_code": "PO_MATCH", "outcome": "UNKNOWN", "reason": "PO data missing"}],
         sap_observations=[],
         extraction={"missing_fields": ["invoice_number"]},
@@ -60,13 +60,15 @@ def test_plumb_ambiguous_matches_require_review():
 
 def test_orchestrator_can_run_extended_agents_when_context_is_provided():
     from agents.orchestrator import APAgentOrchestrator
-    from agents.mock_agents import MockLensAgent, MockTowerAgent
+    from agents.mock_agents import MockClassifierAgent, MockScannerAgent
 
     class Rules:
         def run(self, **kwargs):
             return {"review_required": True, "missing_fields": ["invoice_number"], "missing_fields": ["invoice_number"]}
 
-    flow = APAgentOrchestrator(tower=MockTowerAgent(), lens=MockLensAgent(), rules=Rules())
+    flow = APAgentOrchestrator(
+        classifier=MockClassifierAgent(), scanner=MockScannerAgent(), rules=Rules()
+    )
     result = flow.run("invoice.pdf", "invoice.pdf", extended_context={
         "invoice_fields": {"po_number": "450001", "supplier_id": "V1"},
         "rule_results": [{"rule_code": "PO_MATCH", "outcome": "UNKNOWN"}],
@@ -75,7 +77,7 @@ def test_orchestrator_can_run_extended_agents_when_context_is_provided():
         "posted_invoices": [],
     })
     names = [entry.agent for entry in result.agent_trace]
-    assert "VECTOR" in names and "PRISM" in names and "PLUMB" in names
+    assert "VERIFIER" in names and "RECONCILER" in names and "PLUMB" in names
     assert result.matching["status"] == "UNKNOWN"
     assert result.investigation["status"] == "NEEDS_INVESTIGATION"
     assert result.reconciliation["matches"][0]["status"] == "UNMATCHED"

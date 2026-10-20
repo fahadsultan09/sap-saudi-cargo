@@ -17,13 +17,13 @@ def _agent_status() -> str:
     return "enabled" if AGENT_MODE == "sap" else "disabled"
 
 
-def _tower_service() -> str:
+def _classifier_service() -> str:
     if AGENT_MODE == "sap":
         return "SAP AI Core"
     return "offline filename heuristic" if AGENT_MODE == "mock" else "not invoked"
 
 
-def _lens_service() -> str:
+def _scanner_service() -> str:
     if AGENT_MODE == "sap":
         return "SAP Document AI"
     return "offline empty-result adapter" if AGENT_MODE == "mock" else "not invoked"
@@ -36,22 +36,23 @@ def list_agents(actor: Actor = Depends(get_actor)) -> dict[str, Any]:
     return {
         "mode": AGENT_MODE,
         "orchestrator": "APAgentOrchestrator",
-        "execution_order": ["EMAIL_INTAKE", "TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM", "PLUMB"],
+        "execution_order": ["EMAIL_INTAKE", "CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER", "PLUMB"],
         "agents": [
             {"name": "EMAIL_INTAKE", "kind": "source acquisition worker/agent", "status": "implemented",
              "purpose": "Fetch and enrich Microsoft Graph messages and attachments; does not classify them.",
              "integration": "Requires configured Microsoft Graph credentials for live mode."},
-            {"name": "TOWER", "kind": "classification agent adapter", "status": common_status,
-             "purpose": "Recommend document type and processing path", "service": _tower_service()},
-            {"name": "LENS", "kind": "extraction agent adapter", "status": common_status,
-             "purpose": "Coordinate SAP Document AI extraction for invoices and credit notes", "service": _lens_service()},
-            {"name": "VECTOR", "kind": "read-only matching recommendation agent", "status": "implemented_requires_sap_context",
+            {"name": "CLASSIFIER", "kind": "classification agent adapter", "status": common_status,
+             "purpose": "Recommend document type and processing path",
+             "service": _classifier_service()},
+            {"name": "SCANNER", "kind": "extraction agent adapter", "status": common_status,
+             "purpose": "Coordinate SAP Document AI extraction for invoices and credit notes", "service": _scanner_service()},
+            {"name": "VERIFIER", "kind": "read-only matching recommendation agent", "status": "implemented_requires_sap_context",
              "purpose": "Compare invoice facts to supplied/read-only SAP PO context; missing evidence returns UNKNOWN.",
              "side_effects": "none; does not write SAP or approve invoices"},
             {"name": "SOURCE_CHECK", "kind": "deterministic SAP reference-data check", "status": "implemented_uses_sap_excel_exports",
              "purpose": "Compare the extracted invoice with the SAP PO, supplier, receipt, account and bank data and write a verdict.",
              "side_effects": "none; read-only, does not approve invoices"},
-            {"name": "PRISM", "kind": "evidence-grounded investigation agent", "status": "implemented_requires_evidence",
+            {"name": "RECONCILER", "kind": "evidence-grounded investigation agent", "status": "implemented_requires_evidence",
              "purpose": "Group failed/unknown rule results and produce follow-up investigation recommendations.",
              "side_effects": "none; does not invent SAP facts or execute actions"},
             {"name": "PLUMB", "kind": "payment reconciliation recommendation agent", "status": "implemented_requires_payment_data",
@@ -63,6 +64,6 @@ def list_agents(actor: Actor = Depends(get_actor)) -> dict[str, Any]:
         "invariants": [
             "Agents do not approve invoices", "Agents do not set authoritative case status",
             "Agents do not post to SAP", "Missing SAP evidence is UNKNOWN, not PASS",
-            "VECTOR and PLUMB outputs are recommendations and require AP Core processing",
+            "VERIFIER and PLUMB outputs are recommendations and require AP Core processing",
         ],
     }

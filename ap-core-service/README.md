@@ -52,7 +52,7 @@ if not registered["duplicate"]:
         result = ap.submit_extraction(
             work["case_id"],
             fields={"invoice_number":"INV-123", "supplier_name":"Example Supplier", "company_code":"1000", "currency":"SAR", "total_amount":"12500.00"},
-            idempotency_key=f"lens-extraction:{work['case_id']}:v1",
+            idempotency_key=f"scanner-extraction:{work['case_id']}:v1",
         )
         ap.complete_work(work["id"], worker_id="agentic-ai-1", outcome="SUCCEEDED", idempotency_key=f"complete:{work['id']}", result=result)
 ap.close()
