@@ -462,14 +462,59 @@ def list_cases(
 
 @app.get("/api/v1/cases/{case_id}")
 def get_case(case_id: str, actor: Actor = Depends(get_actor)) -> dict[str, Any]:
+    from .sap_compare import attach_comparison
+
     with connect() as conn:
         row = _case_or_404(conn, case_id)
         if not _can_view(actor, row):
             raise HTTPException(status_code=403, detail="You cannot view this case")
         item = row_to_case(row)
-        item["possible_duplicate_cases"] = json_load(row["validation_json"], {}).get(
-            "possible_duplicates", []
-        )
+        validation = dict(item.get("validation") or {})
+        verdict = validation.get("source_verdict") or {}
+        if not (isinstance(verdict, dict) and verdict.get("comparisons")):
+            fields = dict(item.get("extracted_fields") or {})
+            for key in (
+                "invoice_number",
+                "supplier_name",
+                "supplier_id",
+                "company_code",
+                "currency",
+                "total_amount",
+                "invoice_date",
+                "po_number",
+            ):
+                if item.get(key) and not fields.get(key):
+                    fields[key] = item[key]
+            enriched = attach_comparison(fields, validation)
+            if enriched is not validation:
+                item["validation"] = enriched
+                # Persist so Summary stays useful without forcing a full reprocess.
+                try:
+                    conn.execute(
+                        "UPDATE ap_cases SET validation_json=? WHERE id=?",
+                        (json_dump(enriched), case_id),
+                    )
+                except Exception:
+                    pass
+        item["possible_duplicate_cases"] = (
+            item.get("validation") or {}
+        ).get("possible_duplicates", []) or validation.get("possible_duplicates", [])
+        # Surface posting readiness for approved cases (honest mock, not live SAP).
+        if item.get("status") == "APPROVED":
+            posting = conn.execute(
+                """
+                SELECT status, sap_document_number, updated_at
+                FROM posting_records WHERE case_id=? ORDER BY created_at DESC LIMIT 1
+                """,
+                (case_id,),
+            ).fetchone()
+            if posting:
+                item["posting"] = {
+                    "status": posting["status"],
+                    "sap_document_number": posting["sap_document_number"],
+                    "updated_at": posting["updated_at"],
+                    "mock": posting["status"] != "POSTED",
+                }
         return item
 
 
@@ -786,18 +831,44 @@ def _decide(
         }[decision]
 
         policy_version = "poc-v1"
+        # Always create an approval_request so legacy DBs with
+        # approval_request_id NOT NULL still accept the decision row.
+        approval_request_id = str(uuid.uuid4())
+        request_status = {
+            "APPROVE": "APPROVED",
+            "RETURN": "RETURNED",
+            "REJECT": "REJECTED",
+        }[decision]
+        conn.execute(
+            """
+            INSERT INTO approval_requests (
+                id, case_id, stage, assigned_approver_id, status,
+                policy_version, created_at, completed_at
+            )
+            VALUES (?, ?, 1, ?, ?, ?, ?, ?)
+            """,
+            (
+                approval_request_id,
+                case_id,
+                actor.user_id,
+                request_status,
+                policy_version,
+                now,
+                now,
+            ),
+        )
 
-        # Record the decision directly, without an approval request.
         conn.execute(
             """
             INSERT INTO approval_decisions (
                 id, approval_request_id, case_id, decision,
                 actor_id, actor_role, comment, policy_version, created_at
             )
-            VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(uuid.uuid4()),
+                approval_request_id,
                 case_id,
                 decision,
                 actor.user_id,
@@ -808,6 +879,12 @@ def _decide(
             ),
         )
 
+        # Approved cases are ready for posting; real SAP post is optional/mock.
+        if decision == "APPROVE":
+            review_reason = "Approved — ready for posting"
+        else:
+            review_reason = body.comment
+
         conn.execute(
             """
             UPDATE ap_cases
@@ -816,7 +893,7 @@ def _decide(
             """,
             (
                 new_status,
-                body.comment if decision != "APPROVE" else None,
+                review_reason,
                 now,
                 case_id,
             ),
@@ -833,27 +910,30 @@ def _decide(
             before=before,
             after={"case_status": new_status, "decision": decision},
             metadata={
-                "approval_request_id": None,
+                "approval_request_id": approval_request_id,
                 "policy_version": policy_version,
                 "decision_mode": "direct",
             },
             correlation_id=x_correlation_id,
         )
 
+        posting_status = None
         if decision == "APPROVE":
-            # Placeholder only. This does not post to SAP.
+            # Honest mock: mark ready for posting; no live SAP FI post in this POC.
+            posting_status = "READY_FOR_POSTING"
             conn.execute(
                 """
                 INSERT INTO posting_records (
                     id, case_id, idempotency_key, status,
                     company_code, created_at, updated_at
                 )
-                VALUES (?, ?, ?, 'NOT_CONFIGURED', ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(uuid.uuid4()),
                     case_id,
                     f"ap-case:{case_id}:posting:v1",
+                    posting_status,
                     row["company_code"],
                     now,
                     now,
@@ -863,12 +943,13 @@ def _decide(
             _audit_event(
                 conn,
                 case_id,
-                "POSTING_WAITING_FOR_INTEGRATION",
+                "POSTING_READY",
                 actor,
-                reason="Approved. SAP posting adapter is not configured in this POC.",
-                after={"posting_status": "NOT_CONFIGURED"},
+                reason="Approved — ready for posting. Live SAP posting is not configured in this POC.",
+                after={"posting_status": posting_status, "mock_posted": False},
                 metadata={
-                    "idempotency_key": f"ap-case:{case_id}:posting:v1"
+                    "idempotency_key": f"ap-case:{case_id}:posting:v1",
+                    "sap_post_available": False,
                 },
                 correlation_id=x_correlation_id,
             )
@@ -877,13 +958,65 @@ def _decide(
             "case_id": case_id,
             "status": new_status,
             "decision": decision,
+            "approval_request_id": approval_request_id,
+            "posting_status": posting_status,
             "message": (
-                "Approval recorded. SAP posting is not enabled by this POC."
+                "Approved — ready for posting. Live SAP posting is not configured in this POC."
                 if decision == "APPROVE"
                 else "Decision recorded."
             ),
         }
 
+
+
+@app.post("/api/v1/cases/{case_id}/reprocess", status_code=status.HTTP_202_ACCEPTED)
+def reprocess_case(
+    case_id: str,
+    background_tasks: BackgroundTasks,
+    actor: Actor = Depends(require_roles("AP_PROCESSOR", "ADMIN")),
+    x_correlation_id: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Re-queue agent processing for stuck / PROCESSING_ERROR cases."""
+    with transaction() as conn:
+        row = _case_or_404(conn, case_id)
+        if not _can_view(actor, row) and actor.role != "ADMIN":
+            raise HTTPException(status_code=403, detail="You cannot view this document")
+        if row["status"] not in {
+            "PROCESSING_ERROR",
+            "NEEDS_REVIEW",
+            "RETURNED",
+            "RECEIVED",
+        }:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Case cannot be reprocessed from status {row['status']}",
+            )
+        before = {"status": row["status"]}
+        now = utc_now()
+        conn.execute(
+            """
+            UPDATE ap_cases
+            SET status='RECEIVED', review_reason=?, updated_at=?, version=version+1
+            WHERE id=?
+            """,
+            ("Reprocess requested — agents will run again.", now, case_id),
+        )
+        _audit_event(
+            conn,
+            case_id,
+            "REPROCESS_REQUESTED",
+            actor,
+            reason="Operator requested reprocess",
+            before=before,
+            after={"status": "RECEIVED"},
+            correlation_id=x_correlation_id,
+        )
+    background_tasks.add_task(process_case, case_id)
+    return {
+        "case_id": case_id,
+        "status": "RECEIVED",
+        "message": "Reprocess queued. Poll the case endpoint for status.",
+    }
 
 
 @app.post("/api/v1/cases/{case_id}/approve")

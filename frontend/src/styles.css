@@ -2818,6 +2818,14 @@ a {
   margin-bottom: 1rem;
   font-weight: 600;
   border: 1px solid rgba(192, 67, 58, 0.15);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.error-banner--action {
+  justify-content: space-between;
 }
 
 .review-processing-banner {
@@ -3323,6 +3331,12 @@ a {
 
 .decision-success {
   text-align: left;
+}
+
+.decision-success__posting {
+  margin: 0.35rem 0 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .decision-success .btn-row {

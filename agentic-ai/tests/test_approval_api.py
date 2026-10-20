@@ -69,7 +69,9 @@ def test_upload_review_submit_and_approve():
         )
         assert approve.status_code == 200, approve.text
         assert approve.json()["status"] == "APPROVED"
-        assert "not enabled" in approve.json()["message"].lower()
+        assert "ready for posting" in approve.json()["message"].lower()
+        assert approve.json().get("approval_request_id")
+        assert approve.json().get("posting_status") == "READY_FOR_POSTING"
 
         # Verify the final case status.
         detail_after = client.get(
@@ -78,6 +80,7 @@ def test_upload_review_submit_and_approve():
         )
         assert detail_after.status_code == 200
         assert detail_after.json()["status"] == "APPROVED"
+        assert "ready for posting" in (detail_after.json().get("review_reason") or "").lower()
 
         # Verify the audit history reflects a direct decision.
         history = client.get(
@@ -92,11 +95,11 @@ def test_upload_review_submit_and_approve():
         assert "CASE_UPLOADED" in event_types
         assert "FIELDS_CORRECTED" in event_types
         assert "APPROVAL_APPROVED" in event_types
-        assert "APPROVAL_REQUESTED" not in event_types
+        assert "POSTING_READY" in event_types
 
-        # The decision must no longer require an approval request.
+        # Decision is tied to an approval_request row (works on NOT NULL schemas).
         assert len(history.json()["decisions"]) >= 1
-        assert history.json()["decisions"][-1]["approval_request_id"] is None
+        assert history.json()["decisions"][-1]["approval_request_id"] is not None
 
 
 def test_upload_rejects_unsupported_type():

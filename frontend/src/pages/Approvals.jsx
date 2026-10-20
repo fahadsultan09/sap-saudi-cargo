@@ -91,11 +91,15 @@ export default function Approvals({ userId, showToast }) {
     if (!current?.item?.id) return;
     setBusyId(current.item.id);
     try {
-      await apiJson("POST", `${casePath(current.item.id)}/${current.kind}`, {
+      const result = await apiJson("POST", `${casePath(current.item.id)}/${current.kind}`, {
         comment: text,
       });
       const labels = { approve: "Approved", return: "Sent back", reject: "Rejected" };
-      showToast?.(labels[current.kind] || "Done");
+      showToast?.(
+        current.kind === "approve"
+          ? result?.message || "Approved — ready for posting"
+          : labels[current.kind] || "Done",
+      );
       await load();
       const next = nextDecidable(cases, current.item.id, DECIDABLE);
       if (next) {

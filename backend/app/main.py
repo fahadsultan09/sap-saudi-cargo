@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .clients.agentic_api import AgenticAPI
 from .config import get_settings
 from .errors import register_handlers
-from .routers import proxy
+from .routers import auth, proxy
 from .schemas import ErrorResponse, Health
 
 
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     register_handlers(application)
+    application.include_router(auth.router)
     application.include_router(proxy.router)
     return application
 

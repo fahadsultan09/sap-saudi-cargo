@@ -28,8 +28,12 @@ function normalizeResult(raw) {
   if (["MATCH", "PASS", "PASSED", "OK", "CLEAR", "NO_DUPLICATE", "VALID"].includes(s)) {
     return "MATCH";
   }
-  if (["MISMATCH", "FAIL", "FAILED", "ERROR", "BLOCK"].includes(s)) return "MISMATCH";
-  if (["DIFFER", "WARN", "WARNING", "REVIEW"].includes(s)) return "DIFFER";
+  if (["MISMATCH", "FAIL", "FAILED", "ERROR", "BLOCK", "NOT_IN_SAP"].includes(s)) {
+    return "MISMATCH";
+  }
+  if (["DIFFER", "WARN", "WARNING", "REVIEW", "INCOMPLETE", "NOT_ON_INVOICE"].includes(s)) {
+    return "DIFFER";
+  }
   if (["NOT_FOUND", "MISSING"].includes(s)) return "NOT_FOUND";
   if (["NOT_COMPARED", "SKIPPED", "NOT_CHECKED", ""].includes(s)) return "NOT_COMPARED";
   return s || "NOT_COMPARED";
@@ -66,13 +70,15 @@ export function mapComparisons(caseRow) {
       const result = normalizeResult(row.result || row.status || row.match_status);
       return {
         id: `${row.check || row.field || "row"}-${i}`,
-        field: labelForCheck(row.check || row.field || row.key),
+        field:
+          row.label ||
+          labelForCheck(row.check || row.field || row.key),
         invoice: row.invoice != null && row.invoice !== "" ? String(row.invoice) : "—",
         sap: row.sap != null && row.sap !== "" ? String(row.sap) : "—",
         result,
         resultLabel: resultLabel(result),
         tone: RESULT_TONE[result] || "muted",
-        differs: ["MISMATCH", "DIFFER", "NOT_FOUND"].includes(result),
+        differs: ["MISMATCH", "DIFFER", "NOT_FOUND", "NOT_IN_SAP"].includes(result),
       };
     });
   }
@@ -136,7 +142,12 @@ export function mapVerdict(caseRow) {
     canPay = false;
     tone = "review";
   } else if (caseRow?.status === "APPROVED") {
-    headline = "Approved — ready for posting when integration is available.";
+    const posting = caseRow?.posting?.status || "";
+    headline =
+      posting === "READY_FOR_POSTING" || caseRow?.review_reason?.includes("ready for posting")
+        ? "Approved — ready for posting"
+        : caseRow?.review_reason ||
+          "Approved — ready for posting when integration is available.";
     canPay = true;
     tone = "approved";
   } else if (caseRow?.status === "REJECTED") {

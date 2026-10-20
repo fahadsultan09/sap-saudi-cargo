@@ -9,6 +9,7 @@ from agents.review_policy import decide_review
 
 from .config import AGENT_MODE, SAP_PROCESSING_ENABLED
 from .database import audit, connect, json_dump, row_to_case, utc_now
+from .sap_compare import attach_comparison
 
 logger = logging.getLogger("ap_workflow")
 
@@ -134,6 +135,9 @@ def process_case(case_id: str) -> None:
 
         # Persist the decision so the UI and reviewers can explain the route.
         validation["review_decision"] = review_decision.to_dict()
+
+        # Invoice vs SAP (Excel exports) or synthesized field comparison rows.
+        validation = attach_comparison(fields, validation)
 
         reason = result.get("review_reason") or (
             "Classification and extraction completed. "

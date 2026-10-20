@@ -22,9 +22,21 @@ async function parseBody(response) {
 }
 
 function messageFromBody(body) {
+  const detail = body?.detail;
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    const fields = Array.isArray(detail.fields) ? detail.fields : [];
+    const base =
+      detail.message ||
+      body?.error?.message ||
+      "Some required information is missing.";
+    if (fields.length) {
+      return `${base}: ${fields.join(", ")}`;
+    }
+    return base;
+  }
   return (
     body?.error?.message ||
-    body?.detail ||
+    (typeof detail === "string" ? detail : null) ||
     (typeof body?.message === "string" ? body.message : null) ||
     "Something went wrong. Please try again."
   );
@@ -73,13 +85,18 @@ export function casePath(caseId) {
 export async function fetchSession() {
   try {
     const me = await apiJson("GET", "/auth/me");
+    const authMode = me.authMode || (me.keycloakConfigured ? "keycloak" : "demo_session");
+    // demo_session is API-backed but still allows the local role switcher.
+    const source = authMode === "keycloak" || me.keycloakConfigured ? "gateway" : "gateway_demo";
     return {
-      source: "gateway",
+      source,
+      authMode,
       userId: me.userId || me.user_id || "",
       name: me.name || me.userId || me.user_id || "Signed in",
       email: me.email || null,
       roles: me.roles || (me.role ? [me.role] : []),
       role: (me.roles && me.roles[0]) || me.role || "",
+      roleLabel: me.roleLabel || "",
     };
   } catch (err) {
     if (err?.status && err.status !== 404) {
@@ -90,6 +107,7 @@ export async function fetchSession() {
     const me = await apiJson("GET", "/api/v1/me");
     return {
       source: "agentic",
+      authMode: "agentic",
       userId: me.user_id || me.userId || "",
       name: me.name || me.user_id || me.userId || "Signed in",
       email: me.email || null,

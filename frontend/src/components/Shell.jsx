@@ -12,6 +12,7 @@ export default function Shell({ userId, onUserChange, toast, session, localUser 
     session?.role ||
     "Role";
   const gatewayAuth = session?.source === "gateway";
+  const apiBacked = Boolean(session?.source);
 
   return (
     <div className="app-shell">
@@ -83,11 +84,15 @@ export default function Shell({ userId, onUserChange, toast, session, localUser 
       <footer className="site-footer">
         <span>ClearDesk</span>
         <span className="muted">
-          {session?.source === "agentic"
-            ? "Session via /api/v1/me · local role switch for headers"
-            : session?.source === "gateway"
-              ? "Gateway session"
-              : "Invoice automation"}
+          {session?.source === "gateway_demo"
+            ? "Signed in via gateway /auth/me · local role switch"
+            : session?.source === "agentic"
+              ? "Session via /api/v1/me · local role switch for headers"
+              : session?.source === "gateway"
+                ? "Gateway session"
+                : apiBacked
+                  ? "Invoice automation"
+                  : "Invoice automation"}
         </span>
       </footer>
 

@@ -161,6 +161,28 @@ export default function Review({ userId, showToast }) {
   const title = row?.invoice_number || row?.file_name || "Invoice";
   const supplier = row?.supplier_name || "Supplier pending";
   const hasTrace = Boolean(row?.validation?.agent_trace?.length);
+  const missingRequired = useMemo(() => {
+    if (!fields.length) return [];
+    return fields.filter((f) => f.required && !String(f.value || "").trim()).map((f) => f.label);
+  }, [fields]);
+  const approveBlocked = missingRequired.length > 0;
+  const isProcessingError = row?.status === "PROCESSING_ERROR";
+
+  async function reprocessCase() {
+    if (!caseId || busy) return;
+    setBusy(true);
+    try {
+      await apiJson("POST", `${casePath(caseId)}/reprocess`);
+      showToast?.("Reprocess queued");
+      await load();
+    } catch (err) {
+      const message = err.message || "Could not reprocess";
+      setError(message);
+      showToast?.(message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const purpose = useMemo(() => {
     if (perms.isProcessing) {
@@ -226,6 +248,14 @@ export default function Review({ userId, showToast }) {
 
   function openDecide(action) {
     if (action === "approve") {
+      if (approveBlocked) {
+        setError(
+          `Cannot approve yet — required fields missing: ${missingRequired.join(", ")}`,
+        );
+        setReviewTab("fields");
+        showToast?.(`Fill required fields: ${missingRequired.join(", ")}`);
+        return;
+      }
       setModal({
         kind: action,
         title: "Approve invoice",
@@ -269,10 +299,17 @@ export default function Review({ userId, showToast }) {
         await load();
         loadAudit();
       } else {
-        await apiJson("POST", `${casePath(caseId)}/${current.kind}`, { comment: text });
+        const result = await apiJson("POST", `${casePath(caseId)}/${current.kind}`, {
+          comment: text,
+        });
         const labels = { approve: "Approved", return: "Sent back", reject: "Rejected" };
         const label = labels[current.kind] || "Done";
-        showToast?.(label);
+        const postingNote =
+          current.kind === "approve"
+            ? result?.message ||
+              "Approved — ready for posting (live SAP post not configured)."
+            : null;
+        showToast?.(postingNote || label);
         await load();
         let items = queue;
         try {
@@ -286,6 +323,7 @@ export default function Review({ userId, showToast }) {
         setDecisionDone({
           kind: current.kind,
           label,
+          postingNote,
           nextId: next?.id || null,
           nextTitle: next?.invoice_number || next?.file_name || null,
         });
@@ -391,6 +429,46 @@ export default function Review({ userId, showToast }) {
       </button>
 
       {error ? <div className="error-banner">{error}</div> : null}
+
+      {isProcessingError ? (
+        <div className="error-banner error-banner--action">
+          <div>
+            <strong>Processing error</strong>
+            <span className="muted">
+              {" "}
+              Agents could not finish extraction. Reprocess, or fill fields manually.
+            </span>
+          </div>
+          {canProcess(user) ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-compact"
+              onClick={reprocessCase}
+              disabled={busy}
+            >
+              Reprocess
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {approveBlocked && !perms.isProcessing ? (
+        <div className="error-banner" role="status">
+          <strong>Approve blocked</strong>
+          <span>
+            {" "}
+            Required fields missing: {missingRequired.join(", ")}. Open Fields to
+            complete them before approving.
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-compact"
+            onClick={() => setReviewTab("fields")}
+          >
+            Go to fields
+          </button>
+        </div>
+      ) : null}
 
       {perms.isProcessing ? (
         <motion.div
@@ -601,7 +679,11 @@ export default function Review({ userId, showToast }) {
           {perms.canDecide ? (
             <>
               <strong>Your decision</strong>
-              <span className="muted">Approve, send back, or reject — this becomes the audit trail.</span>
+              <span className="muted">
+                {approveBlocked
+                  ? `Fill required fields first: ${missingRequired.join(", ")}.`
+                  : "Approve, send back, or reject — this becomes the audit trail."}
+              </span>
             </>
           ) : perms.canEdit ? (
             <>
@@ -650,7 +732,12 @@ export default function Review({ userId, showToast }) {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => openDecide("approve")}
-                disabled={busy}
+                disabled={busy || approveBlocked}
+                title={
+                  approveBlocked
+                    ? `Missing: ${missingRequired.join(", ")}`
+                    : undefined
+                }
               >
                 Approve
               </button>
@@ -951,6 +1038,9 @@ export default function Review({ userId, showToast }) {
           <div className="modal decision-success">
             <p className="section-label">Decision recorded</p>
             <h3 id="decision-done-title">{decisionDone.label}</h3>
+            {decisionDone.postingNote ? (
+              <p className="decision-success__posting">{decisionDone.postingNote}</p>
+            ) : null}
             <p className="muted">
               {decisionDone.nextId
                 ? "Open the next invoice in the queue, or return to the case board."
