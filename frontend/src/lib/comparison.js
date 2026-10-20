@@ -248,3 +248,18 @@ export function hasSapComparisonData(caseRow) {
       v.matching,
   );
 }
+
+/** Earlier cases that share a file fingerprint (for actionable duplicate UI). */
+export function mapDuplicateCases(caseRow) {
+  const raw = caseRow?.validation?.possible_duplicates;
+  if (!Array.isArray(raw) || !raw.length) return [];
+  return raw
+    .map((d) => {
+      if (!d) return null;
+      if (typeof d === "string") return { id: d, status: "" };
+      const id = d.id || d.case_id;
+      if (!id) return null;
+      return { id, status: d.status || "" };
+    })
+    .filter(Boolean);
+}

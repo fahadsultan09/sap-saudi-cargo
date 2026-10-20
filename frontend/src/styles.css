@@ -3047,6 +3047,68 @@ a {
   font-size: 0.82rem;
 }
 
+.comparison-panel__sap-empty {
+  margin: 0;
+}
+
+.comparison-panel__next {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.15rem;
+}
+
+.comparison-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+}
+
+.comparison-panel__next-hint {
+  font-size: 0.88rem;
+  max-width: 28rem;
+  line-height: 1.35;
+}
+
+.dup-cases-block h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.dup-cases-list {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.dup-cases-list__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dup-cases-list__link:hover {
+  border-color: rgba(11, 122, 102, 0.35);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.dup-cases-list__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--brand-deep);
+}
+
 .issues-block h4,
 .compare-table-wrap h4 {
   margin: 0 0 0.55rem;

@@ -102,7 +102,9 @@ export default function Approvals({ userId, showToast }) {
         showToast?.(`Next in queue: ${next.invoice_number || next.file_name || "invoice"}`);
       }
     } catch (err) {
-      setError(err.message);
+      const message = err.message || "Something went wrong";
+      setError(message);
+      showToast?.(message);
     } finally {
       setBusyId("");
     }

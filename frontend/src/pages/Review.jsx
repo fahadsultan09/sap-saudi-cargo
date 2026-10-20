@@ -291,7 +291,9 @@ export default function Review({ userId, showToast }) {
         });
       }
     } catch (err) {
-      setError(err.message);
+      const message = err.message || "Something went wrong";
+      setError(message);
+      showToast?.(message);
     } finally {
       setBusy(false);
     }
@@ -568,7 +570,12 @@ export default function Review({ userId, showToast }) {
                   </p>
                 </div>
               </div>
-              <ComparisonPanel caseRow={row} />
+              <ComparisonPanel
+                caseRow={row}
+                onGoFields={() => setReviewTab("fields")}
+                canDecide={Boolean(perms.canDecide)}
+                canEdit={Boolean(perms.canEdit)}
+              />
             </>
           ) : null}
 
