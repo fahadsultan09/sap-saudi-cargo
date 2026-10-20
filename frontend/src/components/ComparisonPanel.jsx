@@ -34,16 +34,18 @@ export default function ComparisonPanel({
 
   if (!verdict.hasData && !comparisons.length && !duplicates.length) {
     return (
-      <div className="empty-note empty-note--compact">
-        <strong>Nothing to compare yet</strong>
-        <span>Finance checks and SAP rows show here after agents finish.</span>
-        {onGoFields ? (
-          <div className="comparison-panel__actions">
-            <button type="button" className="btn btn-primary btn-compact" onClick={onGoFields}>
-              Check fields
-            </button>
-          </div>
-        ) : null}
+      <div className={`comparison-panel${compact ? " comparison-panel--compact" : ""}`}>
+        <div className="empty-note empty-note--compact">
+          <strong>Nothing to compare yet</strong>
+          <span>Finance checks and SAP rows show here after agents finish.</span>
+          {onGoFields ? (
+            <div className="comparison-panel__actions">
+              <button type="button" className="btn btn-primary btn-compact" onClick={onGoFields}>
+                Check fields
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     );
   }
