@@ -33,7 +33,7 @@ function useRotatingAction(actions, active) {
   return list[Math.min(index, list.length - 1)];
 }
 
-function AgentNode({ step, index, compact, showTechnical }) {
+function AgentNode({ step, index, compact, showTechnical, interactive, idle, onSelect }) {
   const state = step.state || "pending";
   const statusLabel =
     state === "running"
@@ -52,19 +52,31 @@ function AgentNode({ step, index, compact, showTechnical }) {
         ? step.outcome || step.description
         : step.description || step.plain;
 
+  const Tag = interactive ? motion.button : motion.article;
+  const interactiveProps = interactive
+    ? {
+        type: "button",
+        onClick: () => onSelect?.(step),
+        "aria-label": `${step.title} — open stage details`,
+      }
+    : {};
+
   return (
-    <motion.article
-      className={`agent-node${compact ? " agent-node--compact" : ""}`}
+    <Tag
+      className={`agent-node${compact ? " agent-node--compact" : ""}${interactive ? " agent-node--interactive" : ""}${idle ? " agent-node--idle" : ""}`}
       data-state={state}
+      style={idle ? { "--idle-delay": `${index * 0.28}s` } : undefined}
       initial={{ opacity: 0, y: 18, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: index * 0.06, duration: 0.6, ease }}
       layout
+      {...interactiveProps}
     >
       <div className="agent-node__orb" aria-hidden="true">
         <span className="agent-node__glyph">{step.glyph || "●"}</span>
         {state === "running" ? <span className="agent-node__ring" /> : null}
         {state === "running" ? <span className="agent-node__shimmer" /> : null}
+        {idle && state === "pending" ? <span className="agent-node__breath" /> : null}
         {state === "done" ? <span className="agent-node__check">✓</span> : null}
       </div>
 
@@ -98,20 +110,22 @@ function AgentNode({ step, index, compact, showTechnical }) {
           ) : step.role && !compact ? (
             <span className="agent-role">{step.role}</span>
           ) : null}
+          {interactive ? <span className="agent-node__hint">Details</span> : null}
         </div>
       </div>
-    </motion.article>
+    </Tag>
   );
 }
 
-function Connector({ filled, active, index }) {
+function Connector({ filled, active, index, idle }) {
   return (
-    <div className="theater-connector" aria-hidden="true">
+    <div className={`theater-connector${idle ? " theater-connector--idle" : ""}`} aria-hidden="true">
       <motion.div
         className="theater-connector__track"
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
         transition={{ delay: 0.15 + index * 0.08, duration: 0.45, ease }}
+        style={idle ? { "--idle-delay": `${index * 0.35}s` } : undefined}
       >
         <motion.span
           className="theater-connector__fill"
@@ -123,6 +137,7 @@ function Connector({ filled, active, index }) {
           transition={{ duration: 0.65, ease }}
         />
         {active ? <span className="theater-connector__pulse" /> : null}
+        {idle && !filled && !active ? <span className="theater-connector__idle-pulse" /> : null}
       </motion.div>
     </div>
   );
@@ -134,25 +149,35 @@ export default function ProcessTheater({
   subtitle,
   variant = "full",
   showTechnical = false,
+  interactive = false,
+  onStepSelect,
 }) {
   const progress = pipelineProgress(steps);
-  const compact = variant === "compact" || variant === "mini";
+  const compact = variant === "compact" || variant === "mini" || variant === "hero";
   const mini = variant === "mini";
+  const hero = variant === "hero";
   const running = steps.find((s) => s.state === "running");
+  const idle =
+    !running &&
+    steps.length > 0 &&
+    steps.every((s) => (s.state || "pending") === "pending");
   const liveAction = useRotatingAction(running?.actions, Boolean(running));
   const headline =
     running && liveAction
       ? liveAction
-      : progress.nowText;
+      : idle
+        ? "Standing by"
+        : progress.nowText;
 
   return (
     <section
-      className={`theater theater--${variant}${progress.percent >= 100 ? " theater--complete" : ""}`}
+      className={`theater theater--${variant}${progress.percent >= 100 ? " theater--complete" : ""}${idle ? " theater--idle" : ""}${interactive ? " theater--interactive" : ""}`}
       aria-live="polite"
     >
       <div className="theater-atmosphere" aria-hidden="true">
         <span className="theater-glow theater-glow--a" />
         <span className="theater-glow theater-glow--b" />
+        {idle ? <span className="theater-glow theater-glow--idle" /> : null}
         <span className="theater-grid" />
       </div>
 
@@ -172,6 +197,9 @@ export default function ProcessTheater({
             </motion.strong>
           </AnimatePresence>
           {subtitle ? <p className="theater-sub">{subtitle}</p> : null}
+          {interactive && idle ? (
+            <p className="theater-hint">Tap any stage for what it does</p>
+          ) : null}
         </div>
 
         <div className="theater-meter">
@@ -188,7 +216,7 @@ export default function ProcessTheater({
         </div>
       </div>
 
-      <div className={`theater-runway${mini ? " theater-runway--mini" : ""}`}>
+      <div className={`theater-runway${mini || hero ? " theater-runway--mini" : ""}${hero ? " theater-runway--hero" : ""}`}>
         {steps.map((step, index) => {
           const prevDone = index === 0 || steps[index - 1]?.state === "done";
           const filled = step.state === "done" || (step.state === "running" && prevDone);
@@ -198,20 +226,28 @@ export default function ProcessTheater({
           return (
             <div key={step.key} className="theater-slot">
               {index > 0 ? (
-                <Connector filled={connectorFilled || filled} active={connectorActive} index={index} />
+                <Connector
+                  filled={connectorFilled || filled}
+                  active={connectorActive}
+                  index={index}
+                  idle={idle}
+                />
               ) : null}
               <AgentNode
                 step={step}
                 index={index}
                 compact={compact}
                 showTechnical={showTechnical}
+                interactive={interactive}
+                idle={idle}
+                onSelect={onStepSelect}
               />
             </div>
           );
         })}
       </div>
 
-      {!mini && progress.percent >= 100 ? (
+      {!mini && !hero && progress.percent >= 100 ? (
         <motion.div
           className="theater-celebrate"
           initial={{ opacity: 0, scale: 0.96 }}

@@ -7,6 +7,7 @@ import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/
 import { playAgentRunway, stepsAtIndex } from "../lib/agentRunway";
 import { buildPipeline } from "../lib/pipeline";
 import ProcessTheater from "../components/ProcessTheater";
+import StageDetailSheet from "../components/StageDetailSheet";
 
 function idleSteps() {
   return PROCESS_STEPS.map((s) => ({
@@ -33,6 +34,7 @@ export default function Upload({ userId, showToast }) {
   const [caseId, setCaseId] = useState("");
   const [steps, setSteps] = useState([]);
   const [error, setError] = useState("");
+  const [selectedStep, setSelectedStep] = useState(null);
   const pollRef = useRef(null);
   const runwayRef = useRef(null);
   const apiDoneRef = useRef(null);
@@ -151,18 +153,23 @@ export default function Upload({ userId, showToast }) {
 
   return (
     <div className="page-enter">
-      <section className="hero hero--compact">
-        <p className="section-label">Upload</p>
-        <h1>{watching ? "Agents at work" : "Upload invoice"}</h1>
-        <p className="screen-job">
-          {watching
-            ? "You’re watching live agent actions while ClearDesk reads your PDF."
-            : "Start a case here — drop a PDF so agents can read it and stage it for review."}
-        </p>
-        {!watching ? (
-          <p className="muted hero-support">
-            Classifier, document reader, and finance check run in sequence, then you take over.
+      <section className="home-strip home-strip--upload" aria-label="Upload">
+        <div>
+          <p className="section-label" style={{ marginBottom: "0.2rem" }}>
+            Upload
           </p>
+          <strong className="home-strip__title">
+            {watching ? "Agents at work" : "Drop an invoice"}
+          </strong>
+        </div>
+        {watching ? (
+          <div className="upload-watch-meta upload-watch-meta--inline">
+            <span className="pill pill-working">Live</span>
+            <span className="muted">
+              <strong>{fileName}</strong>
+              {caseId ? ` · ${caseId.slice(0, 8)}…` : ""}
+            </span>
+          </div>
         ) : null}
       </section>
 
@@ -177,6 +184,16 @@ export default function Upload({ userId, showToast }) {
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4 }}
           >
+            <div className="home-runway" style={{ marginBottom: "1.15rem" }}>
+              <ProcessTheater
+                steps={preview}
+                variant="hero"
+                interactive
+                onStepSelect={setSelectedStep}
+                title="Agent runway"
+                subtitle="Standing by — drop a PDF and they light up"
+              />
+            </div>
             <label
               className={`dropzone${drag ? " drag" : ""}`}
               onDragEnter={(e) => {
@@ -197,14 +214,6 @@ export default function Upload({ userId, showToast }) {
                 onChange={(e) => uploadFile(e.target.files?.[0])}
               />
             </label>
-            <div style={{ marginTop: "1.35rem" }}>
-              <ProcessTheater
-                steps={preview}
-                variant="compact"
-                title="Agents standing by"
-                subtitle="They light up the moment your file lands"
-              />
-            </div>
           </motion.div>
         ) : (
           <motion.div
@@ -213,22 +222,21 @@ export default function Upload({ userId, showToast }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.45 }}
+            className="home-runway"
           >
-            <div className="upload-watch-meta">
-              <span className="pill pill-working">Live</span>
-              <span className="muted">
-                Processing <strong>{fileName}</strong>
-                {caseId ? ` · ${caseId.slice(0, 8)}…` : ""}
-              </span>
-            </div>
             <ProcessTheater
               steps={steps}
+              variant="hero"
+              interactive
+              onStepSelect={setSelectedStep}
               title="Agent runway"
-              subtitle="Each agent shows what it’s doing — outcomes appear when a step finishes"
+              subtitle="Tap a stage for details — live actions rotate while each agent works"
             />
           </motion.div>
         )}
       </AnimatePresence>
+
+      <StageDetailSheet step={selectedStep} onClose={() => setSelectedStep(null)} />
     </div>
   );
 }

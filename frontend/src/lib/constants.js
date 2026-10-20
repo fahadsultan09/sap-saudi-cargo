@@ -49,6 +49,9 @@ export const PROCESS_STEPS = [
     key: "receive",
     title: "Got your file",
     plain: "Opening a case for this invoice",
+    detail:
+      "ClearDesk accepts the upload, opens a case, and queues the agent line so the rest of the runway can start.",
+    does: ["Accept the PDF", "Create a case", "Queue the next agents"],
     outcome: "File received and queued",
     role: "Intake",
     glyph: "↓",
@@ -57,6 +60,9 @@ export const PROCESS_STEPS = [
     key: "classify",
     title: "Classifier",
     plain: "Confirming this is an invoice",
+    detail:
+      "Looks at page layout and content to confirm the file is an invoice (or credit note) before fields are read.",
+    does: ["Open the document", "Scan layout", "Confirm document type"],
     outcome: "Confirmed as an invoice",
     agent: "TOWER",
     codename: "Tower",
@@ -67,6 +73,9 @@ export const PROCESS_STEPS = [
     key: "extract",
     title: "Document reader",
     plain: "Supplier, amounts, dates, PO",
+    detail:
+      "Pulls the details finance needs — supplier, invoice number, dates, amounts, currency, and PO — from the PDF.",
+    does: ["Find supplier", "Read invoice number", "Pull dates and amounts", "Capture PO and currency"],
     outcome: "Key fields pulled from the PDF",
     agent: "LENS",
     codename: "Lens",
@@ -77,6 +86,9 @@ export const PROCESS_STEPS = [
     key: "finance",
     title: "Finance check",
     plain: "Vendor, tax, and duplicate checks",
+    detail:
+      "Runs vendor matching, total and tax checks, and a duplicate scan so risky invoices surface for a person.",
+    does: ["Match vendor records", "Check totals vs lines", "Verify tax and currency", "Scan for duplicates"],
     outcome: "Vendor, totals, and duplicates checked",
     agent: "FINANCE_RULES",
     codename: "Ledger",
@@ -87,11 +99,20 @@ export const PROCESS_STEPS = [
     key: "decide",
     title: "Your review",
     plain: "Your turn to review and decide",
+    detail:
+      "Agents stage the invoice with fields and flags. You open it, confirm what matters, then approve or send back.",
+    does: ["Open the staged invoice", "Check flagged fields", "Approve or return"],
     outcome: "Ready for your decision",
     role: "Human",
     glyph: "✦",
   },
 ];
+
+/** Desk coach copy — shown on ⓘ / first open, not as permanent hero text. */
+export const HOME_COACH = {
+  title: "Your desk at a glance",
+  body: "See what needs attention, open an invoice, or start an upload. Agents handle reading and checks — you step in to decide.",
+};
 
 /** Rotating plain-language actions while each agent is working. */
 export const AGENT_ACTIONS = {
