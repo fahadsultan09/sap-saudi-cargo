@@ -187,16 +187,28 @@ export default function Home({ userId, showToast }) {
     }
     if (upload.complete && step.key === "decide") {
       return (
-        <button
-          type="button"
-          className="btn btn-primary btn-compact"
-          onClick={() => {
-            setSelectedStep(null);
-            upload.goToReview();
-          }}
-        >
-          Review invoice
-        </button>
+        <div className="btn-row">
+          <button
+            type="button"
+            className="btn btn-primary btn-compact"
+            onClick={() => {
+              setSelectedStep(null);
+              upload.goToReview();
+            }}
+          >
+            Review invoice
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-compact"
+            onClick={() => {
+              setSelectedStep(null);
+              upload.reviewLater();
+            }}
+          >
+            Review later
+          </button>
+        </div>
       );
     }
     if (step.key === "decide" && attention[0] && !upload.active) {
@@ -378,6 +390,9 @@ export default function Home({ userId, showToast }) {
                 <button type="button" className="btn btn-primary" onClick={() => upload.goToReview()}>
                   Review invoice
                 </button>
+                <button type="button" className="btn btn-ghost" onClick={upload.reviewLater}>
+                  Review later
+                </button>
                 <button type="button" className="btn btn-ghost" onClick={upload.startAnother}>
                   Add another
                 </button>
@@ -438,16 +453,28 @@ export default function Home({ userId, showToast }) {
         labelledBy="confidence-sheet-title"
         actions={
           upload.caseId ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                upload.setDetail(null);
-                upload.goToReview();
-              }}
-            >
-              Review invoice
-            </button>
+            <div className="btn-row">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  upload.setDetail(null);
+                  upload.goToReview();
+                }}
+              >
+                Review invoice
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  upload.setDetail(null);
+                  upload.reviewLater();
+                }}
+              >
+                Review later
+              </button>
+            </div>
           ) : null
         }
       >
@@ -511,16 +538,28 @@ export default function Home({ userId, showToast }) {
         labelledBy="home-case-sheet-title"
         actions={
           upload.complete && upload.caseId ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                upload.setDetail(null);
-                upload.goToReview();
-              }}
-            >
-              Review invoice
-            </button>
+            <div className="btn-row">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  upload.setDetail(null);
+                  upload.goToReview();
+                }}
+              >
+                Review invoice
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  upload.setDetail(null);
+                  upload.reviewLater();
+                }}
+              >
+                Review later
+              </button>
+            </div>
           ) : null
         }
       >

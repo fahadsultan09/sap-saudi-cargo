@@ -268,6 +268,13 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
     clearUploadSession();
   }
 
+  /** Keep the case on Desk; leave the post-upload runway without opening Review. */
+  function reviewLater() {
+    startAnother();
+    showToast?.("Saved for later — find it on Desk");
+    navigate("/desk?filter=review");
+  }
+
   const watching = phase === "watching";
   const complete = phase === "complete";
   const active = watching || complete;
@@ -292,6 +299,7 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
     uploadFile,
     onDrop,
     startAnother,
+    reviewLater,
     goToReview,
     continueAfterDuplicate,
     PROCESS_STEPS_LEN: PROCESS_STEPS.length,
