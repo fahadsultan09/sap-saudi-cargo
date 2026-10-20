@@ -1,16 +1,22 @@
 {
   "name": "saudi-cargo-ap",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "start": "npx @ui5/cli serve -o /"
+    "start": "vite --host 127.0.0.1 --port 8080",
+    "dev": "vite --host 127.0.0.1 --port 8080",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 8080"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "dependencies": {
+    "framer-motion": "^11.18.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
+  },
   "devDependencies": {
-    "@ui5/cli": "^4.0.70",
-    "ui5-middleware-livereload": "^3.4.0"
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
   }
 }

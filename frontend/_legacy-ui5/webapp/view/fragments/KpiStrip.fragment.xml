@@ -1,0 +1,18 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+	<HBox items="{apData>/kpiCards}" wrap="Wrap" class="apKpiRow sapUiMediumMarginBottom">
+		<VBox class="apKpi">
+			<customData>
+				<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+			</customData>
+			<HBox justifyContent="SpaceBetween" alignItems="Start">
+				<VBox>
+					<Text text="{apData>label}" class="apKpiLabel"/>
+					<Text text="{apData>value}" class="apKpiValue sapUiTinyMarginTop"/>
+				</VBox>
+				<VBox class="apKpiIcon" alignItems="Center" justifyContent="Center">
+					<core:Icon src="{apData>icon}" size="1.125rem"/>
+				</VBox>
+			</HBox>
+		</VBox>
+	</HBox>
+</core:FragmentDefinition>

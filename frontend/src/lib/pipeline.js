@@ -1,0 +1,204 @@
+import {
+  APPROVED,
+  DECIDABLE,
+  EDITABLE,
+  FIELDS,
+  NEEDS_ATTENTION,
+  NOW_LABELS,
+  PROCESS_STEPS,
+  PROCESSING,
+  REVIEW_REASONS,
+  STATUS_PLAIN,
+} from "./constants";
+
+function agentIndex(agent) {
+  const order = ["TOWER", "LENS", "FINANCE_RULES"];
+  const i = order.indexOf(agent);
+  return i < 0 ? order.length : i;
+}
+
+function traceState(status) {
+  const s = String(status || "").toLowerCase();
+  if (["completed", "skipped", "done"].includes(s)) return "done";
+  if (["failed", "error"].includes(s)) return "failed";
+  if (["running", "in_progress", "processing"].includes(s)) return "running";
+  return "pending";
+}
+
+function inferRunningAgent(byAgent, processing) {
+  if (!processing) return null;
+  for (const agent of ["TOWER", "LENS", "FINANCE_RULES"]) {
+    const step = byAgent[agent];
+    if (!step) return agent;
+    const state = traceState(step.status);
+    if (state === "running" || state === "failed" || state !== "done") return agent;
+  }
+  return "FINANCE_RULES";
+}
+
+export function buildPipeline(caseRow) {
+  const validation = caseRow?.validation || {};
+  const trace = validation.agent_trace || [];
+  const byAgent = {};
+  trace.forEach((step) => {
+    byAgent[step.agent] = step;
+  });
+
+  const status = caseRow?.status;
+  const processing = PROCESSING.includes(status);
+  const error = status === "PROCESSING_ERROR";
+  const needsHuman = NEEDS_ATTENTION.includes(status);
+  const approved = APPROVED.includes(status);
+  const rejected = status === "REJECTED";
+  const pastAgents = needsHuman || approved || rejected || error;
+  const runningAgent = inferRunningAgent(byAgent, processing);
+
+  return PROCESS_STEPS.map((def) => {
+    const oTrace = def.agent ? byAgent[def.agent] : null;
+    let state = "pending";
+    let description = def.plain;
+
+    if (def.key === "receive") {
+      state = "done";
+      description = caseRow?.file_name
+        ? `Received “${caseRow.file_name}”`
+        : def.plain;
+    } else if (def.key === "decide") {
+      if (approved) {
+        state = "done";
+        description = "Approved";
+      } else if (rejected) {
+        state = "failed";
+        description = "Rejected";
+      } else if (needsHuman) {
+        state = "running";
+        description = "Ready for you to review";
+      } else if (error) {
+        state = "pending";
+        description = "Fix details, then decide";
+      }
+    } else if (oTrace) {
+      state = traceState(oTrace.status);
+      if (oTrace.summary) description = oTrace.summary;
+    } else if (pastAgents && !error) {
+      state = "done";
+      description = `${def.plain} — done`;
+    } else if (error) {
+      if (!trace.length && def.agent === "TOWER") {
+        state = "failed";
+        description = "Automatic reading stopped";
+      } else if (runningAgent === def.agent) {
+        state = "failed";
+      } else if (agentIndex(def.agent) < agentIndex(runningAgent)) {
+        state = "done";
+      }
+    } else if (processing && def.agent && def.agent === runningAgent) {
+      state = "running";
+    } else if (processing && def.agent && agentIndex(def.agent) < agentIndex(runningAgent)) {
+      state = "done";
+    } else if (processing && status === "RECEIVED" && def.agent === "TOWER") {
+      state = "running";
+    }
+
+    let nowLabel = "";
+    if (state === "running") {
+      nowLabel = NOW_LABELS[def.key] || def.title;
+      if (!oTrace?.summary) description = nowLabel;
+    }
+
+    return {
+      key: def.key,
+      title: def.title,
+      description,
+      nowLabel,
+      state,
+      agent: def.agent || "",
+      codename: def.codename || "",
+      role: def.role || "",
+      glyph: def.glyph || "●",
+      // Advanced detail only — never shown on main theater
+      detailMeta: oTrace?.duration_ms != null ? `${oTrace.duration_ms} ms` : "",
+      detailAgent: def.agent || "",
+    };
+  });
+}
+
+export function pipelineProgress(steps) {
+  const list = steps || [];
+  const done = list.filter((s) => s.state === "done").length;
+  const running = list.find((s) => s.state === "running");
+  const total = Math.max(list.length, 1);
+  const score = done + (running ? 0.45 : 0);
+  const percent = Math.max(0, Math.min(100, Math.round((score / total) * 100)));
+  let nowText = "Standing by";
+  if (running) {
+    nowText = running.nowLabel || running.title;
+  } else if (done >= total) {
+    nowText = "Ready for you";
+  }
+  return { percent, nowText, doneCount: done, total, runningKey: running?.key || "" };
+}
+
+export function outcomeLabel(status) {
+  return STATUS_PLAIN[status] || status || "—";
+}
+
+export function formatAmount(caseRow) {
+  const n = Number(caseRow?.total_amount);
+  if (caseRow?.total_amount == null || caseRow?.total_amount === "" || Number.isNaN(n)) {
+    return "—";
+  }
+  return (
+    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+    (caseRow.currency ? ` ${caseRow.currency}` : "")
+  );
+}
+
+export function formatDate(iso) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Riyadh",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+export function mapFields(caseRow) {
+  const missing = caseRow?.validation?.missing_fields || [];
+  return FIELDS.map((f) => {
+    const value = caseRow?.[f.key] == null ? "" : String(caseRow[f.key]);
+    return {
+      key: f.key,
+      label: f.label,
+      value,
+      original: value,
+      needsAttention: (f.required && !value) || missing.includes(f.key),
+    };
+  });
+}
+
+export function reviewReasons(caseRow) {
+  const validation = caseRow?.validation || {};
+  const codes = validation.review_decision?.reason_codes || [];
+  if (!codes.length) {
+    return caseRow?.review_reason ? [caseRow.review_reason] : [];
+  }
+  const texts = validation.review_decision?.reasons || [];
+  return codes.map((code, i) => REVIEW_REASONS[code] || texts[i] || code);
+}
+
+export function permissionsFor(caseRow, canProcessRole, canApproveRole) {
+  const status = caseRow?.status;
+  return {
+    canEdit: canProcessRole && EDITABLE.includes(status),
+    canDecide: canApproveRole && DECIDABLE.includes(status),
+    isProcessing: PROCESSING.includes(status),
+  };
+}

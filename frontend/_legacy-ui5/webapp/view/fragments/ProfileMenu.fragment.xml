@@ -1,0 +1,26 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Popover id="profileMenu" showHeader="false" placement="Bottom" contentWidth="18rem" class="apProfileMenu">
+        <VBox alignItems="Center" class="apProfileHead">
+            <Avatar initials="{apData>/currentUser/initials}" displaySize="M"
+                backgroundColor="{apData>/currentUser/avatarColor}"/>
+            <Title text="{apData>/currentUser/name}" level="H4" class="sapUiSmallMarginTop"/>
+            <Text text="{apData>/currentUser/roleLabel}"/>
+        </VBox>
+        <Text text="Switch profile" class="apProfileSection"/>
+        <List items="{apData>/profiles}" showSeparators="None" itemPress="onProfileSelect" class="apProfileList">
+            <CustomListItem type="{= ${apData>current} ? 'Inactive' : 'Active'}">
+                <HBox alignItems="Center" class="apProfileItem">
+                    <Avatar initials="{apData>initials}" displaySize="XS" backgroundColor="{apData>avatarColor}"/>
+                    <VBox class="sapUiSmallMarginBegin">
+                        <layoutData>
+                            <FlexItemData growFactor="1"/>
+                        </layoutData>
+                        <Text text="{apData>name}" class="apProfileName"/>
+                        <Text text="{apData>roleLabel}" class="apProfileRole"/>
+                    </VBox>
+                    <core:Icon src="sap-icon://accept" visible="{apData>current}" class="apProfileCheck"/>
+                </HBox>
+            </CustomListItem>
+        </List>
+    </Popover>
+</core:FragmentDefinition>
