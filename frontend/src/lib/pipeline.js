@@ -1,4 +1,5 @@
 import {
+  AGENT_ACTIONS,
   APPROVED,
   DECIDABLE,
   EDITABLE,
@@ -55,54 +56,68 @@ export function buildPipeline(caseRow) {
 
   return PROCESS_STEPS.map((def) => {
     const oTrace = def.agent ? byAgent[def.agent] : null;
+    const actions = AGENT_ACTIONS[def.key] || [def.plain];
     let state = "pending";
     let description = def.plain;
+    let outcome = def.outcome || `${def.plain} — done`;
 
     if (def.key === "receive") {
       state = "done";
-      description = caseRow?.file_name
+      outcome = caseRow?.file_name
         ? `Received “${caseRow.file_name}”`
-        : def.plain;
+        : def.outcome;
+      description = outcome;
     } else if (def.key === "decide") {
       if (approved) {
         state = "done";
-        description = "Approved";
+        outcome = "Approved";
+        description = outcome;
       } else if (rejected) {
         state = "failed";
-        description = "Rejected";
+        outcome = "Rejected";
+        description = outcome;
       } else if (needsHuman) {
         state = "running";
         description = "Ready for you to review";
+        outcome = def.outcome;
       } else if (error) {
         state = "pending";
         description = "Fix details, then decide";
       }
     } else if (oTrace) {
       state = traceState(oTrace.status);
-      if (oTrace.summary) description = oTrace.summary;
+      if (oTrace.summary) {
+        outcome = oTrace.summary;
+        description = oTrace.summary;
+      } else if (state === "done") {
+        description = outcome;
+      }
     } else if (pastAgents && !error) {
       state = "done";
-      description = `${def.plain} — done`;
+      description = outcome;
     } else if (error) {
       if (!trace.length && def.agent === "TOWER") {
         state = "failed";
         description = "Automatic reading stopped";
+        outcome = description;
       } else if (runningAgent === def.agent) {
         state = "failed";
       } else if (agentIndex(def.agent) < agentIndex(runningAgent)) {
         state = "done";
+        description = outcome;
       }
     } else if (processing && def.agent && def.agent === runningAgent) {
       state = "running";
     } else if (processing && def.agent && agentIndex(def.agent) < agentIndex(runningAgent)) {
       state = "done";
+      description = outcome;
     } else if (processing && status === "RECEIVED" && def.agent === "TOWER") {
       state = "running";
     }
 
     let nowLabel = "";
     if (state === "running") {
-      nowLabel = NOW_LABELS[def.key] || def.title;
+      nowLabel = actions[0] || NOW_LABELS[def.key] || def.title;
       if (!oTrace?.summary) description = nowLabel;
     }
 
@@ -110,6 +125,8 @@ export function buildPipeline(caseRow) {
       key: def.key,
       title: def.title,
       description,
+      outcome,
+      actions,
       nowLabel,
       state,
       agent: def.agent || "",
@@ -119,6 +136,8 @@ export function buildPipeline(caseRow) {
       // Advanced detail only — never shown on main theater
       detailMeta: oTrace?.duration_ms != null ? `${oTrace.duration_ms} ms` : "",
       detailAgent: def.agent || "",
+      detailSummary: oTrace?.summary || "",
+      detailStatus: oTrace?.status || "",
     };
   });
 }

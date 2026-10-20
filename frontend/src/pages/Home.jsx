@@ -67,6 +67,8 @@ export default function Home({ userId }) {
         key: s.key,
         title: s.title,
         description: s.plain,
+        outcome: s.outcome || s.plain,
+        actions: [],
         nowLabel: "",
         state: "pending",
         agent: s.agent || "",
@@ -100,6 +102,9 @@ export default function Home({ userId }) {
             <span className="hero-tag">Accounts payable</span>
           </div>
         </div>
+        <p className="screen-job screen-job--home">
+          Your job here: see what needs attention, open an invoice, or start an upload.
+        </p>
         <h1>Invoices clear themselves.</h1>
         <p>
           Upload once. Agents read, check, and stage every invoice — you only step in to decide.
@@ -148,7 +153,7 @@ export default function Home({ userId }) {
             title={liveSteps ? "Agents working" : "Agent runway"}
             subtitle={
               liveSteps
-                ? working[0]?.file_name || working[0]?.invoice_number || "Invoice in flight"
+                ? `${working[0]?.file_name || working[0]?.invoice_number || "Invoice"} — live actions`
                 : "Classifier → Document reader → Finance check → Your review"
             }
           />

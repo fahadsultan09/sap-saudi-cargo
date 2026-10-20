@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { apiBlob, apiJson, casePath } from "../lib/api";
 import { canApprove, canProcess, getUser } from "../lib/config";
 import { POLL_MS } from "../lib/constants";
@@ -15,6 +15,39 @@ import ProcessTheater from "../components/ProcessTheater";
 import DecisionModal from "../components/DecisionModal";
 import InvoicePdf from "../components/InvoicePdf";
 
+function Disclosure({ id, label, open, onToggle, children }) {
+  return (
+    <div className="disclosure">
+      <button
+        type="button"
+        className="disclosure__trigger"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={onToggle}
+      >
+        <span>{open ? "Hide" : "Show"} {label}</span>
+        <span className="disclosure__chevron" aria-hidden="true">
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            id={id}
+            className="disclosure__panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28 }}
+          >
+            <div className="disclosure__inner">{children}</div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function Review({ userId, showToast }) {
   const { caseId } = useParams();
   const navigate = useNavigate();
@@ -25,7 +58,7 @@ export default function Review({ userId, showToast }) {
   const [pdfError, setPdfError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [showHow, setShowHow] = useState(false);
+  const [panel, setPanel] = useState(null);
   const [modal, setModal] = useState(null);
   const pdfUrlRef = useRef("");
 
@@ -95,6 +128,40 @@ export default function Review({ userId, showToast }) {
   const reasons = row ? reviewReasons(row) : [];
   const title = row?.invoice_number || row?.file_name || "Invoice";
   const supplier = row?.supplier_name || "Supplier pending";
+  const hasTrace = Boolean(row?.validation?.agent_trace?.length);
+
+  const purpose = useMemo(() => {
+    if (perms.isProcessing) {
+      return {
+        eyebrow: "In progress",
+        title: "Agents are still reading this invoice",
+        next: "Fields unlock when the runway finishes — stay on this screen or come back from Home.",
+      };
+    }
+    if (perms.canDecide) {
+      return {
+        eyebrow: "Approver",
+        title: "Decide: approve, send back, or reject",
+        next: "Compare the PDF with the fields, then record your decision in the bar below.",
+      };
+    }
+    if (perms.canEdit) {
+      return {
+        eyebrow: "Processor",
+        title: "You’re here to check extracted fields before approval",
+        next: "Correct anything that doesn’t match the PDF, save, then switch role to Approver.",
+      };
+    }
+    return {
+      eyebrow: "View only",
+      title: "Invoice detail",
+      next: "This role can view the document and fields but cannot edit or decide.",
+    };
+  }, [perms.isProcessing, perms.canDecide, perms.canEdit]);
+
+  function togglePanel(name) {
+    setPanel((current) => (current === name ? null : name));
+  }
 
   async function saveFields() {
     const changes = {};
@@ -204,6 +271,14 @@ export default function Review({ userId, showToast }) {
         </span>
       </header>
 
+      <aside className="purpose-strip" aria-label="Why you are here">
+        <div className="purpose-strip__copy">
+          <p className="purpose-strip__eyebrow">{purpose.eyebrow}</p>
+          <p className="purpose-strip__title">{purpose.title}</p>
+          <p className="purpose-strip__next">{purpose.next}</p>
+        </div>
+      </aside>
+
       {error ? <div className="error-banner">{error}</div> : null}
 
       {perms.isProcessing ? (
@@ -215,8 +290,8 @@ export default function Review({ userId, showToast }) {
           <ProcessTheater
             steps={steps}
             variant="compact"
-            title="Still working"
-            subtitle="Each step lights as ClearDesk finishes reading"
+            title="Agents at work"
+            subtitle="Live actions below — each step shows what it’s doing right now"
           />
         </motion.div>
       ) : null}
@@ -248,17 +323,12 @@ export default function Review({ userId, showToast }) {
           <div className="panel-head">
             <div>
               <h2>Extracted fields</h2>
-              <p className="muted panel-head__sub">Check against the PDF, then decide</p>
+              <p className="muted panel-head__sub">Match these to the PDF</p>
             </div>
+            {reasons.length > 0 ? (
+              <span className="pill pill-review">{reasons.length} to check</span>
+            ) : null}
           </div>
-
-          {reasons.length > 0 && (
-            <ul className="reasons">
-              {reasons.map((r) => (
-                <li key={r}>{r}</li>
-              ))}
-            </ul>
-          )}
 
           <div className="fields">
             {fields.map((field) => (
@@ -286,35 +356,61 @@ export default function Review({ userId, showToast }) {
             ))}
           </div>
 
-          <div className="review-how">
-            <button type="button" className="details-link" onClick={() => setShowHow((v) => !v)}>
-              {showHow ? "Hide how we checked this" : "See how we checked this"}
-            </button>
-            {showHow ? (
-              <div className="details">
-                <ProcessTheater
-                  steps={steps}
-                  variant="compact"
-                  title="Full process"
-                  subtitle="How ClearDesk checked this invoice"
-                />
-                {row?.validation?.agent_trace?.length ? (
-                  <ul>
-                    {row.validation.agent_trace.map((t, i) => (
-                      <li key={`${t.agent}-${i}`}>
-                        {t.agent}: {t.status}
-                        {t.summary ? ` — ${t.summary}` : ""}
-                        {t.duration_ms != null ? ` (${t.duration_ms} ms)` : ""}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="muted" style={{ marginTop: "0.75rem", padding: "0 0.25rem" }}>
-                    No advanced agent details on this case.
-                  </p>
-                )}
-              </div>
+          <div className="review-secondary">
+            {reasons.length > 0 ? (
+              <Disclosure
+                id="review-flags"
+                label="why this needs attention"
+                open={panel === "flags"}
+                onToggle={() => togglePanel("flags")}
+              >
+                <ul className="reasons reasons--nested">
+                  {reasons.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              </Disclosure>
             ) : null}
+
+            <Disclosure
+              id="review-agents"
+              label="agent activity"
+              open={panel === "agents"}
+              onToggle={() => togglePanel("agents")}
+            >
+              <ProcessTheater
+                steps={steps}
+                variant="compact"
+                title="How we checked this"
+                subtitle="Plain-language outcomes for each step"
+              />
+            </Disclosure>
+
+            <Disclosure
+              id="review-tech"
+              label="technical details"
+              open={panel === "tech"}
+              onToggle={() => togglePanel("tech")}
+            >
+              {hasTrace ? (
+                <ul className="tech-trace">
+                  {row.validation.agent_trace.map((t, i) => (
+                    <li key={`${t.agent}-${i}`}>
+                      <code>{t.agent}</code>
+                      <span>{t.status}</span>
+                      {t.summary ? <em>{t.summary}</em> : null}
+                      {t.duration_ms != null ? (
+                        <span className="tech-trace__ms">{t.duration_ms} ms</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted disclosure__empty">
+                  No internal agent ids on this case. Outcomes are shown under Agent activity.
+                </p>
+              )}
+            </Disclosure>
           </div>
         </section>
       </div>
@@ -328,10 +424,15 @@ export default function Review({ userId, showToast }) {
             </>
           ) : perms.canEdit ? (
             <>
-              <strong>Processor</strong>
+              <strong>Save corrections</strong>
               <span className="muted">
-                Correct fields, save, then switch role to <em>Approver</em> to decide.
+                Fix mismatches, save, then switch role to <em>Approver</em> to decide.
               </span>
+            </>
+          ) : perms.isProcessing ? (
+            <>
+              <strong>Waiting on agents</strong>
+              <span className="muted">Actions unlock when reading finishes.</span>
             </>
           ) : (
             <>

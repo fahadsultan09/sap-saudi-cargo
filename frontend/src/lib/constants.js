@@ -49,6 +49,7 @@ export const PROCESS_STEPS = [
     key: "receive",
     title: "Got your file",
     plain: "Opening a case for this invoice",
+    outcome: "File received and queued",
     role: "Intake",
     glyph: "↓",
   },
@@ -56,6 +57,7 @@ export const PROCESS_STEPS = [
     key: "classify",
     title: "Classifier",
     plain: "Confirming this is an invoice",
+    outcome: "Confirmed as an invoice",
     agent: "TOWER",
     codename: "Tower",
     role: "Document type",
@@ -65,6 +67,7 @@ export const PROCESS_STEPS = [
     key: "extract",
     title: "Document reader",
     plain: "Supplier, amounts, dates, PO",
+    outcome: "Key fields pulled from the PDF",
     agent: "LENS",
     codename: "Lens",
     role: "Field extraction",
@@ -74,6 +77,7 @@ export const PROCESS_STEPS = [
     key: "finance",
     title: "Finance check",
     plain: "Vendor, tax, and duplicate checks",
+    outcome: "Vendor, totals, and duplicates checked",
     agent: "FINANCE_RULES",
     codename: "Ledger",
     role: "Rules & risk",
@@ -83,10 +87,40 @@ export const PROCESS_STEPS = [
     key: "decide",
     title: "Your review",
     plain: "Your turn to review and decide",
+    outcome: "Ready for your decision",
     role: "Human",
     glyph: "✦",
   },
 ];
+
+/** Rotating plain-language actions while each agent is working. */
+export const AGENT_ACTIONS = {
+  receive: [
+    "Opening a case…",
+    "Saving your file…",
+    "Queuing the agents…",
+  ],
+  classify: [
+    "Opening document…",
+    "Scanning page layout…",
+    "Checking document type…",
+    "Confirming this is an invoice…",
+  ],
+  extract: [
+    "Finding supplier…",
+    "Reading invoice number…",
+    "Pulling dates and amounts…",
+    "Looking for PO number…",
+    "Capturing currency and total…",
+  ],
+  finance: [
+    "Matching vendor records…",
+    "Checking totals vs lines…",
+    "Verifying tax and currency…",
+    "Running duplicate check…",
+  ],
+  decide: ["Handing off to you…"],
+};
 
 export const NOW_LABELS = {
   receive: "Receiving your file…",

@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { pipelineProgress } from "../lib/pipeline";
 
 const ease = [0.22, 1, 0.36, 1];
+const ACTION_ROTATE_MS = 1600;
 
 function ThinkingDots() {
   return (
@@ -13,7 +15,25 @@ function ThinkingDots() {
   );
 }
 
-function AgentNode({ step, index, compact }) {
+function useRotatingAction(actions, active) {
+  const list = Array.isArray(actions) ? actions : [];
+  const listKey = list.join("|");
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+    if (!active || list.length <= 1) return undefined;
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % list.length);
+    }, ACTION_ROTATE_MS);
+    return () => clearInterval(timer);
+  }, [active, listKey, list.length]);
+
+  if (!list.length) return "";
+  return list[Math.min(index, list.length - 1)];
+}
+
+function AgentNode({ step, index, compact, showTechnical }) {
   const state = step.state || "pending";
   const statusLabel =
     state === "running"
@@ -24,13 +44,21 @@ function AgentNode({ step, index, compact }) {
           ? "Stopped"
           : "Waiting";
 
+  const actionLine = useRotatingAction(step.actions, state === "running");
+  const line =
+    state === "running"
+      ? actionLine || step.description
+      : state === "done" || state === "failed"
+        ? step.outcome || step.description
+        : step.description || step.plain;
+
   return (
     <motion.article
       className={`agent-node${compact ? " agent-node--compact" : ""}`}
       data-state={state}
       initial={{ opacity: 0, y: 18, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: index * 0.06, duration: 0.6, ease }}
+      transition={{ delay: index * 0.06, duration: 0.6, ease }}
       layout
     >
       <div className="agent-node__orb" aria-hidden="true">
@@ -44,13 +72,32 @@ function AgentNode({ step, index, compact }) {
         <div className="agent-node__titles">
           <h4>{step.title}</h4>
         </div>
-        {!compact ? <p className="agent-node__desc">{step.description}</p> : null}
+
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={`${step.key}-${state}-${line}`}
+            className={`agent-node__action${state === "running" ? " agent-node__action--live" : ""}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.28, ease }}
+          >
+            {line}
+          </motion.p>
+        </AnimatePresence>
+
         <div className="agent-node__meta">
           <span className={`agent-status agent-status--${state}`}>
             {state === "running" ? <ThinkingDots /> : null}
             {statusLabel}
           </span>
-          {step.role ? <span className="agent-role">{step.role}</span> : null}
+          {showTechnical && step.agent ? (
+            <span className="agent-role" title="Internal agent id">
+              {step.agent}
+            </span>
+          ) : step.role && !compact ? (
+            <span className="agent-role">{step.role}</span>
+          ) : null}
         </div>
       </div>
     </motion.article>
@@ -86,10 +133,17 @@ export default function ProcessTheater({
   title = "Working on your invoice",
   subtitle,
   variant = "full",
+  showTechnical = false,
 }) {
   const progress = pipelineProgress(steps);
   const compact = variant === "compact" || variant === "mini";
   const mini = variant === "mini";
+  const running = steps.find((s) => s.state === "running");
+  const liveAction = useRotatingAction(running?.actions, Boolean(running));
+  const headline =
+    running && liveAction
+      ? liveAction
+      : progress.nowText;
 
   return (
     <section
@@ -107,14 +161,14 @@ export default function ProcessTheater({
           <p className="section-label">{title}</p>
           <AnimatePresence mode="wait">
             <motion.strong
-              key={progress.nowText}
+              key={headline}
               className="theater-now-text"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.35, ease }}
             >
-              {progress.nowText}
+              {headline}
             </motion.strong>
           </AnimatePresence>
           {subtitle ? <p className="theater-sub">{subtitle}</p> : null}
@@ -146,7 +200,12 @@ export default function ProcessTheater({
               {index > 0 ? (
                 <Connector filled={connectorFilled || filled} active={connectorActive} index={index} />
               ) : null}
-              <AgentNode step={step} index={index} compact={compact} />
+              <AgentNode
+                step={step}
+                index={index}
+                compact={compact}
+                showTechnical={showTechnical}
+              />
             </div>
           );
         })}

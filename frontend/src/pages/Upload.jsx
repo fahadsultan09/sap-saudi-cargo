@@ -13,6 +13,8 @@ function idleSteps() {
     key: s.key,
     title: s.title,
     description: s.plain,
+    outcome: s.outcome || s.plain,
+    actions: [],
     nowLabel: "",
     state: "pending",
     agent: s.agent || "",
@@ -152,11 +154,16 @@ export default function Upload({ userId, showToast }) {
       <section className="hero hero--compact">
         <p className="section-label">Upload</p>
         <h1>{watching ? "Agents at work" : "Upload invoice"}</h1>
-        <p>
+        <p className="screen-job">
           {watching
-            ? "Stay with the runway — classify, read, and finance check run in sequence."
-            : "Drop a PDF. ClearDesk agents read it, check the numbers, then hand it to you."}
+            ? "You’re watching live agent actions while ClearDesk reads your PDF."
+            : "Start a case here — drop a PDF so agents can read it and stage it for review."}
         </p>
+        {!watching ? (
+          <p className="muted hero-support">
+            Classifier, document reader, and finance check run in sequence, then you take over.
+          </p>
+        ) : null}
       </section>
 
       {error ? <div className="error-banner">{error}</div> : null}
@@ -217,7 +224,7 @@ export default function Upload({ userId, showToast }) {
             <ProcessTheater
               steps={steps}
               title="Agent runway"
-              subtitle="Each node lights as work advances — connectors fill between stages"
+              subtitle="Each agent shows what it’s doing — outcomes appear when a step finishes"
             />
           </motion.div>
         )}
