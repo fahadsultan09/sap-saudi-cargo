@@ -323,9 +323,9 @@ export default function Review({ userId, showToast }) {
             <button
               type="button"
               className="btn btn-ghost btn-compact"
-              onClick={() => navigate("/upload", { state: { restoreCaseId: caseId } })}
+              onClick={() => navigate("/")}
             >
-              ← Back
+              ← Home
             </button>
           ) : (
             <Link to="/desk" className="btn btn-ghost btn-compact">
@@ -566,7 +566,7 @@ export default function Review({ userId, showToast }) {
                 <div>
                   <h2>Summary &amp; comparison</h2>
                   <p className="muted panel-head__sub">
-                    Verdict, issues, and invoice vs SAP when available
+                    Verdict first, then issues and checks
                   </p>
                 </div>
               </div>

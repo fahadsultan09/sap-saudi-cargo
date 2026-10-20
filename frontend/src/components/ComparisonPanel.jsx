@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   hasSapComparisonData,
@@ -7,6 +8,8 @@ import {
   mapVerdict,
 } from "../lib/comparison";
 import { outcomeLabel } from "../lib/pipeline";
+
+const EARLIER_PREVIEW = 2;
 
 export default function ComparisonPanel({
   caseRow,
@@ -21,19 +24,23 @@ export default function ComparisonPanel({
   const sapLive = hasSapComparisonData(caseRow);
   const duplicates = mapDuplicateCases(caseRow);
   const financeOnly = comparisons.length > 0 && comparisons.every((r) => r.fromChecks);
+  const [showAllEarlier, setShowAllEarlier] = useState(false);
+
+  const earlierVisible =
+    showAllEarlier || duplicates.length <= EARLIER_PREVIEW
+      ? duplicates
+      : duplicates.slice(0, EARLIER_PREVIEW);
+  const earlierHidden = Math.max(0, duplicates.length - earlierVisible.length);
 
   if (!verdict.hasData && !comparisons.length && !duplicates.length) {
     return (
-      <div className="empty-note empty-note--rich">
-        <strong>No comparison yet</strong>
-        <span>
-          When SAP match data is on the case, invoice vs SAP rows appear here. Finance checks and
-          review flags still show in Summary.
-        </span>
+      <div className="empty-note empty-note--compact">
+        <strong>Nothing to compare yet</strong>
+        <span>Finance checks and SAP rows show here after agents finish.</span>
         {onGoFields ? (
           <div className="comparison-panel__actions">
             <button type="button" className="btn btn-primary btn-compact" onClick={onGoFields}>
-              Check extracted fields
+              Check fields
             </button>
           </div>
         ) : null}
@@ -44,10 +51,10 @@ export default function ComparisonPanel({
   return (
     <div className={`comparison-panel${compact ? " comparison-panel--compact" : ""}`}>
       <section className={`verdict-card verdict-card--${verdict.tone}`}>
-        <p className="section-label">Summary</p>
+        <p className="section-label">Verdict</p>
         <h3>{verdict.headline}</h3>
         {verdict.canPay != null ? (
-          <p className="muted">
+          <p className="muted verdict-card__lede">
             {verdict.canPay
               ? "Looks clear to approve if the PDF matches."
               : "Needs a careful look before approval."}
@@ -62,15 +69,14 @@ export default function ComparisonPanel({
         ) : null}
         {!sapLive && comparisons.length ? (
           <p className="muted comparison-panel__hint">
-            Showing finance checks — full SAP field comparison appears when the gateway attaches
-            source verdict data.
+            Finance checks shown — full SAP rows need gateway source verdict.
           </p>
         ) : null}
       </section>
 
       {issues.count > 0 ? (
         <section className="issues-block">
-          <h4>Issues ({issues.count})</h4>
+          <h4 className="comparison-panel__h">Issues · {issues.count}</h4>
           <ul className="issues-list">
             {issues.rows.map((row, i) => (
               <li key={`${row.area}-${i}`}>
@@ -85,12 +91,21 @@ export default function ComparisonPanel({
 
       {duplicates.length ? (
         <section className="dup-cases-block">
-          <h4>Earlier cases ({duplicates.length})</h4>
-          <p className="muted comparison-panel__hint" style={{ marginTop: 0 }}>
-            Open a prior case to compare status before you approve or re-process this file.
-          </p>
+          <div className="dup-cases-block__head">
+            <h4 className="comparison-panel__h">Earlier cases · {duplicates.length}</h4>
+            {earlierHidden > 0 || showAllEarlier ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-compact dup-cases-block__toggle"
+                onClick={() => setShowAllEarlier((v) => !v)}
+                aria-expanded={showAllEarlier}
+              >
+                {showAllEarlier ? "Show less" : `Show all ${duplicates.length}`}
+              </button>
+            ) : null}
+          </div>
           <ul className="dup-cases-list">
-            {duplicates.map((d) => (
+            {earlierVisible.map((d) => (
               <li key={d.id}>
                 <Link className="dup-cases-list__link" to={`/review/${d.id}`}>
                   <span className="dup-cases-list__id">{d.id.slice(0, 8)}…</span>
@@ -101,12 +116,19 @@ export default function ComparisonPanel({
               </li>
             ))}
           </ul>
+          {earlierHidden > 0 ? (
+            <p className="muted dup-cases-block__more">
+              +{earlierHidden} more — expand to compare before approving.
+            </p>
+          ) : null}
         </section>
       ) : null}
 
       {comparisons.length ? (
         <section className="compare-table-wrap">
-          <h4>{sapLive && !financeOnly ? "Invoice vs SAP" : "Checks"}</h4>
+          <h4 className="comparison-panel__h">
+            {sapLive && !financeOnly ? "Invoice vs SAP" : "Checks"}
+          </h4>
           <table className="compare-table">
             <thead>
               <tr>
@@ -143,36 +165,32 @@ export default function ComparisonPanel({
           </table>
         </section>
       ) : (
-        <section className="empty-note empty-note--rich comparison-panel__sap-empty">
-          <strong>No invoice vs SAP rows on this case</strong>
-          <span>
-            {duplicates.length
-              ? "Duplicate fingerprint is the main flag here — SAP field matching was not attached. Use the earlier cases above, then confirm fields on the PDF."
-              : "SAP field matching is not attached yet. Confirm extracted fields against the PDF, then record a decision when ready."}
-          </span>
-        </section>
+        <p className="muted comparison-panel__sap-empty">
+          {duplicates.length
+            ? "No SAP field rows — duplicate fingerprint is the flag. Confirm the PDF, then decide."
+            : "No SAP field rows yet. Confirm extracted fields against the PDF."}
+        </p>
       )}
 
       {!compact ? (
         <section className="comparison-panel__next" aria-label="What to do next">
-          <p className="section-label">What to do next</p>
           <div className="comparison-panel__actions">
             {onGoFields ? (
-              <button type="button" className="btn btn-primary btn-compact" onClick={onGoFields}>
-                Check extracted fields
+              <button type="button" className="btn btn-ghost btn-compact" onClick={onGoFields}>
+                Check fields
               </button>
             ) : null}
             {canDecide ? (
               <span className="muted comparison-panel__next-hint">
-                Ready? Use Approve / Send back / Reject in the bar below.
+                Decide with Approve / Send back / Reject below.
               </span>
             ) : canEdit ? (
               <span className="muted comparison-panel__next-hint">
-                Save field corrections, then switch role to Approver to decide.
+                Save corrections, then switch to Approver.
               </span>
             ) : (
               <span className="muted comparison-panel__next-hint">
-                Switch to Processor or Approver if you need to edit or decide.
+                Switch role to edit or decide.
               </span>
             )}
           </div>

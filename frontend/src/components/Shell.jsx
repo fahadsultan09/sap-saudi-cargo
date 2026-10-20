@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { canApprove, canProcess, config, saveUserId } from "../lib/config";
+import { canApprove, config, saveUserId } from "../lib/config";
 import { signOutUrl } from "../lib/api";
 
 export default function Shell({ userId, onUserChange, toast, session, localUser }) {
@@ -34,11 +34,6 @@ export default function Shell({ userId, onUserChange, toast, session, localUser 
           >
             Desk
           </NavLink>
-          {canProcess(user) && (
-            <NavLink to="/upload" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-              Upload
-            </NavLink>
-          )}
           {canApprove(user) && (
             <NavLink
               to="/approvals"

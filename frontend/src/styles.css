@@ -503,6 +503,20 @@ a {
   margin: 0;
 }
 
+.upload-watch-meta--home {
+  margin: 0 0 0.65rem;
+}
+
+.dropzone--home {
+  margin-top: 0.85rem;
+  min-height: 200px;
+  padding: 1.5rem 1.75rem;
+}
+
+.dropzone--home h2 {
+  font-size: 1.45rem;
+}
+
 .btn {
   appearance: none;
   border: 0;
@@ -3003,21 +3017,35 @@ a {
 
 .comparison-panel {
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
+}
+
+.comparison-panel__h {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--brand-deep);
 }
 
 .verdict-card {
-  padding: 1rem 1.1rem;
+  padding: 0.85rem 1rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.7);
 }
 
 .verdict-card h3 {
-  margin: 0.2rem 0 0.35rem;
+  margin: 0.15rem 0 0.25rem;
   font-family: var(--display);
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.verdict-card__lede {
+  margin: 0;
+  font-size: 0.86rem;
 }
 
 .verdict-card--approved {
@@ -3036,19 +3064,26 @@ a {
 }
 
 .verdict-points {
-  margin: 0.55rem 0 0;
-  padding-left: 1.1rem;
+  margin: 0.45rem 0 0;
+  padding-left: 1.05rem;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
 }
 
 .comparison-panel__hint {
-  margin: 0.65rem 0 0;
-  font-size: 0.82rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
 }
 
 .comparison-panel__sap-empty {
   margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.empty-note--compact {
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
 }
 
 .comparison-panel__next {
@@ -3070,26 +3105,38 @@ a {
   line-height: 1.35;
 }
 
-.dup-cases-block h4 {
-  margin: 0 0 0.35rem;
-  font-size: 0.95rem;
+.dup-cases-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.dup-cases-block__toggle {
+  flex-shrink: 0;
+}
+
+.dup-cases-block__more {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
 }
 
 .dup-cases-list {
   list-style: none;
-  margin: 0.55rem 0 0;
+  margin: 0.4rem 0 0;
   padding: 0;
   display: grid;
-  gap: 0.4rem;
+  gap: 0.28rem;
 }
 
 .dup-cases-list__link {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
+  gap: 0.65rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.72);
   text-decoration: none;
@@ -3109,10 +3156,9 @@ a {
   color: var(--brand-deep);
 }
 
-.issues-block h4,
-.compare-table-wrap h4 {
-  margin: 0 0 0.55rem;
-  font-size: 0.95rem;
+.issues-block .comparison-panel__h,
+.compare-table-wrap .comparison-panel__h {
+  margin-bottom: 0.4rem;
 }
 
 .issues-list {
@@ -3120,14 +3166,14 @@ a {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.55rem;
+  gap: 0.4rem;
 }
 
 .issues-list li {
   display: grid;
-  gap: 0.15rem;
-  padding: 0.65rem 0.8rem;
-  border-radius: 10px;
+  gap: 0.1rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
   background: rgba(6, 20, 17, 0.04);
   border: 1px solid var(--line);
 }

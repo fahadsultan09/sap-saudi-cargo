@@ -123,7 +123,7 @@ export const PROCESS_STEPS = [
 /** Desk coach copy — shown on ⓘ / first open, not as permanent hero text. */
 export const HOME_COACH = {
   title: "Your desk at a glance",
-  body: "See what needs attention, open an invoice, or start an upload. Agents handle reading and checks — you step in to decide.",
+  body: "See what needs attention, add an invoice on Home, or open the board. Agents handle reading and checks — you step in to decide.",
 };
 
 /** Rotating plain-language actions while each agent is working. */

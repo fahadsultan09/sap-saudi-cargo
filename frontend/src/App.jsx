@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Shell from "./components/Shell";
 import Home from "./pages/Home";
-import Upload from "./pages/Upload";
 import Review from "./pages/Review";
 import Desk from "./pages/Desk";
 import Approvals from "./pages/Approvals";
@@ -53,7 +52,8 @@ export default function App() {
         <Route index element={<Home userId={userId} showToast={showToast} />} />
         <Route path="desk" element={<Desk userId={userId} showToast={showToast} />} />
         <Route path="approvals" element={<Approvals userId={userId} showToast={showToast} />} />
-        <Route path="upload" element={<Upload userId={userId} showToast={showToast} />} />
+        {/* Bookmarks / old links: upload lives on Home now */}
+        <Route path="upload" element={<Navigate to="/" replace />} />
         <Route path="review/:caseId" element={<Review userId={userId} showToast={showToast} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

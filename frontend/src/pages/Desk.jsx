@@ -66,7 +66,7 @@ export default function Desk({ userId }) {
   function handoffFile(file) {
     if (!file || !canProcess(user)) return;
     setPendingFile(file);
-    navigate("/upload", { state: { fromDesk: true } });
+    navigate("/", { state: { fromDesk: true } });
   }
 
   function onDrop(e) {
@@ -86,12 +86,12 @@ export default function Desk({ userId }) {
         </div>
         <div className="home-strip__actions">
           {canProcess(user) ? (
-            <Link className="btn btn-primary btn-compact" to="/upload">
-              Upload
+            <Link className="btn btn-primary btn-compact" to="/">
+              Add invoice
             </Link>
           ) : null}
           <Link className="btn btn-ghost btn-compact" to="/">
-            Agent runway
+            Home
           </Link>
         </div>
       </section>
@@ -141,7 +141,7 @@ export default function Desk({ userId }) {
           onDrop={onDrop}
         >
           <span>
-            Drop a PDF here to upload — or <Link to="/upload">open Upload</Link>
+            Drop a PDF here — or <Link to="/">add on Home</Link>
           </span>
           <input
             type="file"

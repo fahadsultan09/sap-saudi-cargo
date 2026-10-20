@@ -24,6 +24,51 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+def _ensure_approval_request_id_nullable(conn: sqlite3.Connection) -> None:
+    """Legacy DBs may have approval_request_id NOT NULL; direct decide inserts NULL."""
+    columns = conn.execute("PRAGMA table_info(approval_decisions)").fetchall()
+    if not columns:
+        return
+    column = next((item for item in columns if item["name"] == "approval_request_id"), None)
+    if column is None or column["notnull"] == 0:
+        return
+
+    conn.execute("PRAGMA foreign_keys = OFF")
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute("""
+            CREATE TABLE approval_decisions_new (
+                id TEXT PRIMARY KEY,
+                approval_request_id TEXT REFERENCES approval_requests(id),
+                case_id TEXT NOT NULL REFERENCES ap_cases(id),
+                decision TEXT NOT NULL,
+                actor_id TEXT NOT NULL,
+                actor_role TEXT NOT NULL,
+                comment TEXT NOT NULL,
+                policy_version TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            INSERT INTO approval_decisions_new (
+                id, approval_request_id, case_id, decision,
+                actor_id, actor_role, comment, policy_version, created_at
+            )
+            SELECT
+                id, approval_request_id, case_id, decision,
+                actor_id, actor_role, comment, policy_version, created_at
+            FROM approval_decisions
+        """)
+        conn.execute("DROP TABLE approval_decisions")
+        conn.execute("ALTER TABLE approval_decisions_new RENAME TO approval_decisions")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")
+
+
 def init_db() -> None:
     with connect() as conn:
         conn.executescript("""
@@ -105,6 +150,7 @@ def init_db() -> None:
             updated_at TEXT NOT NULL
         );
         """)
+        _ensure_approval_request_id_nullable(conn)
 
 
 @contextmanager
