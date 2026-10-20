@@ -6,10 +6,11 @@ import { canProcess, getUser } from "../lib/config";
 import { confidenceLabel, extractionConfidence } from "../lib/confidence";
 import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
 import { playAgentRunway, stepsAtIndex } from "../lib/agentRunway";
-import { buildPipeline } from "../lib/pipeline";
+import { buildPipeline, formatDateTime, outcomeLabel } from "../lib/pipeline";
 import { clearUploadSession, loadUploadSession, saveUploadSession } from "../lib/uploadSession";
 import ProcessTheater from "../components/ProcessTheater";
 import StageDetailSheet from "../components/StageDetailSheet";
+import DetailSheet from "../components/DetailSheet";
 
 function idleSteps() {
   return PROCESS_STEPS.map((s) => ({
@@ -63,6 +64,7 @@ export default function Upload({ userId, showToast }) {
   const [phase, setPhase] = useState(() => (readRestoredSession() ? "complete" : "idle")); // idle | watching | complete
   const [fileName, setFileName] = useState(() => readRestoredSession()?.fileName || "");
   const [caseId, setCaseId] = useState(() => readRestoredSession()?.caseId || "");
+  const [caseRow, setCaseRow] = useState(null);
   const [steps, setSteps] = useState(() => {
     const saved = readRestoredSession();
     return saved && Array.isArray(saved.steps) && saved.steps.length ? saved.steps : [];
@@ -70,6 +72,7 @@ export default function Upload({ userId, showToast }) {
   const [confidence, setConfidence] = useState(() => readRestoredSession()?.confidence || null);
   const [error, setError] = useState("");
   const [selectedStep, setSelectedStep] = useState(null);
+  const [detail, setDetail] = useState(null); // confidence | case
   const pollRef = useRef(null);
   const runwayRef = useRef(null);
   const apiDoneRef = useRef(null);
@@ -119,6 +122,7 @@ export default function Upload({ userId, showToast }) {
     setPhase("watching");
     setConfidence(null);
     setCaseId("");
+    setCaseRow(null);
     setSteps(stepsAtIndex(0, file.name));
     apiDoneRef.current = null;
     clearUploadSession();
@@ -177,6 +181,7 @@ export default function Upload({ userId, showToast }) {
         const row = await apiJson("GET", casePath(id));
         const stillWorking = PROCESSING.includes(row.status);
         apiDoneRef.current = { stillWorking, row };
+        setCaseRow(row);
         if (stillWorking) {
           setSteps(buildPipeline(row));
           pollUntilDone(id);
@@ -205,6 +210,7 @@ export default function Upload({ userId, showToast }) {
     setSteps(nextSteps);
     setConfidence(conf);
     setCaseId(id);
+    if (row) setCaseRow(row);
     setPhase("complete");
     persistComplete({ id, name: fileName || row?.file_name || "", nextSteps, conf });
     showToast?.("Reading finished — review when you’re ready");
@@ -220,10 +226,12 @@ export default function Upload({ userId, showToast }) {
   function startAnother() {
     setPhase("idle");
     setCaseId("");
+    setCaseRow(null);
     setFileName("");
     setSteps([]);
     setConfidence(null);
     setError("");
+    setDetail(null);
     clearUploadSession();
   }
 
@@ -244,13 +252,23 @@ export default function Upload({ userId, showToast }) {
         </div>
         {showRunway ? (
           <div className="upload-watch-meta upload-watch-meta--inline">
-            <span className={`pill ${complete ? "pill-review" : "pill-working"}`}>
+            <button
+              type="button"
+              className={`pill pill-clickable ${complete ? "pill-review" : "pill-working"}`}
+              onClick={() => setDetail("status")}
+              aria-label="Open status details"
+            >
               {complete ? "Done" : "Live"}
-            </span>
-            <span className="muted">
+            </button>
+            <button
+              type="button"
+              className="meta-chip"
+              onClick={() => setDetail("case")}
+              aria-label="Open case details"
+            >
               <strong>{fileName || "Invoice"}</strong>
               {caseId ? ` · ${caseId.slice(0, 8)}…` : ""}
-            </span>
+            </button>
           </div>
         ) : null}
       </section>
@@ -326,46 +344,26 @@ export default function Upload({ userId, showToast }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.4 }}
               >
-                <div className="upload-result__confidence" aria-label="Extraction confidence">
+                <button
+                  type="button"
+                  className="upload-result__confidence upload-result__confidence--clickable"
+                  aria-label="How confidence was derived"
+                  onClick={() => setDetail("confidence")}
+                >
                   <p className="section-label">Extraction confidence</p>
                   {confidence?.hasAny ? (
-                    <>
-                      <div className="upload-result__score-row">
-                        <strong className="upload-result__score">
-                          {confidence.overall != null ? `${confidence.overall}%` : "—"}
-                        </strong>
-                        <span className="muted">{confidenceLabel(confidence.source)}</span>
-                      </div>
-                      {confidence.classification != null &&
-                      confidence.source !== "classification" &&
-                      confidence.classification !== confidence.overall ? (
-                        <p className="upload-result__secondary muted">
-                          Document type: {confidence.classification}%
-                        </p>
-                      ) : null}
-                      {confidence.fields?.length ? (
-                        <details className="upload-result__fields">
-                          <summary>Per-field confidence</summary>
-                          <ul>
-                            {confidence.fields.map((f) => (
-                              <li key={f.key}>
-                                <span>{f.label}</span>
-                                <strong>{f.percent}%</strong>
-                              </li>
-                            ))}
-                          </ul>
-                        </details>
-                      ) : (
-                        <p className="upload-result__hint muted">
-                          Field-level scores aren’t on this case — showing the overall figure from
-                          reading.
-                        </p>
-                      )}
-                    </>
+                    <div className="upload-result__score-row">
+                      <strong className="upload-result__score">
+                        {confidence.overall != null ? `${confidence.overall}%` : "—"}
+                      </strong>
+                      <span className="muted">
+                        {confidenceLabel(confidence.source)} · tap for how
+                      </span>
+                    </div>
                   ) : (
-                    <p className="muted">Confidence wasn’t returned for this case.</p>
+                    <p className="muted">Confidence wasn’t returned — tap for details</p>
                   )}
-                </div>
+                </button>
 
                 <div className="upload-result__actions btn-row">
                   <button type="button" className="btn btn-primary" onClick={() => goToReview()}>
@@ -399,6 +397,140 @@ export default function Upload({ userId, showToast }) {
           ) : null
         }
       />
+
+      <DetailSheet
+        open={detail === "confidence"}
+        onClose={() => setDetail(null)}
+        title="Extraction confidence"
+        eyebrow="How we scored this"
+        glyph="%"
+        labelledBy="confidence-sheet-title"
+        actions={
+          caseId ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setDetail(null);
+                goToReview();
+              }}
+            >
+              Review invoice
+            </button>
+          ) : null
+        }
+      >
+        {confidence?.hasAny ? (
+          <>
+            <div className="stage-sheet__status">
+              <span className="agent-status agent-status--done">
+                {confidence.overall != null ? `${confidence.overall}%` : "—"}
+              </span>
+              <p className="stage-sheet__now">{confidenceLabel(confidence.source)}</p>
+            </div>
+            <section className="stage-sheet__block">
+              <h3>How this score was derived</h3>
+              <p>
+                {confidence.source === "average"
+                  ? "We averaged the confidence of each extracted field when an overall score wasn’t provided."
+                  : confidence.source === "classification"
+                    ? "This figure is how sure the classifier is that the file is an invoice."
+                    : "This is the overall extraction confidence returned after reading the PDF."}
+              </p>
+            </section>
+            {confidence.classification != null ? (
+              <section className="stage-sheet__block">
+                <h3>Document type</h3>
+                <p>{confidence.classification}% sure this is an invoice (or credit note).</p>
+              </section>
+            ) : null}
+            {confidence.fields?.length ? (
+              <section className="stage-sheet__block">
+                <h3>Per-field confidence</h3>
+                <ul className="detail-kv">
+                  {confidence.fields.map((f) => (
+                    <li key={f.key}>
+                      <span>{f.label}</span>
+                      <strong>{f.percent}%</strong>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
+              <section className="stage-sheet__block">
+                <h3>Per-field scores</h3>
+                <p>Field-level scores aren’t on this case — only the overall figure from reading.</p>
+              </section>
+            )}
+          </>
+        ) : (
+          <section className="stage-sheet__block">
+            <h3>Not available</h3>
+            <p>Confidence wasn’t returned for this case. You can still open the invoice and check fields against the PDF.</p>
+          </section>
+        )}
+      </DetailSheet>
+
+      <DetailSheet
+        open={detail === "case" || detail === "status"}
+        onClose={() => setDetail(null)}
+        title={detail === "status" ? "Status" : "Case"}
+        eyebrow={fileName || "Invoice"}
+        glyph={detail === "status" ? "●" : "#"}
+        labelledBy="upload-case-sheet-title"
+        actions={
+          complete && caseId ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setDetail(null);
+                goToReview();
+              }}
+            >
+              Review invoice
+            </button>
+          ) : null
+        }
+      >
+        <section className="stage-sheet__block">
+          <h3>Case id</h3>
+          <p>
+            <code className="detail-code">{caseId || "—"}</code>
+          </p>
+        </section>
+        <section className="stage-sheet__block">
+          <h3>Status</h3>
+          <p>
+            {complete
+              ? outcomeLabel(caseRow?.status) || "Ready for review"
+              : "Agents are still reading this invoice"}
+          </p>
+        </section>
+        <section className="stage-sheet__block">
+          <h3>File</h3>
+          <p>{fileName || caseRow?.file_name || "—"}</p>
+        </section>
+        {caseRow?.created_at || caseRow?.updated_at ? (
+          <section className="stage-sheet__block">
+            <h3>Timestamps</h3>
+            <ul className="detail-kv">
+              {caseRow.created_at ? (
+                <li>
+                  <span>Created</span>
+                  <strong>{formatDateTime(caseRow.created_at)}</strong>
+                </li>
+              ) : null}
+              {caseRow.updated_at ? (
+                <li>
+                  <span>Updated</span>
+                  <strong>{formatDateTime(caseRow.updated_at)}</strong>
+                </li>
+              ) : null}
+            </ul>
+          </section>
+        ) : null}
+      </DetailSheet>
     </div>
   );
 }

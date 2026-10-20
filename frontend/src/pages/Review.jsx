@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { apiBlob, apiJson, casePath } from "../lib/api";
 import { canApprove, canProcess, getUser } from "../lib/config";
+import { confidenceLabel, extractionConfidence } from "../lib/confidence";
 import { POLL_MS } from "../lib/constants";
 import {
   buildPipeline,
+  formatAmount,
+  formatDateTime,
   mapFields,
+  outcomeLabel,
   permissionsFor,
   pipelineProgress,
   reviewReasons,
@@ -15,39 +19,8 @@ import { loadUploadSession } from "../lib/uploadSession";
 import ProcessTheater from "../components/ProcessTheater";
 import DecisionModal from "../components/DecisionModal";
 import InvoicePdf from "../components/InvoicePdf";
-
-function Disclosure({ id, label, open, onToggle, children }) {
-  return (
-    <div className="disclosure">
-      <button
-        type="button"
-        className="disclosure__trigger"
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={onToggle}
-      >
-        <span>{open ? "Hide" : "Show"} {label}</span>
-        <span className="disclosure__chevron" aria-hidden="true">
-          {open ? "−" : "+"}
-        </span>
-      </button>
-      <AnimatePresence initial={false}>
-        {open ? (
-          <motion.div
-            id={id}
-            className="disclosure__panel"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28 }}
-          >
-            <div className="disclosure__inner">{children}</div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
+import StageDetailSheet from "../components/StageDetailSheet";
+import DetailSheet from "../components/DetailSheet";
 
 export default function Review({ userId, showToast }) {
   const { caseId } = useParams();
@@ -60,8 +33,10 @@ export default function Review({ userId, showToast }) {
   const [pdfError, setPdfError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [panel, setPanel] = useState(null);
   const [modal, setModal] = useState(null);
+  const [selectedStep, setSelectedStep] = useState(null);
+  const [sheet, setSheet] = useState(null); // purpose | status | case | flags | confidence | field
+  const [fieldFocus, setFieldFocus] = useState(null);
   const pdfUrlRef = useRef("");
 
   const fromUpload = useMemo(() => {
@@ -134,6 +109,7 @@ export default function Review({ userId, showToast }) {
   const progress = pipelineProgress(steps);
   const perms = row ? permissionsFor(row, canProcess(user), canApprove(user)) : {};
   const reasons = row ? reviewReasons(row) : [];
+  const confidence = useMemo(() => (row ? extractionConfidence(row) : null), [row]);
   const title = row?.invoice_number || row?.file_name || "Invoice";
   const supplier = row?.supplier_name || "Supplier pending";
   const hasTrace = Boolean(row?.validation?.agent_trace?.length);
@@ -144,6 +120,8 @@ export default function Review({ userId, showToast }) {
         eyebrow: "In progress",
         title: "Agents are still reading this invoice",
         next: "Fields unlock when the runway finishes — stay on this screen or come back from Home.",
+        detail:
+          "Classifier, document reader, and finance check run in sequence. When they finish, extracted fields appear here for you to confirm.",
       };
     }
     if (perms.canDecide) {
@@ -151,6 +129,8 @@ export default function Review({ userId, showToast }) {
         eyebrow: "Approver",
         title: "Decide: approve, send back, or reject",
         next: "Compare the PDF with the fields, then record your decision in the bar below.",
+        detail:
+          "Your decision becomes the audit trail. Approve if fields match the PDF, send back if corrections are needed, or reject if the invoice shouldn’t proceed.",
       };
     }
     if (perms.canEdit) {
@@ -158,17 +138,21 @@ export default function Review({ userId, showToast }) {
         eyebrow: "Processor",
         title: "You’re here to check extracted fields before approval",
         next: "Correct anything that doesn’t match the PDF, save, then switch role to Approver.",
+        detail:
+          "Edit mismatched fields, save with a short note, then ask an Approver to decide. Flagged fields are the ones most worth checking first.",
       };
     }
     return {
       eyebrow: "View only",
       title: "Invoice detail",
       next: "This role can view the document and fields but cannot edit or decide.",
+      detail: "Switch to Processor or Approver if you need to correct fields or record a decision.",
     };
   }, [perms.isProcessing, perms.canDecide, perms.canEdit]);
 
-  function togglePanel(name) {
-    setPanel((current) => (current === name ? null : name));
+  function openFieldSheet(field) {
+    setFieldFocus(field);
+    setSheet("field");
   }
 
   async function saveFields() {
@@ -261,6 +245,11 @@ export default function Review({ userId, showToast }) {
     );
   }
 
+  const liveField =
+    fieldFocus && fields.find((f) => f.key === fieldFocus.key)
+      ? fields.find((f) => f.key === fieldFocus.key)
+      : fieldFocus;
+
   return (
     <div className="page-enter review-page">
       <header className="review-top">
@@ -280,22 +269,61 @@ export default function Review({ userId, showToast }) {
           )}
           <div className="review-top__title">
             <p className="section-label">Review</p>
-            <h1>{title}</h1>
-            <p className="muted">{supplier}</p>
+            <button
+              type="button"
+              className="review-title-btn"
+              onClick={() => setSheet("case")}
+              aria-label="Open case details"
+            >
+              <h1>{title}</h1>
+            </button>
+            <button
+              type="button"
+              className="meta-chip meta-chip--inline muted"
+              onClick={() => setSheet("case")}
+            >
+              {supplier}
+              {caseId ? ` · ${String(caseId).slice(0, 8)}…` : ""}
+            </button>
           </div>
         </div>
-        <span className={`pill pill-${perms.isProcessing ? "working" : "review"}`}>
-          {perms.isProcessing ? progress.nowText : "Ready for you"}
-        </span>
+        <div className="review-top__chips">
+          {confidence?.hasAny ? (
+            <button
+              type="button"
+              className="pill pill-clickable pill-working"
+              onClick={() => setSheet("confidence")}
+              aria-label="Open confidence details"
+            >
+              {confidence.overall != null ? `${confidence.overall}%` : "Confidence"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={`pill pill-clickable pill-${perms.isProcessing ? "working" : "review"}`}
+            onClick={() => setSheet("status")}
+            aria-label="Open status details"
+          >
+            {perms.isProcessing ? progress.nowText : outcomeLabel(row?.status) || "Ready for you"}
+          </button>
+        </div>
       </header>
 
-      <aside className="purpose-strip" aria-label="Why you are here">
+      <button
+        type="button"
+        className="purpose-strip purpose-strip--clickable"
+        aria-label="Why you are here — more detail"
+        onClick={() => setSheet("purpose")}
+      >
         <div className="purpose-strip__copy">
           <p className="purpose-strip__eyebrow">{purpose.eyebrow}</p>
           <p className="purpose-strip__title">{purpose.title}</p>
           <p className="purpose-strip__next">{purpose.next}</p>
         </div>
-      </aside>
+        <span className="purpose-strip__hint" aria-hidden="true">
+          ⓘ
+        </span>
+      </button>
 
       {error ? <div className="error-banner">{error}</div> : null}
 
@@ -308,8 +336,10 @@ export default function Review({ userId, showToast }) {
           <ProcessTheater
             steps={steps}
             variant="compact"
+            interactive
+            onStepSelect={setSelectedStep}
             title="Agents at work"
-            subtitle="Live actions below — each step shows what it’s doing right now"
+            subtitle="Tap a stage for details — live actions below"
           />
         </motion.div>
       ) : null}
@@ -317,10 +347,14 @@ export default function Review({ userId, showToast }) {
       <div className="review-grid">
         <section className="panel panel--document">
           <div className="panel-head">
-            <div>
+            <button
+              type="button"
+              className="panel-head__btn"
+              onClick={() => setSheet("case")}
+            >
               <h2>Invoice</h2>
               <p className="muted panel-head__sub">{row?.file_name || "PDF document"}</p>
-            </div>
+            </button>
             {pdfUrl ? (
               <a className="details-link" href={pdfUrl} target="_blank" rel="noreferrer">
                 Open in tab
@@ -341,10 +375,17 @@ export default function Review({ userId, showToast }) {
           <div className="panel-head">
             <div>
               <h2>Extracted fields</h2>
-              <p className="muted panel-head__sub">Match these to the PDF</p>
+              <p className="muted panel-head__sub">Match these to the PDF · tap a label for detail</p>
             </div>
             {reasons.length > 0 ? (
-              <span className="pill pill-review">{reasons.length} to check</span>
+              <button
+                type="button"
+                className="pill pill-clickable pill-review"
+                onClick={() => setSheet("flags")}
+                aria-label={`${reasons.length} flags — open explanations`}
+              >
+                {reasons.length} to check
+              </button>
             ) : null}
           </div>
 
@@ -354,14 +395,22 @@ export default function Review({ userId, showToast }) {
                 key={field.key}
                 className={`field${field.needsAttention ? " attention" : ""}`}
               >
-                <label htmlFor={field.key}>
-                  {field.label}
-                  {field.needsAttention ? <em>Check</em> : null}
-                </label>
+                <button
+                  type="button"
+                  className="field__label-btn"
+                  onClick={() => openFieldSheet(field)}
+                >
+                  <span>{field.label}</span>
+                  <span className="field__label-meta">
+                    {field.confidence != null ? `${field.confidence}%` : null}
+                    {field.needsAttention ? <em>Check</em> : null}
+                  </span>
+                </button>
                 <input
                   id={field.key}
                   value={field.value}
                   disabled={!perms.canEdit}
+                  aria-label={field.label}
                   onChange={(e) =>
                     setFields((prev) =>
                       prev.map((f) =>
@@ -376,59 +425,37 @@ export default function Review({ userId, showToast }) {
 
           <div className="review-secondary">
             {reasons.length > 0 ? (
-              <Disclosure
-                id="review-flags"
-                label="why this needs attention"
-                open={panel === "flags"}
-                onToggle={() => togglePanel("flags")}
+              <button
+                type="button"
+                className="disclosure-link"
+                onClick={() => setSheet("flags")}
               >
-                <ul className="reasons reasons--nested">
-                  {reasons.map((r) => (
-                    <li key={r}>{r}</li>
-                  ))}
-                </ul>
-              </Disclosure>
+                Why this needs attention
+              </button>
             ) : null}
-
-            <Disclosure
-              id="review-agents"
-              label="agent activity"
-              open={panel === "agents"}
-              onToggle={() => togglePanel("agents")}
+            <button
+              type="button"
+              className="disclosure-link"
+              onClick={() => setSheet("agents")}
             >
-              <ProcessTheater
-                steps={steps}
-                variant="compact"
-                title="How we checked this"
-                subtitle="Plain-language outcomes for each step"
-              />
-            </Disclosure>
-
-            <Disclosure
-              id="review-tech"
-              label="technical details"
-              open={panel === "tech"}
-              onToggle={() => togglePanel("tech")}
+              Agent activity
+            </button>
+            {confidence?.hasAny ? (
+              <button
+                type="button"
+                className="disclosure-link"
+                onClick={() => setSheet("confidence")}
+              >
+                Confidence details
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="disclosure-link"
+              onClick={() => setSheet("tech")}
             >
-              {hasTrace ? (
-                <ul className="tech-trace">
-                  {row.validation.agent_trace.map((t, i) => (
-                    <li key={`${t.agent}-${i}`}>
-                      <code>{t.agent}</code>
-                      <span>{t.status}</span>
-                      {t.summary ? <em>{t.summary}</em> : null}
-                      {t.duration_ms != null ? (
-                        <span className="tech-trace__ms">{t.duration_ms} ms</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="muted disclosure__empty">
-                  No internal agent ids on this case. Outcomes are shown under Agent activity.
-                </p>
-              )}
-            </Disclosure>
+              Technical details
+            </button>
           </div>
         </section>
       </div>
@@ -507,6 +534,281 @@ export default function Review({ userId, showToast }) {
           onSubmit={onModalSubmit}
         />
       ) : null}
+
+      <StageDetailSheet step={selectedStep} onClose={() => setSelectedStep(null)} />
+
+      <DetailSheet
+        open={sheet === "purpose"}
+        onClose={() => setSheet(null)}
+        title={purpose.title}
+        eyebrow={purpose.eyebrow}
+        glyph="✦"
+        labelledBy="purpose-sheet-title"
+      >
+        <section className="stage-sheet__block">
+          <h3>What to do next</h3>
+          <p>{purpose.next}</p>
+        </section>
+        <section className="stage-sheet__block">
+          <h3>More context</h3>
+          <p>{purpose.detail}</p>
+        </section>
+      </DetailSheet>
+
+      <DetailSheet
+        open={sheet === "status"}
+        onClose={() => setSheet(null)}
+        title={outcomeLabel(row?.status) || "Status"}
+        eyebrow="Case status"
+        glyph="●"
+        labelledBy="status-sheet-title"
+      >
+        <div className="stage-sheet__status">
+          <span
+            className={`agent-status agent-status--${
+              perms.isProcessing ? "running" : "done"
+            }`}
+          >
+            {perms.isProcessing ? progress.nowText : outcomeLabel(row?.status)}
+          </span>
+          <p className="stage-sheet__now">
+            {perms.isProcessing
+              ? `${progress.doneCount} of ${progress.total} stages complete`
+              : "Ready for human review or already decided"}
+          </p>
+        </div>
+        <section className="stage-sheet__block">
+          <h3>Raw status</h3>
+          <p>
+            <code className="detail-code">{row?.status || "—"}</code>
+          </p>
+        </section>
+        <section className="stage-sheet__block">
+          <h3>Timestamps</h3>
+          <ul className="detail-kv">
+            <li>
+              <span>Created</span>
+              <strong>{formatDateTime(row?.created_at)}</strong>
+            </li>
+            <li>
+              <span>Updated</span>
+              <strong>{formatDateTime(row?.updated_at)}</strong>
+            </li>
+          </ul>
+        </section>
+      </DetailSheet>
+
+      <DetailSheet
+        open={sheet === "case"}
+        onClose={() => setSheet(null)}
+        title={title}
+        eyebrow="Case"
+        glyph="#"
+        labelledBy="case-sheet-title"
+      >
+        <section className="stage-sheet__block">
+          <h3>Case id</h3>
+          <p>
+            <code className="detail-code">{caseId}</code>
+          </p>
+        </section>
+        <ul className="detail-kv detail-kv--block">
+          <li>
+            <span>Status</span>
+            <strong>{outcomeLabel(row?.status)}</strong>
+          </li>
+          <li>
+            <span>Supplier</span>
+            <strong>{supplier}</strong>
+          </li>
+          <li>
+            <span>Amount</span>
+            <strong>{formatAmount(row)}</strong>
+          </li>
+          <li>
+            <span>File</span>
+            <strong>{row?.file_name || "—"}</strong>
+          </li>
+          <li>
+            <span>Created</span>
+            <strong>{formatDateTime(row?.created_at)}</strong>
+          </li>
+          <li>
+            <span>Updated</span>
+            <strong>{formatDateTime(row?.updated_at)}</strong>
+          </li>
+        </ul>
+      </DetailSheet>
+
+      <DetailSheet
+        open={sheet === "flags"}
+        onClose={() => setSheet(null)}
+        title="Why this needs attention"
+        eyebrow="Flags"
+        glyph="!"
+        labelledBy="flags-sheet-title"
+      >
+        {reasons.length ? (
+          <ul className="reasons">
+            {reasons.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+        ) : (
+          <section className="stage-sheet__block">
+            <p>No open flags on this case.</p>
+          </section>
+        )}
+      </DetailSheet>
+
+      <DetailSheet
+        open={sheet === "confidence"}
+        onClose={() => setSheet(null)}
+        title="Extraction confidence"
+        eyebrow="How we scored this"
+        glyph="%"
+        labelledBy="review-confidence-title"
+      >
+        {confidence?.hasAny ? (
+          <>
+            <div className="stage-sheet__status">
+              <span className="agent-status agent-status--done">
+                {confidence.overall != null ? `${confidence.overall}%` : "—"}
+              </span>
+              <p className="stage-sheet__now">{confidenceLabel(confidence.source)}</p>
+            </div>
+            <section className="stage-sheet__block">
+              <h3>How this score was derived</h3>
+              <p>
+                {confidence.source === "average"
+                  ? "We averaged the confidence of each extracted field when an overall score wasn’t provided."
+                  : confidence.source === "classification"
+                    ? "This figure is how sure the classifier is that the file is an invoice."
+                    : "This is the overall extraction confidence returned after reading the PDF."}
+              </p>
+            </section>
+            {confidence.classification != null ? (
+              <section className="stage-sheet__block">
+                <h3>Document type</h3>
+                <p>{confidence.classification}% sure this is an invoice (or credit note).</p>
+              </section>
+            ) : null}
+            {confidence.fields?.length ? (
+              <section className="stage-sheet__block">
+                <h3>Per-field confidence</h3>
+                <ul className="detail-kv">
+                  {confidence.fields.map((f) => (
+                    <li key={f.key}>
+                      <span>{f.label}</span>
+                      <strong>{f.percent}%</strong>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
+              <section className="stage-sheet__block">
+                <h3>Per-field scores</h3>
+                <p>Field-level scores aren’t on this case — only the overall figure from reading.</p>
+              </section>
+            )}
+          </>
+        ) : (
+          <section className="stage-sheet__block">
+            <p>Confidence wasn’t returned for this case.</p>
+          </section>
+        )}
+      </DetailSheet>
+
+      <DetailSheet
+        open={sheet === "field" && Boolean(liveField)}
+        onClose={() => {
+          setSheet(null);
+          setFieldFocus(null);
+        }}
+        title={liveField?.label || "Field"}
+        eyebrow="Field detail"
+        glyph="◎"
+        labelledBy="field-sheet-title"
+      >
+        {liveField ? (
+          <>
+            <section className="stage-sheet__block">
+              <h3>Current value</h3>
+              <p className="detail-value">{liveField.value || "—"}</p>
+            </section>
+            <ul className="detail-kv detail-kv--block">
+              <li>
+                <span>Confidence</span>
+                <strong>
+                  {liveField.confidence != null ? `${liveField.confidence}%` : "Not scored"}
+                </strong>
+              </li>
+              <li>
+                <span>Required</span>
+                <strong>{liveField.required ? "Yes" : "No"}</strong>
+              </li>
+              <li>
+                <span>Needs check</span>
+                <strong>{liveField.needsAttention ? "Yes" : "No"}</strong>
+              </li>
+            </ul>
+            <section className="stage-sheet__block">
+              <h3>Source</h3>
+              <p>{liveField.sourceHint}</p>
+            </section>
+          </>
+        ) : null}
+      </DetailSheet>
+
+      <DetailSheet
+        open={sheet === "agents"}
+        onClose={() => setSheet(null)}
+        title="Agent activity"
+        eyebrow="How we checked this"
+        glyph="◈"
+        wide
+        labelledBy="agents-sheet-title"
+      >
+        <ProcessTheater
+          steps={steps}
+          variant="compact"
+          interactive
+          onStepSelect={(step) => {
+            setSheet(null);
+            setSelectedStep(step);
+          }}
+          title="Outcomes"
+          subtitle="Tap a stage for more"
+        />
+      </DetailSheet>
+
+      <DetailSheet
+        open={sheet === "tech"}
+        onClose={() => setSheet(null)}
+        title="Technical details"
+        eyebrow="Internal"
+        glyph="⚙"
+        labelledBy="tech-sheet-title"
+      >
+        {hasTrace ? (
+          <ul className="tech-trace">
+            {row.validation.agent_trace.map((t, i) => (
+              <li key={`${t.agent}-${i}`}>
+                <code>{t.agent}</code>
+                <span>{t.status}</span>
+                {t.summary ? <em>{t.summary}</em> : null}
+                {t.duration_ms != null ? (
+                  <span className="tech-trace__ms">{t.duration_ms} ms</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <section className="stage-sheet__block">
+            <p>No internal agent ids on this case. Outcomes are under Agent activity.</p>
+          </section>
+        )}
+      </DetailSheet>
 
       {busy ? (
         <div className="busy-overlay">

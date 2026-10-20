@@ -7,25 +7,27 @@ import {
   HOME_COACH,
   LIST_REFRESH_MS,
   NEEDS_ATTENTION,
-  OUTCOME_TONE,
   PROCESS_STEPS,
   PROCESSING,
 } from "../lib/constants";
-import { buildPipeline, formatAmount, formatDate, outcomeLabel } from "../lib/pipeline";
+import { buildPipeline } from "../lib/pipeline";
 import ProcessTheater from "../components/ProcessTheater";
 import StageDetailSheet from "../components/StageDetailSheet";
+import InvoiceHistorySheet from "../components/InvoiceHistorySheet";
 
 const COACH_KEY = "cleardesk-home-coach-seen";
 
 export default function Home({ userId }) {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
   const user = getUser(userId);
   const [cases, setCases] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedStep, setSelectedStep] = useState(null);
   const [coachOpen, setCoachOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState("all");
 
   useEffect(() => {
     let alive = true;
@@ -63,12 +65,37 @@ export default function Home({ userId }) {
     }
   }, []);
 
+  useEffect(() => {
+    const focus = params.get("focus");
+    if (focus === "review") {
+      setHistoryFilter("review");
+      setHistoryOpen(true);
+    } else if (focus === "history" || focus === "invoices") {
+      setHistoryFilter("all");
+      setHistoryOpen(true);
+    }
+  }, [params]);
+
   function dismissCoach() {
     setCoachOpen(false);
     try {
       sessionStorage.setItem(COACH_KEY, "1");
     } catch {
       /* ignore */
+    }
+  }
+
+  function openHistory(filter = "all") {
+    setHistoryFilter(filter);
+    setHistoryOpen(true);
+  }
+
+  function closeHistory() {
+    setHistoryOpen(false);
+    if (params.get("focus")) {
+      const next = new URLSearchParams(params);
+      next.delete("focus");
+      setSearchParams(next, { replace: true });
     }
   }
 
@@ -106,19 +133,6 @@ export default function Home({ userId }) {
 
   const runwaySteps = liveSteps || idlePreview;
 
-  const recent = useMemo(() => {
-    const focus = params.get("focus");
-    let list = [...cases];
-    if (focus === "review") {
-      list = list.filter((c) => NEEDS_ATTENTION.includes(c.status));
-    }
-    return list
-      .sort((a, b) =>
-        String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)),
-      )
-      .slice(0, 8);
-  }, [cases, params]);
-
   function stageActions(step) {
     if (!step) return null;
     if (step.key === "receive" && canProcess(user) && !liveSteps) {
@@ -149,17 +163,34 @@ export default function Home({ userId }) {
     <div className="page-enter">
       <section className="home-strip" aria-label="Quick actions">
         {attention.length > 0 ? (
-          <div className="attention attention--compact">
+          <button
+            type="button"
+            className="attention attention--compact attention--clickable"
+            onClick={() => openHistory("review")}
+            aria-label={`${attention.length} need attention — open invoice list`}
+          >
             <strong>{attention.length}</strong>
             need{attention.length === 1 ? "s" : ""} attention
             {working.length ? ` · ${working.length} working` : ""}
-          </div>
+          </button>
         ) : working.length > 0 ? (
-          <div className="attention attention--working attention--compact">
+          <button
+            type="button"
+            className="attention attention--working attention--compact attention--clickable"
+            onClick={() => openHistory("working")}
+            aria-label={`${working.length} working — open invoice list`}
+          >
             <strong>{working.length}</strong> working
-          </div>
+          </button>
         ) : (
-          <div className="attention attention--ok attention--compact">Desk clear</div>
+          <button
+            type="button"
+            className="attention attention--ok attention--compact attention--clickable"
+            onClick={() => openHistory("all")}
+            aria-label="Desk clear — open invoice history"
+          >
+            Desk clear
+          </button>
         )}
 
         <div className="home-strip__actions">
@@ -177,6 +208,17 @@ export default function Home({ userId }) {
               Open next
             </button>
           )}
+          <button
+            type="button"
+            className="btn btn-ghost btn-compact"
+            onClick={() => openHistory("all")}
+            aria-expanded={historyOpen}
+          >
+            Invoices
+            {cases.length ? (
+              <span className="home-strip__count">{cases.length}</span>
+            ) : null}
+          </button>
           <button
             type="button"
             className={`home-info${coachOpen ? " home-info--open" : ""}`}
@@ -231,16 +273,13 @@ export default function Home({ userId }) {
         </section>
       )}
 
-      <p className="section-label">
-        {params.get("focus") === "review" ? "Needs review" : "Recent results"}
-      </p>
       {loading && !cases.length ? (
         <div className="empty-note empty-note--rich">
           <strong>Loading desk</strong>
           <span>Fetching the latest invoices…</span>
         </div>
-      ) : recent.length === 0 ? (
-        <div className="empty-note empty-note--rich">
+      ) : !loading && cases.length === 0 ? (
+        <div className="empty-note empty-note--rich home-empty">
           <strong>Nothing here yet</strong>
           <span>Upload an invoice to put ClearDesk to work.</span>
           {canProcess(user) ? (
@@ -249,41 +288,20 @@ export default function Home({ userId }) {
             </Link>
           ) : null}
         </div>
-      ) : (
-        <div className="outcome-list">
-          {recent.map((item, index) => {
-            const outcome = outcomeLabel(item.status);
-            const tone = OUTCOME_TONE[outcome] || "review";
-            const itemTitle = item.invoice_number || item.file_name || "Invoice";
-            const itemSupplier = item.supplier_name || "Supplier pending";
-            return (
-              <motion.button
-                key={item.id}
-                type="button"
-                className="outcome"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.045, duration: 0.4 }}
-                onClick={() => navigate(`/review/${item.id}`)}
-              >
-                <div>
-                  <h3>{itemTitle}</h3>
-                  <p>
-                    {itemSupplier} · {formatAmount(item)} ·{" "}
-                    {formatDate(item.updated_at || item.created_at)}
-                  </p>
-                </div>
-                <span className={`pill pill-${tone}`}>{outcome}</span>
-              </motion.button>
-            );
-          })}
-        </div>
-      )}
+      ) : null}
 
       <StageDetailSheet
         step={selectedStep}
         onClose={() => setSelectedStep(null)}
         actions={stageActions(selectedStep)}
+      />
+
+      <InvoiceHistorySheet
+        open={historyOpen}
+        cases={cases}
+        initialFilter={historyFilter}
+        onClose={closeHistory}
+        onSelect={(item) => navigate(`/review/${item.id}`)}
       />
     </div>
   );

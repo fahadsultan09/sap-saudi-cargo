@@ -191,16 +191,54 @@ export function formatDate(iso) {
 
 export function mapFields(caseRow) {
   const missing = caseRow?.validation?.missing_fields || [];
+  const fieldMap =
+    caseRow?.validation?.field_confidences ||
+    caseRow?.validation?.field_confidence ||
+    caseRow?.field_confidences ||
+    null;
   return FIELDS.map((f) => {
     const value = caseRow?.[f.key] == null ? "" : String(caseRow[f.key]);
+    let confidence = null;
+    if (fieldMap && typeof fieldMap === "object" && fieldMap[f.key] != null) {
+      const n = Number(fieldMap[f.key]);
+      if (Number.isFinite(n)) {
+        confidence = n >= 0 && n <= 1 ? Math.round(n * 100) : Math.round(n);
+      }
+    }
     return {
       key: f.key,
       label: f.label,
       value,
       original: value,
+      required: Boolean(f.required),
+      confidence,
       needsAttention: (f.required && !value) || missing.includes(f.key),
+      sourceHint: missing.includes(f.key)
+        ? "Marked missing by finance checks"
+        : f.required
+          ? "Required field from the PDF"
+          : "Optional field from the PDF",
     };
   });
+}
+
+/** Longer timestamps for case detail sheets. */
+export function formatDateTime(iso) {
+  if (!iso) return "—";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Riyadh",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date(iso));
+  } catch {
+    return String(iso);
+  }
 }
 
 export function reviewReasons(caseRow) {
