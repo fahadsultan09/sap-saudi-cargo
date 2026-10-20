@@ -4,11 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { apiJson, casePath } from "../lib/api";
 import { playAgentRunway, stepsAtIndex } from "../lib/agentRunway";
 import { confidenceLabel, extractionConfidence } from "../lib/confidence";
-import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
-import { buildPipeline, formatDateTime, outcomeLabel } from "../lib/pipeline";
+import { POLL_MS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
+import { buildPipeline, outcomeLabel } from "../lib/pipeline";
 import { clearUploadSession, loadUploadSession, saveUploadSession } from "../lib/uploadSession";
 import ProcessTheater from "../components/ProcessTheater";
-import StageDetailBody from "../components/StageDetailBody";
+import StageDetailSheet from "../components/StageDetailSheet";
 import DetailSheet from "../components/DetailSheet";
 
 function finalizeSteps(row) {
@@ -50,6 +50,7 @@ export default function Process({ showToast }) {
   const [caseRow, setCaseRow] = useState(null);
   const [steps, setSteps] = useState([]);
   const [selectedKey, setSelectedKey] = useState(null);
+  const [detailKey, setDetailKey] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [confidenceOpen, setConfidenceOpen] = useState(false);
@@ -171,6 +172,7 @@ export default function Process({ showToast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- remount on caseId
   }, [caseId]);
 
+  // Highlight the live stage only — never auto-open the detail sheet.
   useEffect(() => {
     if (!steps.length) return;
     setSelectedKey((prev) => {
@@ -179,11 +181,19 @@ export default function Process({ showToast }) {
     });
   }, [steps]);
 
+  useEffect(() => {
+    if (!detailKey) return;
+    if (!steps.some((s) => s.key === detailKey)) setDetailKey(null);
+  }, [steps, detailKey]);
+
   const selectedStep = useMemo(
-    () => steps.find((s) => s.key === selectedKey) || pickDefaultStep(steps),
+    () => steps.find((s) => s.key === selectedKey) || null,
     [steps, selectedKey],
   );
-  const selectedDef = PROCESS_STEPS.find((s) => s.key === selectedStep?.key) || {};
+  const detailStep = useMemo(
+    () => (detailKey ? steps.find((s) => s.key === detailKey) || null : null),
+    [steps, detailKey],
+  );
   const confidence = caseRow ? extractionConfidence(caseRow) : null;
   const complete =
     caseRow && !PROCESSING.includes(caseRow.status) && steps.some((s) => s.key === "decide");
@@ -195,7 +205,7 @@ export default function Process({ showToast }) {
       ? "Ready for review"
       : "Agent runway";
   const runwaySubtitle = working
-    ? "Tap a stage — details stay on this page"
+    ? "Tap Details on a stage for more"
     : complete
       ? "Agents finished — review now or later"
       : "ClearDesk process room";
@@ -213,6 +223,12 @@ export default function Process({ showToast }) {
 
   function goHome() {
     navigate("/");
+  }
+
+  function openStageDetails(step) {
+    if (!step?.key) return;
+    setSelectedKey(step.key);
+    setDetailKey(step.key);
   }
 
   return (
@@ -249,39 +265,15 @@ export default function Process({ showToast }) {
               steps={steps.length ? steps : stepsAtIndex(0, fileName || "")}
               variant="hero"
               interactive
+              detailsViaHint
               onStepSelect={(step) => setSelectedKey(step.key)}
+              onStepDetails={openStageDetails}
               title={runwayTitle}
               subtitle={runwaySubtitle}
               selectedKey={selectedStep?.key}
             />
           )}
         </div>
-
-        <aside className="process-page__detail" aria-live="polite">
-          <div className="process-detail">
-            <header className="process-detail__head">
-              <div className="process-detail__orb" aria-hidden="true">
-                <span>{selectedDef.glyph || selectedStep?.glyph || "●"}</span>
-              </div>
-              <div>
-                <p className="section-label">{selectedDef.role || "Stage"}</p>
-                <h2>{selectedStep?.title || "Select a stage"}</h2>
-              </div>
-            </header>
-            <div className="process-detail__body">
-              {selectedStep ? (
-                <StageDetailBody step={selectedStep} />
-              ) : (
-                <p className="muted">Tap a stage on the runway to see what it does.</p>
-              )}
-            </div>
-            {caseRow?.updated_at ? (
-              <footer className="process-detail__meta muted">
-                Updated {formatDateTime(caseRow.updated_at)}
-              </footer>
-            ) : null}
-          </div>
-        </aside>
       </div>
 
       <div className="process-dock" role="region" aria-label="Process actions">
@@ -319,6 +311,8 @@ export default function Process({ showToast }) {
           </Link>
         </div>
       </div>
+
+      <StageDetailSheet step={detailStep} onClose={() => setDetailKey(null)} />
 
       <DetailSheet
         open={confidenceOpen}

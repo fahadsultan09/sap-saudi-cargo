@@ -33,7 +33,18 @@ function useRotatingAction(actions, active) {
   return list[Math.min(index, list.length - 1)];
 }
 
-function AgentNode({ step, index, compact, showTechnical, interactive, idle, selected, onSelect }) {
+function AgentNode({
+  step,
+  index,
+  compact,
+  showTechnical,
+  interactive,
+  idle,
+  selected,
+  onSelect,
+  onDetails,
+  detailsViaHint,
+}) {
   const state = step.state || "pending";
   const statusLabel =
     state === "running"
@@ -56,18 +67,28 @@ function AgentNode({ step, index, compact, showTechnical, interactive, idle, sel
           ? step.outcome || step.description
           : step.description || step.plain;
 
-  const Tag = interactive ? motion.button : motion.article;
-  const interactiveProps = interactive
-    ? {
-        type: "button",
-        onClick: () => onSelect?.(step),
-        "aria-label": `${step.title} — open stage details`,
-      }
-    : {};
+  const openDetails = () => (onDetails || onSelect)?.(step);
+  // DETAILS-only mode: card highlights/selects; sheet opens only via the Details control.
+  const hintOnly = Boolean(interactive && detailsViaHint);
+  const Tag = interactive && !hintOnly ? motion.button : motion.article;
+  const interactiveProps =
+    interactive && !hintOnly
+      ? {
+          type: "button",
+          onClick: () => onSelect?.(step),
+          "aria-label": `${step.title} — open stage details`,
+        }
+      : hintOnly
+        ? {
+            role: "group",
+            "aria-label": step.title,
+            onClick: () => onSelect?.(step),
+          }
+        : {};
 
   return (
     <Tag
-      className={`agent-node${compact ? " agent-node--compact" : ""}${interactive ? " agent-node--interactive" : ""}${idle ? " agent-node--idle" : ""}${selected ? " agent-node--selected" : ""}`}
+      className={`agent-node${compact ? " agent-node--compact" : ""}${interactive ? " agent-node--interactive" : ""}${hintOnly ? " agent-node--details-hint" : ""}${idle ? " agent-node--idle" : ""}${selected ? " agent-node--selected" : ""}`}
       data-state={state}
       style={idle ? { "--idle-delay": `${index * 0.28}s` } : undefined}
       initial={{ opacity: 0, y: 18, scale: 0.96 }}
@@ -115,7 +136,20 @@ function AgentNode({ step, index, compact, showTechnical, interactive, idle, sel
           ) : step.role && !compact ? (
             <span className="agent-role">{step.role}</span>
           ) : null}
-          {interactive ? <span className="agent-node__hint">Details</span> : null}
+          {hintOnly ? (
+            <button
+              type="button"
+              className="agent-node__hint agent-node__hint--btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetails();
+              }}
+            >
+              Details
+            </button>
+          ) : interactive ? (
+            <span className="agent-node__hint">Details</span>
+          ) : null}
         </div>
       </div>
     </Tag>
@@ -156,6 +190,8 @@ export default function ProcessTheater({
   showTechnical = false,
   interactive = false,
   onStepSelect,
+  onStepDetails,
+  detailsViaHint = false,
   selectedKey = null,
 }) {
   const progress = pipelineProgress(steps);
@@ -208,7 +244,9 @@ export default function ProcessTheater({
           </AnimatePresence>
           {subtitle ? <p className="theater-sub">{subtitle}</p> : null}
           {interactive && idle ? (
-            <p className="theater-hint">Tap any stage for what it does</p>
+            <p className="theater-hint">
+              {detailsViaHint ? "Tap Details on a stage for more" : "Tap any stage for what it does"}
+            </p>
           ) : null}
         </div>
 
@@ -256,6 +294,8 @@ export default function ProcessTheater({
                 idle={idle}
                 selected={selectedKey === step.key}
                 onSelect={onStepSelect}
+                onDetails={onStepDetails}
+                detailsViaHint={detailsViaHint}
               />
             </div>
           );

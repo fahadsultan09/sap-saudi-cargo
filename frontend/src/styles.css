@@ -1314,8 +1314,33 @@ a {
 }
 
 .agent-node--interactive:hover .agent-node__hint,
-.agent-node--interactive:focus-visible .agent-node__hint {
+.agent-node--interactive:focus-visible .agent-node__hint,
+.agent-node--selected .agent-node__hint,
+.agent-node--details-hint .agent-node__hint--btn {
   opacity: 1;
+}
+
+.agent-node__hint--btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.15rem 0.1rem;
+  margin: 0;
+  font: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: rgba(30, 201, 168, 0.92);
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.agent-node__hint--btn:hover,
+.agent-node__hint--btn:focus-visible {
+  color: #7dffd6;
+  text-decoration: underline;
+  outline: none;
 }
 
 .agent-node__breath {
@@ -3403,7 +3428,7 @@ a {
 
 .process-page__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.1rem;
   align-items: stretch;
   flex: 1;
@@ -3414,58 +3439,8 @@ a {
   height: 100%;
 }
 
-.process-page__detail {
-  min-height: 0;
-}
-
-.process-detail {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border-radius: calc(var(--radius) + 4px);
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(11, 122, 102, 0.14);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.process-detail__head {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 1rem 1.1rem 0.85rem;
-  border-bottom: 1px solid rgba(11, 122, 102, 0.1);
-  background: linear-gradient(180deg, rgba(232, 247, 242, 0.9), rgba(255, 255, 255, 0.4));
-}
-
-.process-detail__orb {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(145deg, #0f2e28, #12967f);
-  color: #e8f2ef;
-  font-size: 1.05rem;
-  flex-shrink: 0;
-}
-
-.process-detail__head h2 {
-  margin: 0;
-  font-size: 1.15rem;
-  letter-spacing: -0.02em;
-}
-
-.process-detail__body {
-  padding: 0.85rem 1.1rem 1.1rem;
-  overflow: auto;
-  flex: 1;
-}
-
-.process-detail__meta {
-  padding: 0.65rem 1.1rem 0.85rem;
-  border-top: 1px solid rgba(11, 122, 102, 0.08);
-  font-size: 0.78rem;
+.agent-node--details-hint {
+  cursor: pointer;
 }
 
 .process-dock {
@@ -3530,10 +3505,6 @@ a {
 }
 
 @media (max-width: 960px) {
-  .process-page__layout {
-    grid-template-columns: 1fr;
-  }
-
   .process-page__runway .theater--hero {
     min-height: min(46vh, 380px);
   }
