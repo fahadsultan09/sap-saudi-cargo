@@ -8,10 +8,10 @@ export default function Shell({ userId, onUserChange, toast }) {
     <div className="app-shell">
       <header className="topnav">
         <NavLink to="/" className="brand-lockup">
-          <img src="/logo.png" alt="Saudi Cargo" />
+          <img src="/logo.svg" alt="" width={36} height={36} />
           <div className="brand-copy">
-            <strong>AP Console</strong>
-            <span>Invoice desk</span>
+            <strong>ClearDesk</strong>
+            <span>AP automation</span>
           </div>
         </NavLink>
 
@@ -55,6 +55,11 @@ export default function Shell({ userId, onUserChange, toast }) {
       <main className="main">
         <Outlet />
       </main>
+
+      <footer className="site-footer">
+        <span>ClearDesk</span>
+        <span className="muted">Invoice automation demo</span>
+      </footer>
 
       {toast ? (
         <div className="toast" role="status">

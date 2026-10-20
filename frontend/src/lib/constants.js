@@ -43,7 +43,7 @@ export const FIELDS = [
   { key: "company_code", label: "Company code" },
 ];
 
-/** Plain-English process steps. Agent ids stay internal; never show TOWER/LENS on main UI. */
+/** Plain agent names on the runway; soft codenames are secondary UI only. */
 export const PROCESS_STEPS = [
   {
     key: "receive",
@@ -54,31 +54,34 @@ export const PROCESS_STEPS = [
   },
   {
     key: "classify",
-    title: "Reading invoice",
+    title: "Classifier",
     plain: "Confirming this is an invoice",
     agent: "TOWER",
+    codename: "Tower",
     role: "Document type",
     glyph: "◈",
   },
   {
     key: "extract",
-    title: "Pulling out details",
+    title: "Document reader",
     plain: "Supplier, amounts, dates, PO",
     agent: "LENS",
+    codename: "Lens",
     role: "Field extraction",
     glyph: "◎",
   },
   {
     key: "finance",
-    title: "Checking numbers",
+    title: "Finance check",
     plain: "Vendor, tax, and duplicate checks",
     agent: "FINANCE_RULES",
+    codename: "Ledger",
     role: "Rules & risk",
     glyph: "▣",
   },
   {
     key: "decide",
-    title: "Ready for you",
+    title: "Your review",
     plain: "Your turn to review and decide",
     role: "Human",
     glyph: "✦",
@@ -87,9 +90,9 @@ export const PROCESS_STEPS = [
 
 export const NOW_LABELS = {
   receive: "Receiving your file…",
-  classify: "Reading invoice…",
-  extract: "Pulling out details…",
-  finance: "Checking numbers…",
+  classify: "Classifier working…",
+  extract: "Document reader working…",
+  finance: "Finance check working…",
   decide: "Ready for you…",
 };
 
@@ -106,4 +109,4 @@ export const REVIEW_REASONS = {
 
 export const POLL_MS = 1500;
 export const LIST_REFRESH_MS = 3000;
-export const UPLOAD_WATCH_MIN_MS = 4200;
+export const UPLOAD_WATCH_MIN_MS = 5200;

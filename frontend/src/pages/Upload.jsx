@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiJson, casePath } from "../lib/api";
 import { canProcess, getUser } from "../lib/config";
 import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
+import { playDemoRunway, stepsAtIndex } from "../lib/demoRunway";
 import { buildPipeline } from "../lib/pipeline";
 import ProcessTheater from "../components/ProcessTheater";
 
-function seedSteps() {
-  return PROCESS_STEPS.map((s, i) => ({
+function idleSteps() {
+  return PROCESS_STEPS.map((s) => ({
     key: s.key,
     title: s.title,
     description: s.plain,
-    nowLabel: i === 0 ? "Receiving your file…" : "",
-    state: i === 0 ? "running" : "pending",
+    nowLabel: "",
+    state: "pending",
     agent: s.agent || "",
     codename: s.codename || "",
     role: s.role || "",
@@ -30,8 +31,10 @@ export default function Upload({ userId, showToast }) {
   const [caseId, setCaseId] = useState("");
   const [steps, setSteps] = useState([]);
   const [error, setError] = useState("");
-  const startedAt = useRef(0);
   const pollRef = useRef(null);
+  const runwayRef = useRef(null);
+  const apiDoneRef = useRef(null);
+  const preview = useMemo(() => idleSteps(), []);
 
   useEffect(() => {
     if (!canProcess(user)) {
@@ -39,15 +42,34 @@ export default function Upload({ userId, showToast }) {
     }
   }, [user, navigate]);
 
-  useEffect(() => () => clearTimeout(pollRef.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(pollRef.current);
+      runwayRef.current?.cancel();
+    },
+    [],
+  );
 
   async function uploadFile(file) {
     if (!file) return;
     setError("");
     setFileName(file.name);
     setWatching(true);
-    setSteps(seedSteps());
-    startedAt.current = Date.now();
+    setSteps(stepsAtIndex(0, file.name));
+    apiDoneRef.current = null;
+
+    // Always play the agent runway for demo wow (API may finish instantly)
+    runwayRef.current?.cancel();
+    const runway = playDemoRunway({
+      fileName: file.name,
+      minMs: UPLOAD_WATCH_MIN_MS,
+      onFrame: (next) => {
+        // Prefer live API pipeline while still processing
+        if (apiDoneRef.current?.stillWorking) return;
+        setSteps(next);
+      },
+    });
+    runwayRef.current = runway;
 
     const form = new FormData();
     form.append("file", file);
@@ -57,37 +79,60 @@ export default function Upload({ userId, showToast }) {
       const id = result.case_id || result.id;
       setCaseId(id);
       showToast?.("Invoice received — agents spinning up");
-      pollCase(id);
+      pollUntilDone(id);
+      await runway.promise;
+      // Wait until API has a terminal status (or already done)
+      const finalId = await waitForCase(id);
+      finishAndGo(finalId || id);
     } catch (err) {
+      runway.cancel();
       setError(err.message);
       setWatching(false);
       setSteps([]);
     }
   }
 
-  function pollCase(id) {
+  function waitForCase(id) {
+    if (apiDoneRef.current && !apiDoneRef.current.stillWorking) {
+      return Promise.resolve(id);
+    }
+    return new Promise((resolve) => {
+      const check = () => {
+        if (apiDoneRef.current && !apiDoneRef.current.stillWorking) {
+          resolve(id);
+          return;
+        }
+        pollRef.current = setTimeout(check, 200);
+      };
+      check();
+    });
+  }
+
+  function pollUntilDone(id) {
     clearTimeout(pollRef.current);
     pollRef.current = setTimeout(async () => {
       try {
         const row = await apiJson("GET", casePath(id));
-        const next = buildPipeline(row);
-        setSteps(next);
         const stillWorking = PROCESSING.includes(row.status);
-        const elapsed = Date.now() - startedAt.current;
-
+        apiDoneRef.current = { stillWorking, row };
         if (stillWorking) {
-          pollCase(id);
-          return;
+          setSteps(buildPipeline(row));
+          pollUntilDone(id);
+        } else {
+          // Let the demo runway finish painting; keep last API pipeline if richer
+          const piped = buildPipeline(row);
+          if (piped.some((s) => s.state === "done")) {
+            // merge gently — runway onFrame may still run
+            setSteps((prev) => {
+              const runwayAhead = prev.filter((s) => s.state === "running" || s.state === "done").length;
+              return runwayAhead >= 3 ? prev : piped;
+            });
+          }
         }
-
-        if (elapsed < UPLOAD_WATCH_MIN_MS) {
-          pollRef.current = setTimeout(() => finishAndGo(id), UPLOAD_WATCH_MIN_MS - elapsed);
-          return;
-        }
-        finishAndGo(id);
       } catch (err) {
         setError(err.message);
         setWatching(false);
+        runwayRef.current?.cancel();
       }
     }, POLL_MS);
   }
@@ -113,7 +158,7 @@ export default function Upload({ userId, showToast }) {
         <p>
           {watching
             ? "Stay here — agents classify, read, and check your invoice in real time."
-            : "Drop a PDF. Agents will read it, check the numbers, then hand it to you."}
+            : "Drop a PDF. ClearDesk agents will read it, check the numbers, then hand it to you."}
         </p>
       </section>
 
@@ -121,31 +166,42 @@ export default function Upload({ userId, showToast }) {
 
       <AnimatePresence mode="wait">
         {!watching ? (
-          <motion.label
+          <motion.div
             key="drop"
-            className={`dropzone${drag ? " drag" : ""}`}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4 }}
-            onDragEnter={(e) => {
-              e.preventDefault();
-              setDrag(true);
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDragLeave={() => setDrag(false)}
-            onDrop={onDrop}
           >
-            <div>
-              <h2>Drop PDF here</h2>
-              <p>or click to choose a file</p>
+            <label
+              className={`dropzone${drag ? " drag" : ""}`}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setDrag(true);
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={() => setDrag(false)}
+              onDrop={onDrop}
+            >
+              <div>
+                <h2>Drop PDF here</h2>
+                <p>or click to choose a file</p>
+              </div>
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => uploadFile(e.target.files?.[0])}
+              />
+            </label>
+            <div style={{ marginTop: "1.35rem" }}>
+              <ProcessTheater
+                steps={preview}
+                variant="compact"
+                title="Agents standing by"
+                subtitle="They light up the moment your file lands"
+              />
             </div>
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={(e) => uploadFile(e.target.files?.[0])}
-            />
-          </motion.label>
+          </motion.div>
         ) : (
           <motion.div
             key="theater"
@@ -163,8 +219,8 @@ export default function Upload({ userId, showToast }) {
             </div>
             <ProcessTheater
               steps={steps}
-              title="Working on your invoice"
-              subtitle="Each step lights up as we work through your invoice"
+              title="Agents on the runway"
+              subtitle="Each node lights as work advances — connectors fill between stages"
             />
           </motion.div>
         )}

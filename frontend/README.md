@@ -1,6 +1,6 @@
-# Saudi Cargo AP Console (demo UI)
+# ClearDesk (demo UI)
 
-Calm, plain-language invoice desk. Talks to the gateway on `:8000` (which proxies the agentic API on `:8001`).
+World-class invoice desk for AP automation demos. Talks to the gateway on `:8000` (which proxies the agentic API on `:8001`).
 
 ## Run
 
@@ -15,12 +15,12 @@ cd backend && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8
 cd frontend && npm install && npm start
 ```
 
-Open **http://127.0.0.1:8080**
+Open **http://127.0.0.1:8080** (hard refresh after UI changes: Cmd+Shift+R).
 
 ## Demo path
 
-1. **Home** — see what needs attention; click **Upload invoice**
-2. **Upload** — drop a PDF from `samples/invoices/`; watch the process light up in plain English
-3. **Review** — check PDF + fields; switch user to **Sara · Approver** → **Approve** / **Ask again**
+1. **Home** — attention queue + agent runway; click **Upload invoice**
+2. **Upload** — drop a PDF from `samples/invoices/`; watch agents light up on the command runway
+3. **Review** — PDF + fields; switch user to **Sara · Approver** → **Approve** / **Ask again**
 
 Legacy OpenUI5 sources are archived under `_legacy-ui5/` (not used by `npm start`).

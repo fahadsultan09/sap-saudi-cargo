@@ -13,7 +13,7 @@ import {
 import { buildPipeline, formatAmount, formatDate, outcomeLabel } from "../lib/pipeline";
 import ProcessTheater from "../components/ProcessTheater";
 
-export default function Home({ userId, showToast }) {
+export default function Home({ userId }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const user = getUser(userId);
@@ -63,7 +63,7 @@ export default function Home({ userId, showToast }) {
 
   const idlePreview = useMemo(
     () =>
-      PROCESS_STEPS.map((s, i) => ({
+      PROCESS_STEPS.map((s) => ({
         key: s.key,
         title: s.title,
         description: s.plain,
@@ -93,7 +93,10 @@ export default function Home({ userId, showToast }) {
   return (
     <div className="page-enter">
       <section className="hero">
-        <img className="hero-brand" src="/logo.png" alt="Saudi Cargo" />
+        <div className="hero-brand-row">
+          <img className="hero-brand" src="/logo.svg" alt="" width={56} height={56} />
+          <span className="hero-product">ClearDesk</span>
+        </div>
         <h1>Your invoice desk</h1>
         <p>
           Upload an invoice, watch agents read and check it live, then approve when it is ready.
@@ -139,11 +142,11 @@ export default function Home({ userId, showToast }) {
           <ProcessTheater
             steps={liveSteps || idlePreview}
             variant="mini"
-            title={liveSteps ? "Working now" : "How invoices move"}
+            title={liveSteps ? "Agents working" : "Agent runway"}
             subtitle={
               liveSteps
                 ? working[0]?.file_name || working[0]?.invoice_number || "Invoice in flight"
-                : "Reading invoice → Pulling out details → Checking numbers → Ready for you"
+                : "Classifier → Document reader → Finance check → Your review"
             }
           />
         </section>
@@ -153,7 +156,7 @@ export default function Home({ userId, showToast }) {
       {loading && !cases.length ? (
         <div className="empty-note">Loading…</div>
       ) : recent.length === 0 ? (
-        <div className="empty-note">Nothing here yet. Upload an invoice to start the demo.</div>
+        <div className="empty-note">Nothing here yet. Upload an invoice to start the ClearDesk demo.</div>
       ) : (
         <div className="outcome-list">
           {recent.map((item, index) => {
