@@ -77,8 +77,8 @@ export function buildPipeline(caseRow) {
         outcome = "Rejected";
         description = outcome;
       } else if (needsHuman) {
-        state = "running";
-        description = "Ready for you to review";
+        state = "awaiting";
+        description = actions[0] || "Handing off to you…";
         outcome = def.outcome;
       } else if (error) {
         state = "pending";
@@ -119,6 +119,8 @@ export function buildPipeline(caseRow) {
     if (state === "running") {
       nowLabel = actions[0] || NOW_LABELS[def.key] || def.title;
       if (!oTrace?.summary) description = nowLabel;
+    } else if (state === "awaiting") {
+      nowLabel = NOW_LABELS[def.key] || actions[0] || "Ready for you…";
     }
 
     return {
@@ -146,16 +148,18 @@ export function pipelineProgress(steps) {
   const list = steps || [];
   const done = list.filter((s) => s.state === "done").length;
   const running = list.find((s) => s.state === "running");
+  const awaiting = list.find((s) => s.state === "awaiting");
+  const active = running || awaiting;
   const total = Math.max(list.length, 1);
-  const score = done + (running ? 0.45 : 0);
+  const score = done + (running ? 0.45 : awaiting ? 0.9 : 0);
   const percent = Math.max(0, Math.min(100, Math.round((score / total) * 100)));
   let nowText = "Standing by";
-  if (running) {
-    nowText = running.nowLabel || running.title;
+  if (active) {
+    nowText = active.nowLabel || active.title;
   } else if (done >= total) {
     nowText = "Ready for you";
   }
-  return { percent, nowText, doneCount: done, total, runningKey: running?.key || "" };
+  return { percent, nowText, doneCount: done, total, runningKey: active?.key || "" };
 }
 
 export function outcomeLabel(status) {

@@ -1346,6 +1346,13 @@ a {
   opacity: 1;
 }
 
+.agent-node[data-state="awaiting"] {
+  background: rgba(212, 160, 23, 0.1);
+  border-color: rgba(212, 160, 23, 0.38);
+  box-shadow: 0 0 0 1px rgba(212, 160, 23, 0.14), 0 12px 36px rgba(0, 0, 0, 0.22);
+  opacity: 1;
+}
+
 .agent-node[data-state="done"] {
   background: rgba(23, 138, 82, 0.1);
   border-color: rgba(23, 138, 82, 0.28);
@@ -1380,6 +1387,11 @@ a {
   background: rgba(30, 201, 168, 0.15);
 }
 
+.agent-node[data-state="awaiting"] .agent-node__orb {
+  border-color: rgba(212, 160, 23, 0.72);
+  background: rgba(212, 160, 23, 0.16);
+}
+
 .agent-node[data-state="done"] .agent-node__orb {
   border-color: rgba(23, 138, 82, 0.7);
   background: rgba(23, 138, 82, 0.2);
@@ -1393,6 +1405,10 @@ a {
 
 .agent-node[data-state="running"] .agent-node__glyph {
   color: var(--brand-bright);
+}
+
+.agent-node[data-state="awaiting"] .agent-node__glyph {
+  color: #e8c56a;
 }
 
 .agent-node__ring {
@@ -1415,6 +1431,26 @@ a {
     transparent 70%
   );
   animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.agent-node__await {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(212, 160, 23, 0.45);
+  animation: awaitPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes awaitPulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
 }
 
 @keyframes shimmer {
@@ -1535,6 +1571,11 @@ a {
 .agent-status--running {
   background: rgba(30, 201, 168, 0.16);
   color: var(--brand-bright);
+}
+
+.agent-status--awaiting {
+  background: rgba(212, 160, 23, 0.18);
+  color: #e8c56a;
 }
 
 .agent-status--done {
@@ -1866,6 +1907,11 @@ a {
 .stage-sheet__status .agent-status--running {
   background: rgba(31, 111, 143, 0.14);
   color: var(--working);
+}
+
+.stage-sheet__status .agent-status--awaiting {
+  background: rgba(212, 160, 23, 0.16);
+  color: #b8860b;
 }
 
 .stage-sheet__status .agent-status--done {

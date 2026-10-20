@@ -14,10 +14,10 @@ function finalizeSteps(row) {
     if (step.key === "decide") {
       return {
         ...step,
-        state: "running",
-        description: "Ready for you to review",
+        state: "awaiting",
+        description: "Handing off to you…",
         outcome: "Ready for your decision",
-        nowLabel: "Open the staged invoice",
+        nowLabel: "Ready for you…",
       };
     }
     if (step.state === "pending" || step.state === "running") {
@@ -49,7 +49,18 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
   const [caseRow, setCaseRow] = useState(null);
   const [steps, setSteps] = useState(() => {
     const saved = readRestoredSession();
-    return saved && Array.isArray(saved.steps) && saved.steps.length ? saved.steps : [];
+    if (!saved || !Array.isArray(saved.steps) || !saved.steps.length) return [];
+    // Migrate older sessions that left "Your review" in agent "running" state.
+    return saved.steps.map((step) =>
+      step.key === "decide" && step.state === "running"
+        ? {
+            ...step,
+            state: "awaiting",
+            description: step.description || "Handing off to you…",
+            nowLabel: step.nowLabel || "Ready for you…",
+          }
+        : step,
+    );
   });
   const [confidence, setConfidence] = useState(() => readRestoredSession()?.confidence || null);
   const [error, setError] = useState("");

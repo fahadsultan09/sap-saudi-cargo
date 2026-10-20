@@ -20,10 +20,10 @@ export function stepsAtIndex(activeIndex, fileName = "") {
       description = nowLabel;
     }
     if (activeIndex >= PROCESS_STEPS.length) {
-      state = s.key === "decide" ? "running" : "done";
+      state = s.key === "decide" ? "awaiting" : "done";
       if (s.key === "decide") {
         nowLabel = actions[0] || "Ready for you…";
-        description = "Ready for you to review";
+        description = actions[0] || "Handing off to you…";
         outcome = s.outcome || "Ready for your decision";
       } else {
         if (s.key === "receive" && fileName) outcome = `Received “${fileName}”`;

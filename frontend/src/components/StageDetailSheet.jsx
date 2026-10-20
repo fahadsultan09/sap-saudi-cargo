@@ -3,6 +3,7 @@ import DetailSheet from "./DetailSheet";
 
 function statusCopy(state) {
   if (state === "running") return { label: "Working now", tone: "running" };
+  if (state === "awaiting") return { label: "Your turn", tone: "awaiting" };
   if (state === "done") return { label: "Complete", tone: "done" };
   if (state === "failed") return { label: "Needs attention", tone: "failed" };
   return { label: "Standing by", tone: "pending" };
@@ -24,9 +25,11 @@ export default function StageDetailSheet({ step, onClose, actions = null }) {
   const currentLine =
     state === "running"
       ? live.description || plainActions[0] || def.plain
-      : state === "pending"
-        ? def.plain
-        : outcome;
+      : state === "awaiting"
+        ? live.description || plainActions[0] || "Handing off to you…"
+        : state === "pending"
+          ? def.plain
+          : outcome;
 
   return (
     <DetailSheet

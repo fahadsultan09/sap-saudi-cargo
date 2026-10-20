@@ -38,19 +38,23 @@ function AgentNode({ step, index, compact, showTechnical, interactive, idle, onS
   const statusLabel =
     state === "running"
       ? "Working"
-      : state === "done"
-        ? "Done"
-        : state === "failed"
-          ? "Stopped"
-          : "Waiting";
+      : state === "awaiting"
+        ? "Your turn"
+        : state === "done"
+          ? "Done"
+          : state === "failed"
+            ? "Stopped"
+            : "Waiting";
 
   const actionLine = useRotatingAction(step.actions, state === "running");
   const line =
     state === "running"
       ? actionLine || step.description
-      : state === "done" || state === "failed"
-        ? step.outcome || step.description
-        : step.description || step.plain;
+      : state === "awaiting"
+        ? step.description || actionLine || "Handing off to you…"
+        : state === "done" || state === "failed"
+          ? step.outcome || step.description
+          : step.description || step.plain;
 
   const Tag = interactive ? motion.button : motion.article;
   const interactiveProps = interactive
@@ -76,6 +80,7 @@ function AgentNode({ step, index, compact, showTechnical, interactive, idle, onS
         <span className="agent-node__glyph">{step.glyph || "●"}</span>
         {state === "running" ? <span className="agent-node__ring" /> : null}
         {state === "running" ? <span className="agent-node__shimmer" /> : null}
+        {state === "awaiting" ? <span className="agent-node__await" /> : null}
         {idle && state === "pending" ? <span className="agent-node__breath" /> : null}
         {state === "done" ? <span className="agent-node__check">✓</span> : null}
       </div>
@@ -88,7 +93,7 @@ function AgentNode({ step, index, compact, showTechnical, interactive, idle, onS
         <AnimatePresence mode="wait">
           <motion.p
             key={`${step.key}-${state}-${line}`}
-            className={`agent-node__action${state === "running" ? " agent-node__action--live" : ""}`}
+            className={`agent-node__action${state === "running" || state === "awaiting" ? " agent-node__action--live" : ""}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -157,17 +162,21 @@ export default function ProcessTheater({
   const mini = variant === "mini";
   const hero = variant === "hero";
   const running = steps.find((s) => s.state === "running");
+  const awaiting = steps.find((s) => s.state === "awaiting");
   const idle =
     !running &&
+    !awaiting &&
     steps.length > 0 &&
     steps.every((s) => (s.state || "pending") === "pending");
   const liveAction = useRotatingAction(running?.actions, Boolean(running));
   const headline =
     running && liveAction
       ? liveAction
-      : idle
-        ? "Standing by"
-        : progress.nowText;
+      : awaiting
+        ? awaiting.nowLabel || awaiting.description || "Ready for you…"
+        : idle
+          ? "Standing by"
+          : progress.nowText;
 
   return (
     <section
@@ -219,9 +228,13 @@ export default function ProcessTheater({
       <div className={`theater-runway${mini || hero ? " theater-runway--mini" : ""}${hero ? " theater-runway--hero" : ""}`}>
         {steps.map((step, index) => {
           const prevDone = index === 0 || steps[index - 1]?.state === "done";
-          const filled = step.state === "done" || (step.state === "running" && prevDone);
+          const filled =
+            step.state === "done" ||
+            ((step.state === "running" || step.state === "awaiting") && prevDone);
           const connectorFilled = index > 0 && steps[index - 1]?.state === "done";
-          const connectorActive = index > 0 && steps[index - 1]?.state === "running";
+          const connectorActive =
+            index > 0 &&
+            (steps[index - 1]?.state === "running" || steps[index - 1]?.state === "awaiting");
 
           return (
             <div key={step.key} className="theater-slot">
