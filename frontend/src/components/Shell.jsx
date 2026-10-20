@@ -84,15 +84,13 @@ export default function Shell({ userId, onUserChange, toast, session, localUser 
       <footer className="site-footer">
         <span>ClearDesk</span>
         <span className="muted">
-          {session?.source === "gateway_demo"
-            ? "Signed in via gateway /auth/me · local role switch"
+          {session?.source === "gateway_demo" || session?.source === "gateway"
+            ? "Signed in via gateway · local role switch"
             : session?.source === "agentic"
-              ? "Session via /api/v1/me · local role switch for headers"
-              : session?.source === "gateway"
-                ? "Gateway session"
-                : apiBacked
-                  ? "Invoice automation"
-                  : "Invoice automation"}
+              ? "Session via API · local role switch"
+              : apiBacked
+                ? "Invoice automation"
+                : "Invoice automation"}
         </span>
       </footer>
 

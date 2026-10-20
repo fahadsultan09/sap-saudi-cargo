@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Shell from "./components/Shell";
 import Home from "./pages/Home";
+import Process from "./pages/Process";
 import Review from "./pages/Review";
 import Desk from "./pages/Desk";
 import Approvals from "./pages/Approvals";
@@ -50,6 +51,7 @@ export default function App() {
         }
       >
         <Route index element={<Home userId={userId} showToast={showToast} />} />
+        <Route path="process/:caseId" element={<Process showToast={showToast} />} />
         <Route path="desk" element={<Desk userId={userId} showToast={showToast} />} />
         <Route path="approvals" element={<Approvals userId={userId} showToast={showToast} />} />
         {/* Bookmarks / old links: upload lives on Home now */}

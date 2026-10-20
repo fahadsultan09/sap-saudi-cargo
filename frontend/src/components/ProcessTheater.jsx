@@ -33,13 +33,13 @@ function useRotatingAction(actions, active) {
   return list[Math.min(index, list.length - 1)];
 }
 
-function AgentNode({ step, index, compact, showTechnical, interactive, idle, onSelect }) {
+function AgentNode({ step, index, compact, showTechnical, interactive, idle, selected, onSelect }) {
   const state = step.state || "pending";
   const statusLabel =
     state === "running"
-      ? "Working"
+      ? "WORKING"
       : state === "awaiting"
-        ? "Your turn"
+        ? "YOUR TURN"
         : state === "done"
           ? "Done"
           : state === "failed"
@@ -67,7 +67,7 @@ function AgentNode({ step, index, compact, showTechnical, interactive, idle, onS
 
   return (
     <Tag
-      className={`agent-node${compact ? " agent-node--compact" : ""}${interactive ? " agent-node--interactive" : ""}${idle ? " agent-node--idle" : ""}`}
+      className={`agent-node${compact ? " agent-node--compact" : ""}${interactive ? " agent-node--interactive" : ""}${idle ? " agent-node--idle" : ""}${selected ? " agent-node--selected" : ""}`}
       data-state={state}
       style={idle ? { "--idle-delay": `${index * 0.28}s` } : undefined}
       initial={{ opacity: 0, y: 18, scale: 0.96 }}
@@ -156,6 +156,7 @@ export default function ProcessTheater({
   showTechnical = false,
   interactive = false,
   onStepSelect,
+  selectedKey = null,
 }) {
   const progress = pipelineProgress(steps);
   const compact = variant === "compact" || variant === "mini" || variant === "hero";
@@ -253,6 +254,7 @@ export default function ProcessTheater({
                 showTechnical={showTechnical}
                 interactive={interactive}
                 idle={idle}
+                selected={selectedKey === step.key}
                 onSelect={onStepSelect}
               />
             </div>

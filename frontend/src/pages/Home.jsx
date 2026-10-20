@@ -156,14 +156,23 @@ export default function Home({ userId, showToast }) {
   const runwaySubtitle = upload.watching
     ? "Tap a stage for details — live while agents read this invoice"
     : upload.complete
-      ? "Agents finished — open the invoice or add another"
+      ? "Agents finished — open the process room or review"
       : boardLiveSteps
-        ? `${working[0]?.file_name || working[0]?.invoice_number || "Invoice"} — live`
-        : "Drop a PDF below — Classifier → Reader → Finance → Your review";
+        ? `${working[0]?.file_name || working[0]?.invoice_number || "Invoice"} — tap to open process room`
+        : "Drop a PDF below — opens the process room while agents work";
+
+  function openProcessRoom(id) {
+    if (!id) return;
+    navigate(`/process/${id}`);
+  }
 
   function onStepSelect(step) {
-    if (upload.complete && step?.key === "decide") {
-      upload.goToReview();
+    if (upload.complete && upload.caseId) {
+      openProcessRoom(upload.caseId);
+      return;
+    }
+    if (boardLiveSteps && working[0]?.id) {
+      openProcessRoom(working[0].id);
       return;
     }
     setSelectedStep(step);
@@ -330,19 +339,50 @@ export default function Home({ userId, showToast }) {
           <button
             type="button"
             className={`pill pill-clickable ${upload.complete ? "pill-review" : "pill-working"}`}
-            onClick={() => upload.setDetail("status")}
-            aria-label="Open status details"
+            onClick={() =>
+              upload.caseId ? openProcessRoom(upload.caseId) : upload.setDetail("status")
+            }
+            aria-label={upload.caseId ? "Open process room" : "Open status details"}
           >
             {upload.complete ? "Done" : "Live"}
           </button>
           <button
             type="button"
             className="meta-chip"
-            onClick={() => upload.setDetail("case")}
-            aria-label="Open case details"
+            onClick={() =>
+              upload.caseId ? openProcessRoom(upload.caseId) : upload.setDetail("case")
+            }
+            aria-label={upload.caseId ? "Open process room" : "Open case details"}
           >
             <strong>{upload.fileName || "Invoice"}</strong>
             {upload.caseId ? ` · ${upload.caseId.slice(0, 8)}…` : ""}
+          </button>
+          {upload.caseId ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-compact"
+              onClick={() => openProcessRoom(upload.caseId)}
+            >
+              Process room
+            </button>
+          ) : null}
+        </div>
+      ) : boardLiveSteps && working[0]?.id ? (
+        <div className="upload-watch-meta upload-watch-meta--home">
+          <button
+            type="button"
+            className="pill pill-clickable pill-working"
+            onClick={() => openProcessRoom(working[0].id)}
+            aria-label="Open process room"
+          >
+            Live
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-compact"
+            onClick={() => openProcessRoom(working[0].id)}
+          >
+            Process room
           </button>
         </div>
       ) : null}
@@ -387,7 +427,14 @@ export default function Home({ userId, showToast }) {
               </button>
 
               <div className="upload-result__actions btn-row">
-                <button type="button" className="btn btn-primary" onClick={() => upload.goToReview()}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => openProcessRoom(upload.caseId)}
+                >
+                  Open process room
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => upload.goToReview()}>
                   Review invoice
                 </button>
                 <button type="button" className="btn btn-ghost" onClick={upload.reviewLater}>
