@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiBlob, apiJson, casePath } from "../lib/api";
 import { canApprove, canProcess, getUser } from "../lib/config";
@@ -11,6 +11,7 @@ import {
   pipelineProgress,
   reviewReasons,
 } from "../lib/pipeline";
+import { loadUploadSession } from "../lib/uploadSession";
 import ProcessTheater from "../components/ProcessTheater";
 import DecisionModal from "../components/DecisionModal";
 import InvoicePdf from "../components/InvoicePdf";
@@ -51,6 +52,7 @@ function Disclosure({ id, label, open, onToggle, children }) {
 export default function Review({ userId, showToast }) {
   const { caseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = getUser(userId);
   const [row, setRow] = useState(null);
   const [fields, setFields] = useState([]);
@@ -61,6 +63,12 @@ export default function Review({ userId, showToast }) {
   const [panel, setPanel] = useState(null);
   const [modal, setModal] = useState(null);
   const pdfUrlRef = useRef("");
+
+  const fromUpload = useMemo(() => {
+    if (location.state?.fromUpload) return true;
+    const session = loadUploadSession();
+    return session?.phase === "complete" && session?.caseId === caseId;
+  }, [location.state, caseId]);
 
   const load = useCallback(async () => {
     if (!caseId) return;
@@ -257,9 +265,19 @@ export default function Review({ userId, showToast }) {
     <div className="page-enter review-page">
       <header className="review-top">
         <div className="review-top__lead">
-          <Link to="/" className="btn btn-ghost btn-compact">
-            ← Desk
-          </Link>
+          {fromUpload ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-compact"
+              onClick={() => navigate("/upload", { state: { restoreCaseId: caseId } })}
+            >
+              ← Back
+            </button>
+          ) : (
+            <Link to="/" className="btn btn-ghost btn-compact">
+              ← Desk
+            </Link>
+          )}
           <div className="review-top__title">
             <p className="section-label">Review</p>
             <h1>{title}</h1>

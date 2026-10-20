@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiJson, casePath } from "../lib/api";
 import { canProcess, getUser } from "../lib/config";
+import { confidenceLabel, extractionConfidence } from "../lib/confidence";
 import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
 import { playAgentRunway, stepsAtIndex } from "../lib/agentRunway";
 import { buildPipeline } from "../lib/pipeline";
+import { clearUploadSession, loadUploadSession, saveUploadSession } from "../lib/uploadSession";
 import ProcessTheater from "../components/ProcessTheater";
 import StageDetailSheet from "../components/StageDetailSheet";
 
@@ -25,14 +27,47 @@ function idleSteps() {
   }));
 }
 
+function finalizeSteps(row) {
+  const piped = buildPipeline(row);
+  return piped.map((step) => {
+    if (step.key === "decide") {
+      return {
+        ...step,
+        state: "running",
+        description: "Ready for you to review",
+        outcome: "Ready for your decision",
+        nowLabel: "Open the staged invoice",
+      };
+    }
+    if (step.state === "pending" || step.state === "running") {
+      return {
+        ...step,
+        state: "done",
+        description: step.outcome || step.description,
+      };
+    }
+    return step;
+  });
+}
+
+function readRestoredSession() {
+  const saved = loadUploadSession();
+  if (!saved || saved.phase !== "complete" || !saved.caseId) return null;
+  return saved;
+}
+
 export default function Upload({ userId, showToast }) {
   const navigate = useNavigate();
   const user = getUser(userId);
   const [drag, setDrag] = useState(false);
-  const [watching, setWatching] = useState(false);
-  const [fileName, setFileName] = useState("");
-  const [caseId, setCaseId] = useState("");
-  const [steps, setSteps] = useState([]);
+  const [phase, setPhase] = useState(() => (readRestoredSession() ? "complete" : "idle")); // idle | watching | complete
+  const [fileName, setFileName] = useState(() => readRestoredSession()?.fileName || "");
+  const [caseId, setCaseId] = useState(() => readRestoredSession()?.caseId || "");
+  const [steps, setSteps] = useState(() => {
+    const saved = readRestoredSession();
+    return saved && Array.isArray(saved.steps) && saved.steps.length ? saved.steps : [];
+  });
+  const [confidence, setConfidence] = useState(() => readRestoredSession()?.confidence || null);
   const [error, setError] = useState("");
   const [selectedStep, setSelectedStep] = useState(null);
   const pollRef = useRef(null);
@@ -54,15 +89,40 @@ export default function Upload({ userId, showToast }) {
     [],
   );
 
+  function persistComplete({ id, name, nextSteps, conf }) {
+    saveUploadSession({
+      caseId: id,
+      fileName: name,
+      steps: nextSteps,
+      confidence: conf,
+      phase: "complete",
+    });
+  }
+
+  function goToReview(id = caseId) {
+    if (!id) return;
+    navigate(`/review/${id}`, { state: { fromUpload: true, caseId: id } });
+  }
+
+  function onStepSelect(step) {
+    if (phase === "complete" && step?.key === "decide") {
+      goToReview();
+      return;
+    }
+    setSelectedStep(step);
+  }
+
   async function uploadFile(file) {
     if (!file) return;
     setError("");
     setFileName(file.name);
-    setWatching(true);
+    setPhase("watching");
+    setConfidence(null);
+    setCaseId("");
     setSteps(stepsAtIndex(0, file.name));
     apiDoneRef.current = null;
+    clearUploadSession();
 
-    // Keep the runway readable even when the API finishes instantly
     runwayRef.current?.cancel();
     const runway = playAgentRunway({
       fileName: file.name,
@@ -85,11 +145,11 @@ export default function Upload({ userId, showToast }) {
       pollUntilDone(id);
       await runway.promise;
       const finalId = await waitForCase(id);
-      finishAndGo(finalId || id);
+      finishReady(finalId || id);
     } catch (err) {
       runway.cancel();
       setError(err.message);
-      setWatching(false);
+      setPhase("idle");
       setSteps([]);
     }
   }
@@ -131,17 +191,23 @@ export default function Upload({ userId, showToast }) {
         }
       } catch (err) {
         setError(err.message);
-        setWatching(false);
+        setPhase("idle");
         runwayRef.current?.cancel();
       }
     }, POLL_MS);
   }
 
-  function finishAndGo(id) {
+  function finishReady(id) {
     clearTimeout(pollRef.current);
-    setWatching(false);
-    showToast?.("Ready for you — opening review");
-    navigate(`/review/${id}`);
+    const row = apiDoneRef.current?.row;
+    const nextSteps = row ? finalizeSteps(row) : stepsAtIndex(PROCESS_STEPS.length - 1, fileName);
+    const conf = row ? extractionConfidence(row) : null;
+    setSteps(nextSteps);
+    setConfidence(conf);
+    setCaseId(id);
+    setPhase("complete");
+    persistComplete({ id, name: fileName || row?.file_name || "", nextSteps, conf });
+    showToast?.("Reading finished — review when you’re ready");
   }
 
   function onDrop(e) {
@@ -151,6 +217,20 @@ export default function Upload({ userId, showToast }) {
     if (file) uploadFile(file);
   }
 
+  function startAnother() {
+    setPhase("idle");
+    setCaseId("");
+    setFileName("");
+    setSteps([]);
+    setConfidence(null);
+    setError("");
+    clearUploadSession();
+  }
+
+  const watching = phase === "watching";
+  const complete = phase === "complete";
+  const showRunway = watching || complete;
+
   return (
     <div className="page-enter">
       <section className="home-strip home-strip--upload" aria-label="Upload">
@@ -159,14 +239,16 @@ export default function Upload({ userId, showToast }) {
             Upload
           </p>
           <strong className="home-strip__title">
-            {watching ? "Agents at work" : "Drop an invoice"}
+            {watching ? "Agents at work" : complete ? "Ready for your review" : "Drop an invoice"}
           </strong>
         </div>
-        {watching ? (
+        {showRunway ? (
           <div className="upload-watch-meta upload-watch-meta--inline">
-            <span className="pill pill-working">Live</span>
+            <span className={`pill ${complete ? "pill-review" : "pill-working"}`}>
+              {complete ? "Done" : "Live"}
+            </span>
             <span className="muted">
-              <strong>{fileName}</strong>
+              <strong>{fileName || "Invoice"}</strong>
               {caseId ? ` · ${caseId.slice(0, 8)}…` : ""}
             </span>
           </div>
@@ -176,7 +258,7 @@ export default function Upload({ userId, showToast }) {
       {error ? <div className="error-banner">{error}</div> : null}
 
       <AnimatePresence mode="wait">
-        {!watching ? (
+        {!showRunway ? (
           <motion.div
             key="drop"
             initial={{ opacity: 0, y: 12 }}
@@ -228,15 +310,95 @@ export default function Upload({ userId, showToast }) {
               steps={steps}
               variant="hero"
               interactive
-              onStepSelect={setSelectedStep}
+              onStepSelect={onStepSelect}
               title="Agent runway"
-              subtitle="Tap a stage for details — live actions rotate while each agent works"
+              subtitle={
+                complete
+                  ? "Agents finished — tap Your review or open the invoice below"
+                  : "Tap a stage for details — live actions rotate while each agent works"
+              }
             />
+
+            {complete ? (
+              <motion.div
+                className="upload-result"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.4 }}
+              >
+                <div className="upload-result__confidence" aria-label="Extraction confidence">
+                  <p className="section-label">Extraction confidence</p>
+                  {confidence?.hasAny ? (
+                    <>
+                      <div className="upload-result__score-row">
+                        <strong className="upload-result__score">
+                          {confidence.overall != null ? `${confidence.overall}%` : "—"}
+                        </strong>
+                        <span className="muted">{confidenceLabel(confidence.source)}</span>
+                      </div>
+                      {confidence.classification != null &&
+                      confidence.source !== "classification" &&
+                      confidence.classification !== confidence.overall ? (
+                        <p className="upload-result__secondary muted">
+                          Document type: {confidence.classification}%
+                        </p>
+                      ) : null}
+                      {confidence.fields?.length ? (
+                        <details className="upload-result__fields">
+                          <summary>Per-field confidence</summary>
+                          <ul>
+                            {confidence.fields.map((f) => (
+                              <li key={f.key}>
+                                <span>{f.label}</span>
+                                <strong>{f.percent}%</strong>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : (
+                        <p className="upload-result__hint muted">
+                          Field-level scores aren’t on this case — showing the overall figure from
+                          reading.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="muted">Confidence wasn’t returned for this case.</p>
+                  )}
+                </div>
+
+                <div className="upload-result__actions btn-row">
+                  <button type="button" className="btn btn-primary" onClick={() => goToReview()}>
+                    Review invoice
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={startAnother}>
+                    Upload another
+                  </button>
+                </div>
+              </motion.div>
+            ) : null}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <StageDetailSheet step={selectedStep} onClose={() => setSelectedStep(null)} />
+      <StageDetailSheet
+        step={selectedStep}
+        onClose={() => setSelectedStep(null)}
+        actions={
+          complete && selectedStep?.key === "decide" ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setSelectedStep(null);
+                goToReview();
+              }}
+            >
+              Review invoice
+            </button>
+          ) : null
+        }
+      />
     </div>
   );
 }

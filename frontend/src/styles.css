@@ -740,6 +740,73 @@ a {
   letter-spacing: -0.02em;
 }
 
+.upload-result {
+  display: grid;
+  gap: 1.1rem;
+  margin-top: 1.15rem;
+  padding: 1.15rem 1.25rem 1.25rem;
+  border-radius: var(--radius);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.92), rgba(232, 245, 241, 0.88));
+  border: 1px solid rgba(11, 122, 102, 0.14);
+  box-shadow: var(--shadow);
+}
+
+.upload-result__confidence .section-label {
+  margin-bottom: 0.35rem;
+}
+
+.upload-result__score-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.65rem 1rem;
+}
+
+.upload-result__score {
+  font-family: var(--display);
+  font-size: clamp(1.85rem, 3.2vw, 2.35rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--brand-deep);
+}
+
+.upload-result__secondary,
+.upload-result__hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
+}
+
+.upload-result__fields {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.upload-result__fields summary {
+  cursor: pointer;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.upload-result__fields ul {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.upload-result__fields li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(11, 122, 102, 0.1);
+}
+
+.upload-result__actions {
+  margin-top: 0.15rem;
+}
+
 /* ── Process theater ── */
 .theater {
   position: relative;
