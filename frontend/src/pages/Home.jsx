@@ -156,25 +156,12 @@ export default function Home({ userId, showToast }) {
   const runwaySubtitle = upload.watching
     ? "Tap a stage for details — live while agents read this invoice"
     : upload.complete
-      ? "Agents finished — open the process room or review"
+      ? "Agents finished — review now or later"
       : boardLiveSteps
-        ? `${working[0]?.file_name || working[0]?.invoice_number || "Invoice"} — tap to open process room`
-        : "Drop a PDF below — opens the process room while agents work";
-
-  function openProcessRoom(id) {
-    if (!id) return;
-    navigate(`/process/${id}`);
-  }
+        ? `${working[0]?.file_name || working[0]?.invoice_number || "Invoice"} — live on your desk`
+        : "Drop a PDF below — agents run here while you watch";
 
   function onStepSelect(step) {
-    if (upload.complete && upload.caseId) {
-      openProcessRoom(upload.caseId);
-      return;
-    }
-    if (boardLiveSteps && working[0]?.id) {
-      openProcessRoom(working[0].id);
-      return;
-    }
     setSelectedStep(step);
   }
 
@@ -339,51 +326,27 @@ export default function Home({ userId, showToast }) {
           <button
             type="button"
             className={`pill pill-clickable ${upload.complete ? "pill-review" : "pill-working"}`}
-            onClick={() =>
-              upload.caseId ? openProcessRoom(upload.caseId) : upload.setDetail("status")
-            }
-            aria-label={upload.caseId ? "Open process room" : "Open status details"}
+            onClick={() => upload.setDetail("status")}
+            aria-label="Open status details"
           >
             {upload.complete ? "Done" : "Live"}
           </button>
           <button
             type="button"
             className="meta-chip"
-            onClick={() =>
-              upload.caseId ? openProcessRoom(upload.caseId) : upload.setDetail("case")
-            }
-            aria-label={upload.caseId ? "Open process room" : "Open case details"}
+            onClick={() => upload.setDetail("case")}
+            aria-label="Open case details"
           >
             <strong>{upload.fileName || "Invoice"}</strong>
             {upload.caseId ? ` · ${upload.caseId.slice(0, 8)}…` : ""}
           </button>
-          {upload.caseId ? (
-            <button
-              type="button"
-              className="btn btn-ghost btn-compact"
-              onClick={() => openProcessRoom(upload.caseId)}
-            >
-              Process room
-            </button>
-          ) : null}
         </div>
-      ) : boardLiveSteps && working[0]?.id ? (
+      ) : boardLiveSteps && working[0] ? (
         <div className="upload-watch-meta upload-watch-meta--home">
-          <button
-            type="button"
-            className="pill pill-clickable pill-working"
-            onClick={() => openProcessRoom(working[0].id)}
-            aria-label="Open process room"
-          >
-            Live
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-compact"
-            onClick={() => openProcessRoom(working[0].id)}
-          >
-            Process room
-          </button>
+          <span className="pill pill-working">Live</span>
+          <span className="meta-chip">
+            <strong>{working[0].file_name || working[0].invoice_number || "Invoice"}</strong>
+          </span>
         </div>
       ) : null}
 
@@ -427,14 +390,7 @@ export default function Home({ userId, showToast }) {
               </button>
 
               <div className="upload-result__actions btn-row">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => openProcessRoom(upload.caseId)}
-                >
-                  Open process room
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={() => upload.goToReview()}>
+                <button type="button" className="btn btn-primary" onClick={() => upload.goToReview()}>
                   Review invoice
                 </button>
                 <button type="button" className="btn btn-ghost" onClick={upload.reviewLater}>

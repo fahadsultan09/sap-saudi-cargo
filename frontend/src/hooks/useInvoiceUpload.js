@@ -172,13 +172,12 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
         confidence: null,
         phase: "watching",
       });
-      showToast?.("Invoice received — opening process room");
-      runway.cancel();
-      // Full-page process room owns live polling + runway from here.
-      navigate(`/process/${id}`, { state: { fromUpload: true, fileName: file.name } });
-      setPhase("idle");
-      setSteps([]);
-      return;
+      showToast?.("Invoice received — agents spinning up");
+      // Stay on Home: green Agent Runway is the post-upload theater.
+      pollUntilDone(id);
+      await runway.promise;
+      const finalId = await waitForCase(id);
+      finishReady(finalId || id);
     } catch (err) {
       runway.cancel();
       const body = err?.body;
