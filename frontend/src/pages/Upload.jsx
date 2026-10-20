@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { apiJson, casePath } from "../lib/api";
 import { canProcess, getUser } from "../lib/config";
 import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
-import { playDemoRunway, stepsAtIndex } from "../lib/demoRunway";
+import { playAgentRunway, stepsAtIndex } from "../lib/agentRunway";
 import { buildPipeline } from "../lib/pipeline";
 import ProcessTheater from "../components/ProcessTheater";
 
@@ -58,13 +58,12 @@ export default function Upload({ userId, showToast }) {
     setSteps(stepsAtIndex(0, file.name));
     apiDoneRef.current = null;
 
-    // Always play the agent runway for demo wow (API may finish instantly)
+    // Keep the runway readable even when the API finishes instantly
     runwayRef.current?.cancel();
-    const runway = playDemoRunway({
+    const runway = playAgentRunway({
       fileName: file.name,
       minMs: UPLOAD_WATCH_MIN_MS,
       onFrame: (next) => {
-        // Prefer live API pipeline while still processing
         if (apiDoneRef.current?.stillWorking) return;
         setSteps(next);
       },
@@ -81,7 +80,6 @@ export default function Upload({ userId, showToast }) {
       showToast?.("Invoice received — agents spinning up");
       pollUntilDone(id);
       await runway.promise;
-      // Wait until API has a terminal status (or already done)
       const finalId = await waitForCase(id);
       finishAndGo(finalId || id);
     } catch (err) {
@@ -119,10 +117,8 @@ export default function Upload({ userId, showToast }) {
           setSteps(buildPipeline(row));
           pollUntilDone(id);
         } else {
-          // Let the demo runway finish painting; keep last API pipeline if richer
           const piped = buildPipeline(row);
           if (piped.some((s) => s.state === "done")) {
-            // merge gently — runway onFrame may still run
             setSteps((prev) => {
               const runwayAhead = prev.filter((s) => s.state === "running" || s.state === "done").length;
               return runwayAhead >= 3 ? prev : piped;
@@ -153,12 +149,13 @@ export default function Upload({ userId, showToast }) {
 
   return (
     <div className="page-enter">
-      <section className="hero" style={{ marginBottom: "1.25rem" }}>
-        <h1>{watching ? "Command runway" : "Upload invoice"}</h1>
+      <section className="hero hero--compact">
+        <p className="section-label">Upload</p>
+        <h1>{watching ? "Agents at work" : "Upload invoice"}</h1>
         <p>
           {watching
-            ? "Stay here — agents classify, read, and check your invoice in real time."
-            : "Drop a PDF. ClearDesk agents will read it, check the numbers, then hand it to you."}
+            ? "Stay with the runway — classify, read, and finance check run in sequence."
+            : "Drop a PDF. ClearDesk agents read it, check the numbers, then hand it to you."}
         </p>
       </section>
 
@@ -219,7 +216,7 @@ export default function Upload({ userId, showToast }) {
             </div>
             <ProcessTheater
               steps={steps}
-              title="Agents on the runway"
+              title="Agent runway"
               subtitle="Each node lights as work advances — connectors fill between stages"
             />
           </motion.div>

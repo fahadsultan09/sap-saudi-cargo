@@ -1,6 +1,6 @@
-# ClearDesk (demo UI)
+# ClearDesk UI
 
-World-class invoice desk for AP automation demos. Talks to the gateway on `:8000` (which proxies the agentic API on `:8001`).
+Invoice desk for AP automation. Talks to the gateway on `:8000` (which proxies the agentic API on `:8001`).
 
 ## Run
 
@@ -17,10 +17,10 @@ cd frontend && npm install && npm start
 
 Open **http://127.0.0.1:8080** (hard refresh after UI changes: Cmd+Shift+R).
 
-## Demo path
+## Walkthrough
 
 1. **Home** — attention queue + agent runway; click **Upload invoice**
-2. **Upload** — drop a PDF from `samples/invoices/`; watch agents light up on the command runway
-3. **Review** — PDF + fields; switch user to **Sara · Approver** → **Approve** / **Ask again**
+2. **Upload** — drop a PDF from `samples/invoices/`; watch agents light up on the runway
+3. **Review** — PDF + fields; switch role to **Approver** → **Approve** / **Send back**
 
 Legacy OpenUI5 sources are archived under `_legacy-ui5/` (not used by `npm start`).

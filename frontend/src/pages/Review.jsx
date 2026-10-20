@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { apiBlob, apiJson, casePath } from "../lib/api";
@@ -13,6 +13,7 @@ import {
 } from "../lib/pipeline";
 import ProcessTheater from "../components/ProcessTheater";
 import DecisionModal from "../components/DecisionModal";
+import InvoicePdf from "../components/InvoicePdf";
 
 export default function Review({ userId, showToast }) {
   const { caseId } = useParams();
@@ -21,10 +22,12 @@ export default function Review({ userId, showToast }) {
   const [row, setRow] = useState(null);
   const [fields, setFields] = useState([]);
   const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfError, setPdfError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showHow, setShowHow] = useState(false);
   const [modal, setModal] = useState(null);
+  const pdfUrlRef = useRef("");
 
   const load = useCallback(async () => {
     if (!caseId) return;
@@ -42,7 +45,6 @@ export default function Review({ userId, showToast }) {
 
   useEffect(() => {
     let alive = true;
-    let url;
 
     async function boot() {
       const data = await load();
@@ -50,13 +52,19 @@ export default function Review({ userId, showToast }) {
 
       try {
         const blob = await apiBlob(`${casePath(caseId)}/document`);
-        const pdfBlob = /pdf/i.test(blob.type || "")
-          ? blob
-          : new Blob([blob], { type: "application/pdf" });
-        url = URL.createObjectURL(pdfBlob);
-        if (alive) setPdfUrl(url);
-      } catch {
-        if (alive) setPdfUrl("");
+        if (!alive) return;
+        const bytes = await blob.arrayBuffer();
+        if (!alive) return;
+        const pdfBlob = new Blob([bytes], { type: "application/pdf" });
+        if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+        const url = URL.createObjectURL(pdfBlob);
+        pdfUrlRef.current = url;
+        setPdfUrl(url);
+        setPdfError("");
+      } catch (err) {
+        if (!alive) return;
+        setPdfUrl("");
+        setPdfError(err?.message || "Document unavailable");
       }
     }
 
@@ -64,9 +72,12 @@ export default function Review({ userId, showToast }) {
 
     return () => {
       alive = false;
-      if (url) URL.revokeObjectURL(url);
+      if (pdfUrlRef.current) {
+        URL.revokeObjectURL(pdfUrlRef.current);
+        pdfUrlRef.current = "";
+      }
     };
-  }, [caseId, load, userId]);
+  }, [caseId, load]);
 
   useEffect(() => {
     if (!row) return undefined;
@@ -82,6 +93,8 @@ export default function Review({ userId, showToast }) {
   const progress = pipelineProgress(steps);
   const perms = row ? permissionsFor(row, canProcess(user), canApprove(user)) : {};
   const reasons = row ? reviewReasons(row) : [];
+  const title = row?.invoice_number || row?.file_name || "Invoice";
+  const supplier = row?.supplier_name || "Supplier pending";
 
   async function saveFields() {
     const changes = {};
@@ -117,10 +130,10 @@ export default function Review({ userId, showToast }) {
     } else if (action === "return") {
       setModal({
         kind: action,
-        title: "Ask again",
+        title: "Send back",
         label: "What should be fixed?",
         placeholder: "Reason for sending this back",
-        submitText: "Ask again",
+        submitText: "Send back",
         minLength: 3,
       });
     } else {
@@ -163,19 +176,33 @@ export default function Review({ userId, showToast }) {
   }
 
   if (!row && !error) {
-    return <div className="empty-note">Opening invoice…</div>;
+    return (
+      <div className="page-enter">
+        <div className="empty-note empty-note--rich">
+          <strong>Opening invoice</strong>
+          <span>Pulling the document and extracted fields…</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="page-enter">
-      <div className="btn-row" style={{ marginBottom: "1rem" }}>
-        <Link to="/" className="btn btn-ghost">
-          ← Desk
-        </Link>
+    <div className="page-enter review-page">
+      <header className="review-top">
+        <div className="review-top__lead">
+          <Link to="/" className="btn btn-ghost btn-compact">
+            ← Desk
+          </Link>
+          <div className="review-top__title">
+            <p className="section-label">Review</p>
+            <h1>{title}</h1>
+            <p className="muted">{supplier}</p>
+          </div>
+        </div>
         <span className={`pill pill-${perms.isProcessing ? "working" : "review"}`}>
           {perms.isProcessing ? progress.nowText : "Ready for you"}
         </span>
-      </div>
+      </header>
 
       {error ? <div className="error-banner">{error}</div> : null}
 
@@ -189,37 +216,39 @@ export default function Review({ userId, showToast }) {
             steps={steps}
             variant="compact"
             title="Still working"
-            subtitle="Watch each step light up while we finish reading"
+            subtitle="Each step lights as ClearDesk finishes reading"
           />
         </motion.div>
       ) : null}
 
       <div className="review-grid">
-        <section className="panel">
+        <section className="panel panel--document">
           <div className="panel-head">
-            <h2>Invoice PDF</h2>
+            <div>
+              <h2>Invoice</h2>
+              <p className="muted panel-head__sub">{row?.file_name || "PDF document"}</p>
+            </div>
             {pdfUrl ? (
               <a className="details-link" href={pdfUrl} target="_blank" rel="noreferrer">
                 Open in tab
               </a>
             ) : null}
           </div>
-          {pdfUrl ? (
-            <iframe className="pdf-frame" title="Invoice PDF" src={pdfUrl} />
-          ) : (
-            <div className="empty-note" style={{ margin: "1rem" }}>
-              Document unavailable
+          {pdfError && !pdfUrl ? (
+            <div className="pdf-state">
+              <p>Document unavailable</p>
+              <span>{pdfError}</span>
             </div>
+          ) : (
+            <InvoicePdf blobUrl={pdfUrl} fileName={row?.file_name} />
           )}
         </section>
 
-        <section className="panel">
+        <section className="panel panel--fields">
           <div className="panel-head">
             <div>
-              <h2>{row?.invoice_number || row?.file_name || "Invoice"}</h2>
-              <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.9rem" }}>
-                {row?.supplier_name || "Supplier pending"}
-              </p>
+              <h2>Extracted fields</h2>
+              <p className="muted panel-head__sub">Check against the PDF, then decide</p>
             </div>
           </div>
 
@@ -237,7 +266,10 @@ export default function Review({ userId, showToast }) {
                 key={field.key}
                 className={`field${field.needsAttention ? " attention" : ""}`}
               >
-                <label htmlFor={field.key}>{field.label}</label>
+                <label htmlFor={field.key}>
+                  {field.label}
+                  {field.needsAttention ? <em>Check</em> : null}
+                </label>
                 <input
                   id={field.key}
                   value={field.value}
@@ -254,7 +286,7 @@ export default function Review({ userId, showToast }) {
             ))}
           </div>
 
-          <div style={{ padding: "0 1.1rem 1.1rem" }}>
+          <div className="review-how">
             <button type="button" className="details-link" onClick={() => setShowHow((v) => !v)}>
               {showHow ? "Hide how we checked this" : "See how we checked this"}
             </button>
@@ -264,7 +296,7 @@ export default function Review({ userId, showToast }) {
                   steps={steps}
                   variant="compact"
                   title="Full process"
-                  subtitle="How we checked this invoice"
+                  subtitle="How ClearDesk checked this invoice"
                 />
                 {row?.validation?.agent_trace?.length ? (
                   <ul>
@@ -288,12 +320,25 @@ export default function Review({ userId, showToast }) {
       </div>
 
       <div className="dock">
-        <div className="muted" style={{ fontSize: "0.9rem" }}>
-          {perms.canDecide
-            ? "Decide for this invoice"
-            : perms.canEdit
-              ? "Correct fields, then switch to Approver to decide"
-              : "View only for this role"}
+        <div className="dock-copy">
+          {perms.canDecide ? (
+            <>
+              <strong>Your decision</strong>
+              <span className="muted">Approve, send back, or reject — this becomes the audit trail.</span>
+            </>
+          ) : perms.canEdit ? (
+            <>
+              <strong>Processor</strong>
+              <span className="muted">
+                Correct fields, save, then switch role to <em>Approver</em> to decide.
+              </span>
+            </>
+          ) : (
+            <>
+              <strong>View only</strong>
+              <span className="muted">This role cannot edit or decide on this invoice.</span>
+            </>
+          )}
         </div>
         <div className="btn-row">
           {perms.canEdit && (
@@ -309,7 +354,7 @@ export default function Review({ userId, showToast }) {
                 onClick={() => openDecide("return")}
                 disabled={busy}
               >
-                Ask again
+                Send back
               </button>
               <button
                 type="button"

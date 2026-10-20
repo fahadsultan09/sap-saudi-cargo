@@ -95,11 +95,14 @@ export default function Home({ userId }) {
       <section className="hero">
         <div className="hero-brand-row">
           <img className="hero-brand" src="/logo.svg" alt="" width={56} height={56} />
-          <span className="hero-product">ClearDesk</span>
+          <div className="hero-brand-text">
+            <span className="hero-product">ClearDesk</span>
+            <span className="hero-tag">Accounts payable</span>
+          </div>
         </div>
-        <h1>Your invoice desk</h1>
+        <h1>Invoices clear themselves.</h1>
         <p>
-          Upload an invoice, watch agents read and check it live, then approve when it is ready.
+          Upload once. Agents read, check, and stage every invoice — you only step in to decide.
         </p>
         {attention.length > 0 ? (
           <div className="attention">
@@ -137,7 +140,7 @@ export default function Home({ userId }) {
       {!loading && (
         <section className="home-live">
           <p className="section-label">
-            {liveSteps ? "Live on the runway" : "How invoices move"}
+            {liveSteps ? "Live now" : "How invoices move"}
           </p>
           <ProcessTheater
             steps={liveSteps || idlePreview}
@@ -152,18 +155,31 @@ export default function Home({ userId }) {
         </section>
       )}
 
-      <p className="section-label">Recent results</p>
+      <p className="section-label">
+        {params.get("focus") === "review" ? "Needs review" : "Recent results"}
+      </p>
       {loading && !cases.length ? (
-        <div className="empty-note">Loading…</div>
+        <div className="empty-note empty-note--rich">
+          <strong>Loading desk</strong>
+          <span>Fetching the latest invoices…</span>
+        </div>
       ) : recent.length === 0 ? (
-        <div className="empty-note">Nothing here yet. Upload an invoice to start the ClearDesk demo.</div>
+        <div className="empty-note empty-note--rich">
+          <strong>Nothing here yet</strong>
+          <span>Upload an invoice to put ClearDesk to work.</span>
+          {canProcess(user) ? (
+            <Link className="btn btn-primary" to="/upload" style={{ marginTop: "0.85rem" }}>
+              Upload invoice
+            </Link>
+          ) : null}
+        </div>
       ) : (
         <div className="outcome-list">
           {recent.map((item, index) => {
             const outcome = outcomeLabel(item.status);
             const tone = OUTCOME_TONE[outcome] || "review";
-            const title = item.invoice_number || item.file_name || "Invoice";
-            const supplier = item.supplier_name || "Supplier pending";
+            const itemTitle = item.invoice_number || item.file_name || "Invoice";
+            const itemSupplier = item.supplier_name || "Supplier pending";
             return (
               <motion.button
                 key={item.id}
@@ -175,9 +191,9 @@ export default function Home({ userId }) {
                 onClick={() => navigate(`/review/${item.id}`)}
               >
                 <div>
-                  <h3>{title}</h3>
+                  <h3>{itemTitle}</h3>
                   <p>
-                    {supplier} · {formatAmount(item)} ·{" "}
+                    {itemSupplier} · {formatAmount(item)} ·{" "}
                     {formatDate(item.updated_at || item.created_at)}
                   </p>
                 </div>

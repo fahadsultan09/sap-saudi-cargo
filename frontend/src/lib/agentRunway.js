@@ -40,12 +40,12 @@ export function stepsAtIndex(activeIndex, fileName = "") {
 }
 
 /**
- * Play a short staggered runway when the API finishes before the theater can wow.
+ * Staggered agent runway when the API finishes before the theater can paint.
  * Calls onFrame(steps) for each beat, then resolves.
  */
-export function playDemoRunway({ fileName, onFrame, minMs = 4800 } = {}) {
-  const beats = PROCESS_STEPS.length; // advance through each node
-  const perBeat = Math.max(520, Math.floor(minMs / (beats + 1)));
+export function playAgentRunway({ fileName, onFrame, minMs = 4800 } = {}) {
+  const beats = PROCESS_STEPS.length;
+  const perBeat = Math.max(560, Math.floor(minMs / (beats + 1)));
   let cancelled = false;
   const timers = [];
 
@@ -59,7 +59,7 @@ export function playDemoRunway({ fileName, onFrame, minMs = 4800 } = {}) {
         timers.push(setTimeout(tick, perBeat));
       } else {
         onFrame?.(stepsAtIndex(beats, fileName));
-        timers.push(setTimeout(resolve, 420));
+        timers.push(setTimeout(resolve, 480));
       }
     };
     tick();

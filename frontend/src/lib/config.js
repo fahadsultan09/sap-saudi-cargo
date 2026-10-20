@@ -1,8 +1,8 @@
 export const config = {
   apiBaseUrl: "http://127.0.0.1:8000",
   users: [
-    { id: "faizan", name: "Faizan", role: "AP_PROCESSOR", roleLabel: "Processor" },
-    { id: "sara", name: "Sara", role: "FINANCE_MANAGER", roleLabel: "Approver" },
+    { id: "faizan", name: "Processor", role: "AP_PROCESSOR", roleLabel: "Processor" },
+    { id: "sara", name: "Approver", role: "FINANCE_MANAGER", roleLabel: "Approver" },
   ],
   currentUserId: "faizan",
 };

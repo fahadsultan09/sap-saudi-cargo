@@ -11,7 +11,7 @@ export default function Shell({ userId, onUserChange, toast }) {
           <img src="/logo.svg" alt="" width={36} height={36} />
           <div className="brand-copy">
             <strong>ClearDesk</strong>
-            <span>AP automation</span>
+            <span>Invoice desk</span>
           </div>
         </NavLink>
 
@@ -25,27 +25,28 @@ export default function Shell({ userId, onUserChange, toast }) {
             </NavLink>
           )}
           {canApprove(user) && (
-            <NavLink to="/?focus=review" className="nav-link">
+            <NavLink
+              to="/?focus=review"
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            >
               Review
             </NavLink>
           )}
         </nav>
 
         <label className="user-chip">
-          <span className="muted" style={{ fontSize: "0.78rem" }}>
-            Acting as
-          </span>
+          <span className="muted user-chip__label">Role</span>
           <select
             value={userId}
             onChange={(e) => {
               saveUserId(e.target.value);
               onUserChange(e.target.value);
             }}
-            aria-label="Switch user"
+            aria-label="Switch role"
           >
             {config.users.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name} · {u.roleLabel}
+                {u.roleLabel}
               </option>
             ))}
           </select>
@@ -58,7 +59,7 @@ export default function Shell({ userId, onUserChange, toast }) {
 
       <footer className="site-footer">
         <span>ClearDesk</span>
-        <span className="muted">Invoice automation demo</span>
+        <span className="muted">Invoice automation</span>
       </footer>
 
       {toast ? (
