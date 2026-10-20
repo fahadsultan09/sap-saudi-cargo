@@ -90,6 +90,10 @@ export default function Home({ userId }) {
     setHistoryOpen(true);
   }
 
+  function openBoard(filterKey) {
+    navigate(filterKey ? `/desk?filter=${filterKey}` : "/desk");
+  }
+
   function closeHistory() {
     setHistoryOpen(false);
     if (params.get("focus")) {
@@ -166,8 +170,8 @@ export default function Home({ userId }) {
           <button
             type="button"
             className="attention attention--compact attention--clickable"
-            onClick={() => openHistory("review")}
-            aria-label={`${attention.length} need attention — open invoice list`}
+            onClick={() => openBoard("review")}
+            aria-label={`${attention.length} need attention — open case board`}
           >
             <strong>{attention.length}</strong>
             need{attention.length === 1 ? "s" : ""} attention
@@ -177,8 +181,8 @@ export default function Home({ userId }) {
           <button
             type="button"
             className="attention attention--working attention--compact attention--clickable"
-            onClick={() => openHistory("working")}
-            aria-label={`${working.length} working — open invoice list`}
+            onClick={() => openBoard("processing")}
+            aria-label={`${working.length} working — open case board`}
           >
             <strong>{working.length}</strong> working
           </button>
@@ -186,8 +190,8 @@ export default function Home({ userId }) {
           <button
             type="button"
             className="attention attention--ok attention--compact attention--clickable"
-            onClick={() => openHistory("all")}
-            aria-label="Desk clear — open invoice history"
+            onClick={() => openBoard("")}
+            aria-label="Desk clear — open case board"
           >
             Desk clear
           </button>
@@ -208,6 +212,12 @@ export default function Home({ userId }) {
               Open next
             </button>
           )}
+          <Link className="btn btn-ghost btn-compact" to="/desk">
+            Board
+            {cases.length ? (
+              <span className="home-strip__count">{cases.length}</span>
+            ) : null}
+          </Link>
           <button
             type="button"
             className="btn btn-ghost btn-compact"
@@ -215,9 +225,6 @@ export default function Home({ userId }) {
             aria-expanded={historyOpen}
           >
             Invoices
-            {cases.length ? (
-              <span className="home-strip__count">{cases.length}</span>
-            ) : null}
           </button>
           <button
             type="button"

@@ -1,8 +1,17 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { canApprove, canProcess, getUser, saveUserId, config } from "../lib/config";
+import { canApprove, canProcess, config, saveUserId } from "../lib/config";
+import { signOutUrl } from "../lib/api";
 
-export default function Shell({ userId, onUserChange, toast }) {
-  const user = getUser(userId);
+export default function Shell({ userId, onUserChange, toast, session, localUser }) {
+  const user = localUser;
+  const displayName = session?.name || user?.name || userId;
+  const roleLabel =
+    (session?.role &&
+      config.users.find((u) => u.role === session.role)?.roleLabel) ||
+    user?.roleLabel ||
+    session?.role ||
+    "Role";
+  const gatewayAuth = session?.source === "gateway";
 
   return (
     <div className="app-shell">
@@ -19,6 +28,12 @@ export default function Shell({ userId, onUserChange, toast }) {
           <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
             Home
           </NavLink>
+          <NavLink
+            to="/desk"
+            className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+          >
+            Desk
+          </NavLink>
           {canProcess(user) && (
             <NavLink to="/upload" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
               Upload
@@ -26,31 +41,44 @@ export default function Shell({ userId, onUserChange, toast }) {
           )}
           {canApprove(user) && (
             <NavLink
-              to="/?focus=review"
+              to="/approvals"
               className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
             >
-              Review
+              Approvals
             </NavLink>
           )}
         </nav>
 
-        <label className="user-chip">
-          <span className="muted user-chip__label">Role</span>
-          <select
-            value={userId}
-            onChange={(e) => {
-              saveUserId(e.target.value);
-              onUserChange(e.target.value);
-            }}
-            aria-label="Switch role"
-          >
-            {config.users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.roleLabel}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="session-chip">
+          <div className="session-chip__who" title={session?.email || ""}>
+            <span className="muted user-chip__label">Signed in as</span>
+            <strong>{displayName}</strong>
+            <span className="session-chip__role">{roleLabel}</span>
+          </div>
+          {gatewayAuth ? (
+            <a className="btn btn-ghost btn-compact" href={signOutUrl()}>
+              Sign out
+            </a>
+          ) : (
+            <label className="user-chip user-chip--inline">
+              <span className="muted user-chip__label">Role</span>
+              <select
+                value={userId}
+                onChange={(e) => {
+                  saveUserId(e.target.value);
+                  onUserChange(e.target.value);
+                }}
+                aria-label="Switch local role"
+              >
+                {config.users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.roleLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
       </header>
 
       <main className="main">
@@ -59,7 +87,13 @@ export default function Shell({ userId, onUserChange, toast }) {
 
       <footer className="site-footer">
         <span>ClearDesk</span>
-        <span className="muted">Invoice automation</span>
+        <span className="muted">
+          {session?.source === "agentic"
+            ? "Session via /api/v1/me · local role switch for headers"
+            : session?.source === "gateway"
+              ? "Gateway session"
+              : "Invoice automation"}
+        </span>
       </footer>
 
       {toast ? (

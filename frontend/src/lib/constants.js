@@ -8,7 +8,19 @@ export const NEEDS_ATTENTION = [
 ];
 export const APPROVED = ["APPROVED", "POSTING", "POSTED", "POSTING_ERROR"];
 export const EDITABLE = ["NEEDS_REVIEW", "RETURNED", "PROCESSING_ERROR"];
+/** Statuses the agentic API accepts for approve / return / reject. */
 export const DECIDABLE = ["NEEDS_REVIEW", "RETURNED"];
+
+/** KPI / board filter groups (aligned with backend-abdulahad dashboard). */
+export const CASE_GROUPS = [
+  { key: "processing", label: "In progress", statuses: PROCESSING, tone: "working" },
+  { key: "review", label: "Needs review", statuses: NEEDS_ATTENTION, tone: "review" },
+  { key: "awaiting", label: "Awaiting decision", statuses: DECIDABLE, tone: "review" },
+  { key: "approved", label: "Approved", statuses: APPROVED, tone: "approved" },
+  { key: "rejected", label: "Rejected", statuses: ["REJECTED"], tone: "rejected" },
+];
+
+export const CASES_PER_PAGE = 10;
 
 export const STATUS_PLAIN = {
   RECEIVED: "Working",
@@ -165,3 +177,30 @@ export const REVIEW_REASONS = {
 export const POLL_MS = 1500;
 export const LIST_REFRESH_MS = 3000;
 export const UPLOAD_WATCH_MIN_MS = 5200;
+
+export const EVENT_TITLES = {
+  CASE_UPLOADED: "Invoice uploaded",
+  CASE_REGISTERED: "Invoice uploaded",
+  DUPLICATE_UPLOAD_DETECTED: "Same file uploaded again",
+  FIELDS_CORRECTED: "Fields corrected",
+  FIELD_UPDATE: "Fields corrected",
+  APPROVAL_APPROVED: "Approved",
+  APPROVAL_RETURNED: "Sent back",
+  APPROVAL_REJECTED: "Rejected",
+  APPROVE: "Approved",
+  RETURN: "Sent back",
+  REJECT: "Rejected",
+  STATE_TRANSITION: "Status changed",
+  WORK_ITEM_COMPLETED: "Agent processing finished",
+  WORK_ITEM_LEASED: "Agent processing started",
+  EXTRACTION_ACCEPTED: "Extracted fields received",
+  CASE_ROUTED: "Checks run and case routed",
+  MODEL_JUDGEMENT_RECORDED: "Agent recommendation recorded",
+};
+
+export const CHECK_LABELS = {
+  vendor: "Vendor",
+  po: "Purchase order",
+  tax: "Tax",
+  duplicate: "Duplicate",
+};

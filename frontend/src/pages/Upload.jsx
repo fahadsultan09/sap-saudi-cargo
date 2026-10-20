@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiJson, casePath } from "../lib/api";
 import { canProcess, getUser } from "../lib/config";
@@ -8,9 +8,11 @@ import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/
 import { playAgentRunway, stepsAtIndex } from "../lib/agentRunway";
 import { buildPipeline, formatDateTime, outcomeLabel } from "../lib/pipeline";
 import { clearUploadSession, loadUploadSession, saveUploadSession } from "../lib/uploadSession";
+import { takePendingFile } from "../lib/pendingUpload";
 import ProcessTheater from "../components/ProcessTheater";
 import StageDetailSheet from "../components/StageDetailSheet";
 import DetailSheet from "../components/DetailSheet";
+import DuplicateDialog from "../components/DuplicateDialog";
 
 function idleSteps() {
   return PROCESS_STEPS.map((s) => ({
@@ -73,6 +75,7 @@ export default function Upload({ userId, showToast }) {
   const [error, setError] = useState("");
   const [selectedStep, setSelectedStep] = useState(null);
   const [detail, setDetail] = useState(null); // confidence | case
+  const [duplicate, setDuplicate] = useState(null);
   const pollRef = useRef(null);
   const runwayRef = useRef(null);
   const apiDoneRef = useRef(null);
@@ -83,6 +86,12 @@ export default function Upload({ userId, showToast }) {
       navigate("/");
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    const pending = takePendingFile();
+    if (pending) uploadFile(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handoff once on mount
+  }, []);
 
   useEffect(
     () => () => {
@@ -144,6 +153,41 @@ export default function Upload({ userId, showToast }) {
     try {
       const result = await apiJson("POST", "/api/v1/cases/upload", form);
       const id = result.case_id || result.id;
+      const dupIds = result.possible_duplicate_case_ids || [];
+      const existingId =
+        (result.duplicate && id) ||
+        result.existing_case_id ||
+        (Array.isArray(dupIds) && dupIds[0]) ||
+        null;
+
+      if (result.duplicate && id) {
+        runway.cancel();
+        setPhase("idle");
+        setSteps([]);
+        setDuplicate({
+          mode: "existing",
+          fileName: file.name,
+          caseId: id,
+          status: result.status,
+        });
+        return;
+      }
+
+      if (existingId && Array.isArray(dupIds) && dupIds.length) {
+        runway.cancel();
+        setPhase("idle");
+        setSteps([]);
+        setCaseId(id);
+        setDuplicate({
+          mode: "possible",
+          fileName: file.name,
+          caseId: existingId,
+          newCaseId: id,
+          status: result.status,
+        });
+        return;
+      }
+
       setCaseId(id);
       showToast?.("Invoice received — agents spinning up");
       pollUntilDone(id);
@@ -152,10 +196,35 @@ export default function Upload({ userId, showToast }) {
       finishReady(finalId || id);
     } catch (err) {
       runway.cancel();
+      const body = err?.body;
+      const existing =
+        body?.existing_case_id ||
+        body?.case_id ||
+        body?.error?.existing_case_id ||
+        null;
+      if (err?.status === 409 || body?.duplicate || existing) {
+        setDuplicate({
+          mode: "existing",
+          fileName: file.name,
+          caseId: existing || body?.case_id,
+          status: body?.status,
+        });
+        setPhase("idle");
+        setSteps([]);
+        return;
+      }
       setError(err.message);
       setPhase("idle");
       setSteps([]);
     }
+  }
+
+  function continueAfterDuplicate() {
+    const newId = duplicate?.newCaseId;
+    setDuplicate(null);
+    if (!newId) return;
+    // Agentic marks SHA duplicates as NEEDS_REVIEW without re-running agents.
+    goToReview(newId);
   }
 
   function waitForCase(id) {
@@ -249,6 +318,9 @@ export default function Upload({ userId, showToast }) {
           <strong className="home-strip__title">
             {watching ? "Agents at work" : complete ? "Ready for your review" : "Drop an invoice"}
           </strong>
+          <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.85rem" }}>
+            Or open the <Link to="/desk">case board</Link> anytime.
+          </p>
         </div>
         {showRunway ? (
           <div className="upload-watch-meta upload-watch-meta--inline">
@@ -531,6 +603,21 @@ export default function Upload({ userId, showToast }) {
           </section>
         ) : null}
       </DetailSheet>
+
+      <DuplicateDialog
+        open={Boolean(duplicate)}
+        mode={duplicate?.mode}
+        fileName={duplicate?.fileName}
+        caseId={duplicate?.caseId}
+        status={duplicate?.status}
+        onOpenExisting={() => {
+          const id = duplicate?.caseId;
+          setDuplicate(null);
+          if (id) goToReview(id);
+        }}
+        onContinue={continueAfterDuplicate}
+        onDismiss={() => setDuplicate(null)}
+      />
     </div>
   );
 }

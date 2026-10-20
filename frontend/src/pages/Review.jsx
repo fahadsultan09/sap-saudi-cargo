@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { apiBlob, apiJson, casePath } from "../lib/api";
+import { nextDecidable } from "../lib/caseBoard";
 import { canApprove, canProcess, getUser } from "../lib/config";
 import { confidenceLabel, extractionConfidence } from "../lib/confidence";
-import { POLL_MS } from "../lib/constants";
+import { DECIDABLE, POLL_MS } from "../lib/constants";
+import { mapAuditTrail } from "../lib/history";
 import {
   buildPipeline,
   formatAmount,
@@ -21,6 +23,8 @@ import DecisionModal from "../components/DecisionModal";
 import InvoicePdf from "../components/InvoicePdf";
 import StageDetailSheet from "../components/StageDetailSheet";
 import DetailSheet from "../components/DetailSheet";
+import ComparisonPanel from "../components/ComparisonPanel";
+import AuditTimeline from "../components/AuditTimeline";
 
 export default function Review({ userId, showToast }) {
   const { caseId } = useParams();
@@ -35,8 +39,14 @@ export default function Review({ userId, showToast }) {
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(null);
   const [selectedStep, setSelectedStep] = useState(null);
-  const [sheet, setSheet] = useState(null); // purpose | status | case | flags | confidence | field
+  const [sheet, setSheet] = useState(null); // purpose | status | case | flags | confidence | field | compare | audit
   const [fieldFocus, setFieldFocus] = useState(null);
+  const [reviewTab, setReviewTab] = useState("fields"); // fields | compare | audit
+  const [audit, setAudit] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState("");
+  const [decisionDone, setDecisionDone] = useState(null);
+  const [queue, setQueue] = useState([]);
   const pdfUrlRef = useRef("");
 
   const fromUpload = useMemo(() => {
@@ -104,6 +114,44 @@ export default function Review({ userId, showToast }) {
     }, POLL_MS);
     return () => clearTimeout(timer);
   }, [row, user, load]);
+
+  const loadAudit = useCallback(async () => {
+    if (!caseId) return;
+    setAuditLoading(true);
+    setAuditError("");
+    try {
+      const data = await apiJson("GET", `${casePath(caseId)}/history`);
+      setAudit(mapAuditTrail(data));
+    } catch (err) {
+      setAuditError(err.message);
+      setAudit([]);
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [caseId]);
+
+  useEffect(() => {
+    if (reviewTab === "audit" || sheet === "audit") {
+      loadAudit();
+    }
+  }, [reviewTab, sheet, loadAudit]);
+
+  useEffect(() => {
+    let alive = true;
+    apiJson("GET", "/api/v1/cases?limit=200")
+      .then((data) => {
+        if (alive) setQueue(data.items || []);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [caseId, decisionDone]);
+
+  useEffect(() => {
+    setDecisionDone(null);
+    setReviewTab("fields");
+  }, [caseId]);
 
   const steps = useMemo(() => (row ? buildPipeline(row) : []), [row]);
   const progress = pipelineProgress(steps);
@@ -218,14 +266,29 @@ export default function Review({ userId, showToast }) {
           comment: text,
         });
         showToast?.("Corrections saved");
+        await load();
+        loadAudit();
       } else {
         await apiJson("POST", `${casePath(caseId)}/${current.kind}`, { comment: text });
         const labels = { approve: "Approved", return: "Sent back", reject: "Rejected" };
-        showToast?.(labels[current.kind] || "Done");
-      }
-      await load();
-      if (current.kind === "approve" || current.kind === "reject") {
-        navigate("/");
+        const label = labels[current.kind] || "Done";
+        showToast?.(label);
+        await load();
+        let items = queue;
+        try {
+          const list = await apiJson("GET", "/api/v1/cases?limit=200");
+          items = list.items || [];
+          setQueue(items);
+        } catch {
+          /* keep prior queue */
+        }
+        const next = nextDecidable(items, caseId, DECIDABLE);
+        setDecisionDone({
+          kind: current.kind,
+          label,
+          nextId: next?.id || null,
+          nextTitle: next?.invoice_number || next?.file_name || null,
+        });
       }
     } catch (err) {
       setError(err.message);
@@ -263,7 +326,7 @@ export default function Review({ userId, showToast }) {
               ← Back
             </button>
           ) : (
-            <Link to="/" className="btn btn-ghost btn-compact">
+            <Link to="/desk" className="btn btn-ghost btn-compact">
               ← Desk
             </Link>
           )}
@@ -344,6 +407,25 @@ export default function Review({ userId, showToast }) {
         </motion.div>
       ) : null}
 
+      <div className="review-tabs" role="tablist" aria-label="Review panels">
+        {[
+          { id: "fields", label: "Fields" },
+          { id: "compare", label: "Summary & SAP" },
+          { id: "audit", label: "Audit trail" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={reviewTab === tab.id}
+            className={`review-tab${reviewTab === tab.id ? " review-tab--active" : ""}`}
+            onClick={() => setReviewTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="review-grid">
         <section className="panel panel--document">
           <div className="panel-head">
@@ -372,91 +454,138 @@ export default function Review({ userId, showToast }) {
         </section>
 
         <section className="panel panel--fields">
-          <div className="panel-head">
-            <div>
-              <h2>Extracted fields</h2>
-              <p className="muted panel-head__sub">Match these to the PDF · tap a label for detail</p>
-            </div>
-            {reasons.length > 0 ? (
-              <button
-                type="button"
-                className="pill pill-clickable pill-review"
-                onClick={() => setSheet("flags")}
-                aria-label={`${reasons.length} flags — open explanations`}
-              >
-                {reasons.length} to check
-              </button>
-            ) : null}
-          </div>
+          {reviewTab === "fields" ? (
+            <>
+              <div className="panel-head">
+                <div>
+                  <h2>Extracted fields</h2>
+                  <p className="muted panel-head__sub">Match these to the PDF · tap a label for detail</p>
+                </div>
+                {reasons.length > 0 ? (
+                  <button
+                    type="button"
+                    className="pill pill-clickable pill-review"
+                    onClick={() => setSheet("flags")}
+                    aria-label={`${reasons.length} flags — open explanations`}
+                  >
+                    {reasons.length} to check
+                  </button>
+                ) : null}
+              </div>
 
-          <div className="fields">
-            {fields.map((field) => (
-              <div
-                key={field.key}
-                className={`field${field.needsAttention ? " attention" : ""}`}
-              >
+              <div className="fields">
+                {fields.map((field) => (
+                  <div
+                    key={field.key}
+                    className={`field${field.needsAttention ? " attention" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      className="field__label-btn"
+                      onClick={() => openFieldSheet(field)}
+                    >
+                      <span>{field.label}</span>
+                      <span className="field__label-meta">
+                        {field.confidence != null ? `${field.confidence}%` : null}
+                        {field.needsAttention ? <em>Check</em> : null}
+                      </span>
+                    </button>
+                    <input
+                      id={field.key}
+                      value={field.value}
+                      disabled={!perms.canEdit}
+                      aria-label={field.label}
+                      onChange={(e) =>
+                        setFields((prev) =>
+                          prev.map((f) =>
+                            f.key === field.key ? { ...f, value: e.target.value } : f,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="review-secondary">
+                {reasons.length > 0 ? (
+                  <button
+                    type="button"
+                    className="disclosure-link"
+                    onClick={() => setSheet("flags")}
+                  >
+                    Why this needs attention
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  className="field__label-btn"
-                  onClick={() => openFieldSheet(field)}
+                  className="disclosure-link"
+                  onClick={() => setSheet("agents")}
                 >
-                  <span>{field.label}</span>
-                  <span className="field__label-meta">
-                    {field.confidence != null ? `${field.confidence}%` : null}
-                    {field.needsAttention ? <em>Check</em> : null}
-                  </span>
+                  Agent activity
                 </button>
-                <input
-                  id={field.key}
-                  value={field.value}
-                  disabled={!perms.canEdit}
-                  aria-label={field.label}
-                  onChange={(e) =>
-                    setFields((prev) =>
-                      prev.map((f) =>
-                        f.key === field.key ? { ...f, value: e.target.value } : f,
-                      ),
-                    )
-                  }
-                />
+                <button
+                  type="button"
+                  className="disclosure-link"
+                  onClick={() => setReviewTab("compare")}
+                >
+                  Summary &amp; SAP comparison
+                </button>
+                <button
+                  type="button"
+                  className="disclosure-link"
+                  onClick={() => setReviewTab("audit")}
+                >
+                  Audit trail
+                </button>
+                {confidence?.hasAny ? (
+                  <button
+                    type="button"
+                    className="disclosure-link"
+                    onClick={() => setSheet("confidence")}
+                  >
+                    Confidence details
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="disclosure-link"
+                  onClick={() => setSheet("tech")}
+                >
+                  Technical details
+                </button>
               </div>
-            ))}
-          </div>
+            </>
+          ) : null}
 
-          <div className="review-secondary">
-            {reasons.length > 0 ? (
-              <button
-                type="button"
-                className="disclosure-link"
-                onClick={() => setSheet("flags")}
-              >
-                Why this needs attention
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="disclosure-link"
-              onClick={() => setSheet("agents")}
-            >
-              Agent activity
-            </button>
-            {confidence?.hasAny ? (
-              <button
-                type="button"
-                className="disclosure-link"
-                onClick={() => setSheet("confidence")}
-              >
-                Confidence details
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="disclosure-link"
-              onClick={() => setSheet("tech")}
-            >
-              Technical details
-            </button>
-          </div>
+          {reviewTab === "compare" ? (
+            <>
+              <div className="panel-head">
+                <div>
+                  <h2>Summary &amp; comparison</h2>
+                  <p className="muted panel-head__sub">
+                    Verdict, issues, and invoice vs SAP when available
+                  </p>
+                </div>
+              </div>
+              <ComparisonPanel caseRow={row} />
+            </>
+          ) : null}
+
+          {reviewTab === "audit" ? (
+            <>
+              <div className="panel-head">
+                <div>
+                  <h2>Audit trail</h2>
+                  <p className="muted panel-head__sub">Uploads, edits, and decisions on this case</p>
+                </div>
+                <button type="button" className="btn btn-ghost btn-compact" onClick={loadAudit}>
+                  Refresh
+                </button>
+              </div>
+              <AuditTimeline items={audit} loading={auditLoading} error={auditError} />
+            </>
+          ) : null}
         </section>
       </div>
 
@@ -809,6 +938,59 @@ export default function Review({ userId, showToast }) {
           </section>
         )}
       </DetailSheet>
+
+      {decisionDone ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="decision-done-title">
+          <div className="modal decision-success">
+            <p className="section-label">Decision recorded</p>
+            <h3 id="decision-done-title">{decisionDone.label}</h3>
+            <p className="muted">
+              {decisionDone.nextId
+                ? "Open the next invoice in the queue, or return to the case board."
+                : "Queue is clear for now — back to the board when you’re ready."}
+            </p>
+            <div className="btn-row">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => navigate("/desk")}
+              >
+                Back to desk
+              </button>
+              {canApprove(user) ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => navigate("/approvals")}
+                >
+                  Approvals queue
+                </button>
+              ) : null}
+              {decisionDone.nextId ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const next = decisionDone.nextId;
+                    setDecisionDone(null);
+                    navigate(`/review/${next}`);
+                  }}
+                >
+                  Open next{decisionDone.nextTitle ? `: ${decisionDone.nextTitle}` : ""}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => navigate("/desk")}
+                >
+                  Case board
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {busy ? (
         <div className="busy-overlay">
