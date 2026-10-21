@@ -1,6 +1,7 @@
 {
     "description": "Which app roles may call each /api route, like the route scopes in SAP's xs-app.json. First matching rule wins; a call no rule matches is refused. {id} = one path segment, ** = the rest of the path, '*' in roles = any app role.",
     "routes": [
+        { "method": "POST", "path": "/api/v1/cases/{id}/processor/{action}", "roles": ["AP_PROCESSOR", "ADMIN"] },
         { "method": "POST", "path": "/api/v1/cases/upload", "roles": ["AP_PROCESSOR", "ADMIN"] },
         { "method": "PATCH", "path": "/api/v1/cases/{id}/fields", "roles": ["AP_PROCESSOR", "ADMIN"] },
         { "method": "POST", "path": "/api/v1/cases/{id}/approve", "roles": ["AP_APPROVER", "FINANCE_MANAGER"] },

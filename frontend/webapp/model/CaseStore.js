@@ -4,8 +4,9 @@ sap.ui.define([
     "sap/m/MessageToast",
     "sap/m/MessageBox",
     "saudicargo/ap/automation/model/api",
-    "saudicargo/ap/automation/model/constants"
-], function (BaseObject, JSONModel, MessageToast, MessageBox, api, C) {
+    "saudicargo/ap/automation/model/constants",
+    "saudicargo/ap/automation/model/reviewDiagnostics"
+], function (BaseObject, JSONModel, MessageToast, MessageBox, api, C, Diagnostics) {
     "use strict";
 
     // Loads cases from the gateway and maps them into the shared "apData" model that every screen binds to.
@@ -23,6 +24,7 @@ sap.ui.define([
             this._processingIds = [];
             this._model = new JSONModel({
                 section: "dashboard",
+                processorSplit: false,
                 currentUser: {},
                 welcome: {},
                 busy: false,
@@ -125,7 +127,12 @@ sap.ui.define([
         loadCases: function () {
             var that = this;
             return this.call("GET", "/api/v1/cases?limit=" + C.CASE_LIST_LIMIT).then(function (oList) {
-                var aCases = oList.items || [];
+                var aCases = (oList.items || []).map(function (oCase) {
+                    if (C.DECIDABLE_STATUSES.indexOf(oCase.status) >= 0 && Diagnostics.exceptions(oCase.validation || {}).length) {
+                        return Object.assign({}, oCase, {status: "NEEDS_REVIEW"});
+                    }
+                    return oCase;
+                });
                 var aGroups = C.CASE_GROUPS.map(function (oGroup) {
                     return Object.assign({ count: that._countStatuses(aCases, oGroup.statuses) }, oGroup);
                 });
@@ -321,6 +328,7 @@ sap.ui.define([
             var sPath = this.casePath(sCaseId);
             // A refresh of the open invoice stays quiet; opening another one shows the panel as busy.
             this._model.setProperty("/caseLoading", this._model.getProperty("/selectedInvoice/caseId") !== sCaseId);
+            if (this._model.getProperty("/selectedCaseId") !== sCaseId) this._model.setProperty("/processorSplit", false);
             this._model.setProperty("/selectedCaseId", sCaseId);
             return Promise.all([
                 this.call("GET", sPath),
@@ -391,7 +399,7 @@ sap.ui.define([
                     that._model.setProperty("/upload/progressPercent", oProgress.percent);
 
                     if (C.PROCESSING_STATUSES.indexOf(oCase.status) < 0) {
-                        var bReady = oCase.status === "READY_FOR_APPROVAL";
+                        var bReady = oCase.status === "READY_FOR_APPROVAL" && !Diagnostics.exceptions(oCase.validation || {}).length;
                         that.stopUploadWatch();
                         that._model.setProperty("/busy", false);
                         that._model.setProperty("/upload/watching", true);
@@ -621,12 +629,37 @@ sap.ui.define([
         _mapCaseToSelectedInvoice: function (oCase) {
             var oValidation = oCase.validation || {};
             var oPermissions = this._model.getProperty("/permissions");
+            var aExceptions = Diagnostics.exceptions(oValidation);
             var sStatus = oCase.status;
+            if (sStatus === "PROCESSING_ERROR") aExceptions.push(oCase.review_reason || "Automatic processing failed; correct the fields or re-run extraction.");
+            var bProcessor = oPermissions.processor && !oPermissions.approver;
+            var bException = aExceptions.length > 0 && ["APPROVED", "POSTED", "REJECTED", "POSTING"].indexOf(sStatus) < 0;
+            if (bException && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0) sStatus = "NEEDS_REVIEW";
             var aFields = this._mapFields(oCase, oValidation);
             var aPipeline = this._mapPipelineSteps(oCase, oValidation);
+            if (bProcessor) {
+                var iDecision = aPipeline.findIndex(function (step) { return step.key === "decide"; });
+                if (iDecision >= 0) {
+                    aPipeline[iDecision].title = "Manager Approval";
+                    aPipeline[iDecision].tooltip = "Manager Approval \u00b7 " + (sStatus === "APPROVED" ? "Passed" : "Pending") + " \u00b7 Execution: Not recorded \u00b7 Confidence: Not applicable";
+                    aPipeline.splice(iDecision, 0, {
+                        key: "processorReview", title: "Processor Review", actorIcon: "sap-icon://person-placeholder",
+                        stepIcon: "sap-icon://person-placeholder",
+                        icon: oValidation.processor_review ? "sap-icon://accept" : "sap-icon://person-placeholder",
+                        state: oValidation.processor_review ? "done" : "waiting",
+                        tooltip: "Processor Review \u00b7 " + (oValidation.processor_review ? "Passed" : "Pending") + " \u00b7 Execution: Not recorded \u00b7 Confidence: Not applicable"
+                    });
+                }
+            }
             var oIssues = this._mapIssues(oCase, oValidation);
             var aAgents = this._mapAgents(oCase, oValidation, aPipeline);
+            aAgents.forEach(function (agent) {
+                if (["check", "failed"].indexOf(agent.statusKey) >= 0) aExceptions.push(agent.agent + ": " + agent.result);
+            });
+            bException = aExceptions.length > 0 && ["APPROVED", "POSTED", "REJECTED", "POSTING"].indexOf(sStatus) < 0;
+            if (bException && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0) sStatus = "NEEDS_REVIEW";
             // Keep the agent the user opened while the same case refreshes.
+            var aClientReasons = Diagnostics.clientReasons(oValidation, aAgents, oCase.status);
             var sAgentKey = this._model.getProperty("/selectedInvoice/caseId") === oCase.id
                 ? this._model.getProperty("/selectedInvoice/agentDetail/key") : "";
             var sExistingUrl = "";
@@ -641,13 +674,21 @@ sap.ui.define([
                 caseId: oCase.id,
                 id: oCase.invoice_number || oCase.file_name,
                 supplier: oCase.supplier_name || "Unknown supplier",
-                status: C.STATUS_LABELS[sStatus] || sStatus,
+                processor: bProcessor,
+                canProcess: bProcessor && ["NEEDS_REVIEW", "RETURNED", "PROCESSING_ERROR", "READY_FOR_APPROVAL"].indexOf(oCase.status) >= 0,
+                canMarkReviewed: bProcessor && !bException && !oValidation.processor_review && ["NEEDS_REVIEW", "RETURNED", "READY_FOR_APPROVAL"].indexOf(oCase.status) >= 0,
+                reviewed: !!oValidation.processor_review,
+                exceptionText: bException ? "Payment blocked \u00b7 " + aClientReasons.join(" ") : "",
+                validationGroups: Diagnostics.groups(oValidation),
+                financeRules: oValidation.finance_rules || [],
+                lineItems: this._processorLineItems(oCase),
+                status: bException ? "Needs Review" : bProcessor && oValidation.processor_review && sStatus === "READY_FOR_APPROVAL" ? "Awaiting Approval" : C.STATUS_LABELS[sStatus] || sStatus,
                 statusState: C.STATUS_STATES[sStatus] || "None",
                 overview: this._mapOverview(oCase, oValidation),
                 issues: oIssues.rows,
                 agents: aAgents,
                 agentDetail: this._pickAgent(aAgents, sAgentKey),
-                verdict: this._mapVerdict(oCase, oValidation, oIssues.rows),
+                verdict: bException ? {headline: "Exception detected", icon: "sap-icon://alert", state: "Warning", points: aClientReasons.map(function (text) { return {text: text}; })} : this._mapVerdict(oCase, oValidation, oIssues.rows),
                 supplierSap: this._mapSupplier(oValidation),
                 sapInfo: this._mapSapInfo(oValidation),
                 fieldsTitle: this._fieldsTitle(oValidation),
@@ -682,8 +723,19 @@ sap.ui.define([
                 canEdit: oPermissions.processor && C.EDITABLE_STATUSES.indexOf(sStatus) >= 0,
                 // The Edit button switches the invoice values to inputs.
                 editing: false,
-                canDecide: oPermissions.approver && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0
+                canDecide: oPermissions.approver && !bException && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0
             };
+        },
+
+        _processorLineItems: function (oCase) {
+            return ((oCase.fields || {}).line_items || []).map(function (row, i) {
+                return {
+                    number: row.line_item_number || row.item_number || i + 1,
+                    description: row.description || row.material_description || row.item_text || "\u2014",
+                    quantity: row.quantity == null ? "\u2014" : row.quantity,
+                    amount: row.net_amount || row.total_amount || row.amount || "\u2014"
+                };
+            });
         },
 
         // Maps case status + validation.agent_trace into the full Received → … → Approve timeline.
@@ -818,6 +870,11 @@ sap.ui.define([
                 }
 
                 return {
+                    actorIcon: oDef.agent ? "sap-icon://ai" : oDef.key === "decide" ? "sap-icon://person-placeholder" : "sap-icon://inbox",
+                    stepIcon: oDef.icon,
+                    tooltip: oDef.title + " \u00b7 " + (sState === "done" ? "Passed" : sState === "failed" ? "Failed" : sState === "waiting" ? "Pending" : sStatusLabel)
+                        + " \u00b7 Execution: " + (oTrace && typeof oTrace.duration_ms === "number" ? (oTrace.duration_ms / 1000).toFixed(2) + " s" : "Not recorded")
+                        + " \u00b7 Confidence: " + (oTrace && oTrace.details && typeof oTrace.details.confidence === "number" ? Math.round(oTrace.details.confidence * 100) + "%" : oDef.agent === "SCANNER" && typeof oValidation.confidence === "number" ? Math.round(oValidation.confidence * 100) + "%" : "Not recorded"),
                     key: oDef.key,
                     agent: oDef.agent || "",
                     title: oDef.title,
@@ -1519,7 +1576,7 @@ sap.ui.define([
             }
             if (iMissing > 0) {
                 return "Check the PDF and fill in the " + iMissing + " field" + (iMissing > 1 ? "s" : "")
-                    + " marked below before approving.";
+                    + " marked below before submitting for approval.";
             }
             return "";
         },
@@ -1547,6 +1604,7 @@ sap.ui.define([
                 // A format hint in the label, e.g. "Invoice Date (YYYY-MM-DD)", becomes the input's placeholder.
                 var aHint = /^(.*?)\s*\((.*)\)$/.exec(oField.label);
                 return Object.assign({
+                    location: ((oCase.fields || {}).field_locations || {})[oField.key] || null,
                     key: oField.key,
                     group: C.FIELD_GROUP_OF[oField.key],
                     field: aHint ? aHint[1] : oField.label,

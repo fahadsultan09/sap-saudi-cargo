@@ -817,10 +817,30 @@ class DocAIClient:
             else:
                 invoice_source[key] = ""
 
+        # Preserve normalized top-left SAP source boxes for the processor PDF focus overlay.
+        locations = {}
+        raw_fields = {field.get("name"): field for field in header_fields}
+        for key, aliases in field_mapping.items():
+            raw = next((raw_fields[name] for name in aliases if name in raw_fields), {})
+            box = raw.get("boundingBox") or raw.get("bounding_box") or {}
+            if not isinstance(box, dict):
+                continue
+            try:
+                x, y = float(box["x"]), float(box["y"])
+                width, height = float(box.get("w", box.get("width"))), float(box.get("h", box.get("height")))
+                page = int(raw.get("page") or box.get("page") or 0)
+            except (KeyError, TypeError, ValueError):
+                continue
+            if page >= 1 and 0 <= x < 1 and 0 <= y < 1 and 0 < width <= 1 - x + 0.001 and 0 < height <= 1 - y + 0.001:
+                locations["supplier_id" if key == "vendor_number" else key] = {
+                    "page": page, "x": x, "y": y, "width": width, "height": height
+                }
+
         return {
             "classification_extraction": entities,
             "detailed_extraction": entities,
             "invoice_source": invoice_source,
+            "field_locations": locations,
             "line_items": line_items,
         }
 

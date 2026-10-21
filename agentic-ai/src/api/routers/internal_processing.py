@@ -139,6 +139,7 @@ def _response(result: Any) -> dict[str, Any]:
         "net_amount": invoice.get("net_amount") or None,
         "tax_amount": invoice.get("tax_amount") or None,
         "line_items": converted.get("line_items", []),
+        "field_locations": converted.get("field_locations", {}),
         "document_type": result.classification.get("document_type"),
     }
 

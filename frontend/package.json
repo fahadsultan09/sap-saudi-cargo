@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "npx @ui5/cli serve --port 8080"
+    "start": "npx @ui5/cli serve --port 8080",
+    "postinstall": "node lib/preparePdfViewer.js",
+    "prestart": "node lib/preparePdfViewer.js"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +14,8 @@
   "devDependencies": {
     "@ui5/cli": "^4.0.70",
     "ui5-middleware-livereload": "^3.4.0"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.4.296"
   }
 }

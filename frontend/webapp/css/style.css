@@ -801,6 +801,27 @@ html, body, .sapUiBody {
     gap: 0;
 }
 
+/* Processor extension: existing review cards remain the data pane. Other roles retain full width. */
+.apProcessorWorkspace { width: 100%; gap: 0.75rem; align-items: flex-start; }
+.apProcessorData { width: 100%; flex: 1 1 auto; min-width: 0; }
+.apProcessorPdf { min-width: 0; background: var(--ap-surface); border: 1px solid var(--ap-border); border-radius: var(--ap-radius); overflow: hidden; }
+.apProcessorDocFrame { width: 100%; height: calc(100vh - 225px); min-height: 480px; border: 0; display: block; }
+.apPdfHint { font-size: 0.75rem; color: var(--ap-text-muted); margin-bottom: 0.5rem; }
+.apExceptionBanner { margin: 0.5rem 0.75rem; }
+.apProcessorActions { position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--ap-border); background: var(--ap-surface); padding: 0.4rem; }
+.apProcessorActions .sapMBtnAccept .sapMBtnInner { background: #176448; border-color: #176448; color: #fff; }
+@media (min-width: 1280px) {
+    .apProcessorWorkspace[data-split="true"] > .apProcessorData { width: 54%; flex: 1 1 54%; margin-right: 0; }
+    .apProcessorWorkspace[data-split="true"] > .apProcessorPdf { width: 46%; flex: 1 1 46%; position: sticky; top: 0.5rem; margin-right: 0.75rem; }
+    .apProcessorWorkspace[data-split="true"] .apReviewHeader > .sapMFlexBox { gap: 0.5rem; }
+    .apProcessorWorkspace[data-split="true"] .apFieldGroups { grid-template-columns: 1fr; }
+}
+@media (max-width: 1279px) {
+    .apProcessorWorkspace[data-split="true"] { flex-direction: column; }
+    .apProcessorWorkspace[data-split="true"] > .apProcessorData,
+    .apProcessorWorkspace[data-split="true"] > .apProcessorPdf { width: calc(100% - 1.5rem); margin: 0 0.75rem; }
+}
+
 .apHomeReview .apSectionTitle.sapMTitle {
     font-family: var(--ap-font-display);
     letter-spacing: -0.02em;
@@ -1693,3 +1714,137 @@ html, body, .sapUiBody {
     .apKpi { min-width: 100%; }
     .apPipeTrack.sapMFlexBox { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Split review adapts to its data pane, including UI5's optional flex-item wrappers. */
+.apProcessorWorkspace[data-split="true"] .apProcessorData {
+    container-name: processor-data;
+    container-type: inline-size;
+    min-width: 0;
+}
+@media (min-width: 1280px) {
+    .apProcessorWorkspace[data-split="true"] {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        width: calc(100% - 1.5rem);
+        margin: 0 0.75rem;
+        align-items: start;
+    }
+    .apProcessorWorkspace[data-split="true"] > .sapMFlexItem {
+        width: auto !important;
+        min-width: 0;
+        max-width: 100%;
+    }
+    .apProcessorWorkspace[data-split="true"] .apProcessorData,
+    .apProcessorWorkspace[data-split="true"] .apProcessorPdf {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+    .apProcessorWorkspace[data-split="true"] > .sapMFlexItem:has(> .apProcessorPdf) {
+        position: sticky;
+        top: 0.5rem;
+    }
+}
+@container processor-data (max-width: 800px) {
+    .apReviewHeader, .apPageSection, .apInfoPane { padding: 0.65rem; }
+    .sapMFlexItem { min-width: 0; max-width: 100%; }
+    .sapMText, .sapMLnk, .sapMLabel, .sapMObjStatusText, .sapMInputBaseInner {
+        font-size: clamp(0.75rem, 1.8cqi, 0.875rem);
+        overflow-wrap: anywhere;
+    }
+    .sapMTitle { font-size: clamp(1rem, 2.7cqi, 1.25rem); white-space: normal; overflow-wrap: anywhere; }
+    .sapMTextNoWrap, .apStepperName.sapMText { white-space: normal; overflow-wrap: anywhere; }
+    .sapMBtnContent, .sapMSegBBtn .sapMSegBBtnInner, .sapMITBText { font-size: 0.75rem; }
+    .apReviewHeader > .sapMFlexBox, .apAgentPanelHeader, .apFieldTileHead, .apFieldsActions { flex-wrap: wrap; gap: 0.4rem; }
+    .apHeaderFacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 0.4rem; }
+    .apFact { min-width: 0; padding: 0.4rem; }
+    .apFactLabel.sapMText, .apAgentPointLabel.sapMText { font-size: 0.68rem; letter-spacing: 0.02em; }
+    .apFieldGroups { grid-template-columns: minmax(0, 1fr); }
+    .apFieldTiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); }
+    .apAgentPoints.sapMFlexBox { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+    .apStepper.sapMList .sapMListUl { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 2px; }
+    .apStepper .apStepperItem.sapMLIB,
+    .apStepper .apStepperItem.sapMLIB:first-child,
+    .apStepper .apStepperItem.sapMLIB:last-child { margin: 0; padding: 0.4rem; clip-path: none; }
+    .apStepperBody > .sapMFlexBox { flex-wrap: wrap; justify-content: center; }
+    .apFieldsHeader { flex-direction: column; align-items: stretch; }
+    .apFieldsActions .sapMSegB { max-width: 100%; }
+    .apFieldsActions .sapMSegBBtn { padding: 0 0.35rem; }
+    .sapMListTblCnt { max-width: 100%; overflow-x: auto; }
+    .sapMListTblCell { padding-left: 0.4rem; padding-right: 0.4rem; }
+    .apExceptionBanner { margin: 0.4rem; }
+    .apExceptionBanner .sapMMsgStripMessage { overflow-wrap: anywhere; line-height: 1.45; }
+    .apIssue { flex-wrap: wrap; gap: 0.35rem; }
+    .apIssueBody { flex: 1 1 12rem; min-width: 0; }
+}
+@container processor-data (max-width: 480px) {
+    .apAgentPoints.sapMFlexBox, .apFieldTiles { grid-template-columns: minmax(0, 1fr); }
+    .apReviewHeader > .sapMFlexBox { flex-direction: column; align-items: stretch; }
+}
+
+/* Review flow has a variable number of steps. Keep one connected track and scroll on narrow screens. */
+.apReviewShell .apFlowCard {
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: linear-gradient(160deg, rgba(10, 22, 32, 0.97), rgba(6, 83, 44, 0.9));
+    scrollbar-width: thin;
+    scrollbar-color: var(--ap-brand-light) transparent;
+}
+.apReviewShell .apPanelFlow.sapMFlexBox {
+    --ap-dot: 2rem;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(6.5rem, 1fr);
+    align-items: start;
+    background: transparent;
+    gap: 0 var(--ap-col-gap);
+    min-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+.apPanelFlow .apPipeTrackStep { justify-content: flex-start; }
+.apPanelFlow .apPipeTrackDot .sapUiIcon { color: #fff; line-height: 1; }
+/* Keep labels and the info button in normal layout; neither can overlap the other. */
+.apPanelFlow .apFlowStepLabelRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    width: 100%;
+    min-height: 2.75rem;
+    margin-top: 0.3rem;
+    box-sizing: border-box;
+}
+.apPanelFlow .apPipeTrackLabel.sapMLnk {
+    min-width: 0;
+    flex: 0 1 auto;
+    white-space: normal;
+    overflow-wrap: normal;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    text-align: center;
+}
+.apPanelFlow .apFlowInfo.sapMBtn {
+    position: static;
+    transform: none;
+    flex: 0 0 1.5rem;
+    height: 1.75rem;
+    padding: 0;
+}
+.apPanelFlow .apFlowInfo .sapMBtnInner { min-width: 1.5rem; height: 1.75rem; padding: 0; }
+.apPanelFlow .apFlowInfo .sapMBtnIcon { color: rgba(255, 255, 255, 0.9); line-height: 1.65rem; font-size: 0.85rem; width: 1.5rem; }
+/* The track never wraps, so connectors remain valid at every viewport width. */
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--ap-dot) / 2 - 1px);
+    left: calc(-50% - var(--ap-col-gap) + var(--ap-dot) / 2 + 0.3rem);
+    width: calc(100% + var(--ap-col-gap) - var(--ap-dot) - 0.6rem);
+    height: 2px;
+    background: rgba(255, 255, 255, 0.2);
+}
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="done"]::before { background: var(--ap-brand-light); }
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="running"]::before { background: linear-gradient(90deg, var(--ap-brand-light), rgba(255,255,255,.2)); }
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="failed"]::before { background: var(--ap-error); }
+
+.apAgentInfoStatus { gap: 0.35rem; flex: 0 0 auto; }

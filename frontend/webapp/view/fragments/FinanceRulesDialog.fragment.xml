@@ -1,0 +1,25 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog id="financeRulesDialog" title="Finance Rules · {financeRules>/invoice}" contentWidth="64rem"
+        contentHeight="65vh" resizable="true" draggable="true" stretchOnPhone="true">
+        <VBox class="sapUiSmallMargin" busy="{financeRules>/busy}" busyIndicatorDelay="0">
+            <MessageStrip text="{financeRules>/notice}" type="Information" showIcon="true" class="sapUiSmallMarginBottom"/>
+            <MessageStrip text="{financeRules>/error}" type="Warning" showIcon="true" visible="{= !!${financeRules>/error} }" class="sapUiSmallMarginBottom"/>
+            <Text text="Finance Rules stage results and AP Core routing checks are listed separately. AP Core entries retain their execution timestamps and may include checks repeated after corrections." class="sapUiSmallMarginBottom"/>
+            <Table items="{financeRules>/rows}" noDataText="No recorded rule results are available.">
+                <columns>
+                    <Column><Text text="Rule / stage"/></Column>
+                    <Column><Text text="Description / criterion"/></Column>
+                    <Column><Text text="What we found"/></Column>
+                    <Column width="7rem"><Text text="Result"/></Column>
+                </columns>
+                <items><ColumnListItem><cells>
+                    <VBox><Text text="{financeRules>rule_id}"/><Text text="{financeRules>stage}" class="apTimelineMeta"/></VBox>
+                    <VBox><Text text="{financeRules>description}"/><Text text="{financeRules>parameter}" class="apTimelineMeta"/></VBox>
+                    <Text text="{financeRules>observed}"/>
+                    <ObjectStatus text="{financeRules>outcome}" state="{financeRules>state}" inverted="true"/>
+                </cells></ColumnListItem></items>
+            </Table>
+        </VBox>
+        <endButton><Button text="Close" press="onCloseFinanceRules"/></endButton>
+    </Dialog>
+</core:FragmentDefinition>

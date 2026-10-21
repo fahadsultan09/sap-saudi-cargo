@@ -127,6 +127,7 @@ class APAgentOrchestrator:
                     summary="Deterministic triage rules evaluated the classified and extracted document.",
                     details={
                         "review_required": triage.get("review_required"),
+                        "rules": triage.get("finance_rules", []),
                         "missing_fields": triage.get("missing_fields", []),
                     },
                 )
@@ -154,6 +155,7 @@ class APAgentOrchestrator:
         validation = {
             "blocking": blocking,
             "triage_review_reason": triage.get("review_reason"),
+            "finance_rules": triage.get("finance_rules", []),
             "missing_fields": triage.get("missing_fields", []),
             "confidence": triage.get("confidence"),
             "checks": {

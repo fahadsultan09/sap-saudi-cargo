@@ -12,6 +12,7 @@ sap.ui.define([
         _onRouteMatched: function (oEvent) {
             var sCaseId = oEvent.getParameter("arguments").caseId;
             if (sCaseId) {
+                this.getData().setProperty("/processorSplit", false);
                 this.getData().setProperty("/reviewTabKey", "overview");
                 this.getCaseStore().loadCase(sCaseId);
             }

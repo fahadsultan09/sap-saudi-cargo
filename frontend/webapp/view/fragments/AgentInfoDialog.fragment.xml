@@ -1,0 +1,24 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog id="agentInfoDialog" title="{agentInfo>/name} · Information" contentWidth="48rem"
+        contentHeight="60vh" resizable="true" draggable="true" stretchOnPhone="true">
+        <VBox class="sapUiMediumMargin">
+            <Title text="{agentInfo>/task}" level="H4"/>
+            <Text text="{agentInfo>/purpose}" class="sapUiSmallMarginTopBottom"/>
+            <Title text="What this agent checks" level="H5"/>
+            <VBox items="{agentInfo>/checks}" class="sapUiSmallMarginTopBottom">
+                <Text text="• {agentInfo>text}" class="sapUiTinyMarginBottom"/>
+            </VBox>
+            <MessageStrip text="{agentInfo>/notice}" type="Information" showIcon="true" class="sapUiSmallMarginBottom"/>
+            <HBox justifyContent="SpaceBetween" alignItems="Center" wrap="Wrap">
+                <Title text="Recorded findings for this invoice" level="H5"/>
+                <ObjectStatus text="{agentInfo>/status}" state="{agentInfo>/state}" inverted="true"/>
+            </HBox>
+            <Text text="{agentInfo>/summary}" class="sapUiSmallMarginTopBottom"/>
+            <Table items="{agentInfo>/findings}" noDataText="No detailed findings have been recorded.">
+                <columns><Column width="35%"><Text text="Detail"/></Column><Column><Text text="What we found"/></Column></columns>
+                <items><ColumnListItem><cells><Text text="{agentInfo>label}"/><Text text="{agentInfo>value}"/></cells></ColumnListItem></items>
+            </Table>
+        </VBox>
+        <endButton><Button text="Close" press="onCloseAgentInfo"/></endButton>
+    </Dialog>
+</core:FragmentDefinition>

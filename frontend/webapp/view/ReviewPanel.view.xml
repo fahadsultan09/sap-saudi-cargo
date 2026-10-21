@@ -10,18 +10,22 @@
 		<!-- 1. The flow, in its own card -->
 		<VBox class="apFlowCard">
 			<HBox class="apPipeTrack apPanelFlow" renderType="Bare" items="{apData>/selectedInvoice/pipelineSteps}">
-				<VBox class="apPipeTrackStep" alignItems="Center">
+				<VBox class="apPipeTrackStep" alignItems="Center" tooltip="{apData>tooltip}">
 					<customData>
 						<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
 					</customData>
 					<VBox class="apPipeTrackDot" alignItems="Center" justifyContent="Center">
-						<core:Icon src="{apData>icon}" size="0.8rem"/>
-					</VBox>
-					<Link text="{apData>title}" press="onFlowStep" class="apPipeTrackLabel sapUiTinyMarginTop"/>
+                        <core:Icon src="{apData>stepIcon}" size="0.95rem"/>
+                    </VBox>
+					<HBox alignItems="Center" justifyContent="Center" renderType="Bare" class="apFlowStepLabelRow">
+                        <Link text="{apData>title}" wrapping="true" press="onFlowStep" class="apPipeTrackLabel"/>
+                    </HBox>
 				</VBox>
 			</HBox>
 		</VBox>
-		<VBox class="apReviewMain" height="100%">
+		<HBox id="processorWorkspace" alignItems="Start" class="apProcessorWorkspace">
+            <customData><core:CustomData key="split" value="{= ${apData>/selectedInvoice/processor} &amp;&amp; ${apData>/processorSplit} ? 'true' : 'false' }" writeToDom="true"/></customData>
+        <VBox class="apReviewMain apProcessorData" height="100%">
 			<layoutData>
 				<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
 			</layoutData>
@@ -40,8 +44,10 @@
 							</HBox>
 						</HBox>
 					</VBox>
-					<Button text="View PDF" icon="sap-icon://pdf-attachment" press="onViewInvoice"
-						enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
+					<HBox alignItems="Center" wrap="Wrap">
+                        <Button text="{= ${apData>/processorSplit} ? 'Full Data View' : 'Split View' }" icon="sap-icon://screen-split-two"
+                            press="onToggleSplit" visible="{apData>/selectedInvoice/processor}" class="sapUiTinyMarginEnd"/>
+                    </HBox>
 				</HBox>
 				<HBox wrap="Wrap" class="apFacts apHeaderFacts" items="{apData>/selectedInvoice/overview/facts}">
 					<VBox class="apFact">
@@ -53,6 +59,15 @@
 					</VBox>
 				</HBox>
 			</VBox>
+            <MessageStrip text="{apData>/selectedInvoice/exceptionText}" type="Warning" showIcon="true"
+                visible="{= !!${apData>/selectedInvoice/exceptionText} }" class="apExceptionBanner"/>
+            <OverflowToolbar visible="{apData>/selectedInvoice/processor}" class="apProcessorActions">
+                <Button text="Mark as Reviewed" type="Accept" icon="sap-icon://complete" press="onMarkReviewed"
+                    enabled="{= ${apData>/selectedInvoice/canMarkReviewed} &amp;&amp; !${apData>/selectedInvoice/editing} &amp;&amp; !${apData>/processorActionBusy} }"/>
+                <ToolbarSpacer/>
+                <Button text="Re-run Extraction" icon="sap-icon://refresh" press="onRerunExtraction"
+                    enabled="{= ${apData>/selectedInvoice/canProcess} &amp;&amp; !${apData>/processorActionBusy} }"/>
+            </OverflowToolbar>
 			<!-- 3. Tabs as anchors: a click scrolls to that section; the active tab follows the scroll -->
 			<IconTabHeader id="reviewTabs" mode="Inline" select="onTabSelect" selectedKey="{apData>/reviewTabKey}"
 				class="apReviewTabs apAnchorBar">
@@ -62,7 +77,8 @@
 					<IconTabFilter text="{= 'Issues (' + ${apData>/selectedInvoice/issues}.length + ')' }" key="issues"
 						icon="sap-icon://alert" iconColor="{= ${apData>/selectedInvoice/issues}.length ? 'Critical' : 'Default' }"/>
 					<IconTabFilter text="Info" key="info" icon="sap-icon://hint"/>
-					<IconTabFilter text="Fields" key="details" icon="sap-icon://form"/>
+					<IconTabFilter text="{= ${apData>/selectedInvoice/processor} ? 'Extracted Fields' : 'Fields' }" key="details" icon="sap-icon://form"/>
+                    <IconTabFilter text="Line Items" key="lineItems" icon="sap-icon://table-view" visible="{apData>/selectedInvoice/processor}"/>
 					<IconTabFilter text="Audit Trail" key="audit" icon="sap-icon://history"/>
 				</items>
 			</IconTabHeader>
@@ -127,9 +143,13 @@
 										<Text text="{apData>/selectedInvoice/agentDetail/task}" class="apAgentTask"/>
 									</VBox>
 								</HBox>
-								<ObjectStatus text="{apData>/selectedInvoice/agentDetail/status}"
+								<HBox alignItems="Center" renderType="Bare" class="apAgentInfoStatus">
+                                    <Button icon="sap-icon://hint" type="Transparent" press="onAgentInfo"
+                                        tooltip="About {apData>/selectedInvoice/agentDetail/agent} and its findings"/>
+                                    <ObjectStatus text="{apData>/selectedInvoice/agentDetail/status}"
 									icon="{apData>/selectedInvoice/agentDetail/statusIcon}"
 									state="{apData>/selectedInvoice/agentDetail/state}" inverted="true"/>
+                                </HBox>
 							</HBox>
 							<HBox alignItems="Center" wrap="Wrap" renderType="Bare" class="apAgentHeadline">
 								<Text text="{apData>/selectedInvoice/agentDetail/result}" class="apAgentResult"/>
@@ -433,7 +453,8 @@
 												<core:CustomData key="differs" value="{= ${apData>differs} ? 'true' : 'false' }" writeToDom="true"/>
 											</customData>
 											<HBox alignItems="Center" justifyContent="SpaceBetween" renderType="Bare" class="apFieldTileHead">
-												<Text text="{apData>field}" class="apFieldName"/>
+												<Link text="{apData>field}" press="onFocusField" class="apFieldName" visible="{apData>/selectedInvoice/processor}" tooltip="Locate this field on the PDF when extraction coordinates are available"/>
+                                                <Text text="{apData>field}" class="apFieldName" visible="{= !${apData>/selectedInvoice/processor} }"/>
 												<ObjectStatus text="{apData>result}" icon="{apData>icon}" state="{apData>state}"/>
 											</HBox>
 											<VBox renderType="Bare" class="apFieldTileRow">
@@ -456,6 +477,13 @@
 						</VBox>
 					</VBox>
 				</VBox>
+                <VBox id="section-lineItems" class="apPageSection" visible="{apData>/selectedInvoice/processor}">
+                    <Title text="Line Items" level="H4" class="apPageSectionTitle"/>
+                    <Table items="{apData>/selectedInvoice/lineItems}" noDataText="No extracted line items available" class="apCard">
+                        <columns><Column width="3rem"><Text text="Item"/></Column><Column><Text text="Description"/></Column><Column hAlign="End"><Text text="Quantity"/></Column><Column hAlign="End"><Text text="Amount"/></Column></columns>
+                        <items><ColumnListItem><cells><Text text="{apData>number}"/><Text text="{apData>description}"/><Text text="{apData>quantity}"/><Text text="{apData>amount}"/></cells></ColumnListItem></items>
+                    </Table>
+                </VBox>
 				<VBox id="section-audit" class="apPageSection">
 					<Title text="Audit trail" level="H4" class="apPageSectionTitle"/>
 					<VBox class="apCard">
@@ -483,6 +511,12 @@
 				</VBox>
 			</ScrollContainer>
 		</VBox>
+            <VBox id="processorPdfPane" class="apProcessorPdf" visible="{= ${apData>/selectedInvoice/processor} &amp;&amp; ${apData>/processorSplit} }">
+                <Title text="Invoice document" level="H5" class="sapUiSmallMargin"/>
+                <Text text="Select a field to locate its source. Coordinates are shown only when supplied by extraction." class="apPdfHint sapUiSmallMarginBeginEnd"/>
+                <core:HTML id="processorPdf" sanitizeContent="false"/>
+            </VBox>
+        </HBox>
 		<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.DecisionBar" type="XML"/>
 		<!-- Back to the top of the page; shown once the page is scrolled down -->
 		<Button id="toTop" icon="sap-icon://navigation-up-arrow" tooltip="Back to top" press="onScrollTop"

@@ -80,6 +80,7 @@ class TriageResult(BaseModel):
     review_required: bool
     review_reason: Optional[str] = None
     missing_fields: list[str] = Field(default_factory=list)
+    finance_rules: list[dict[str, Any]] = Field(default_factory=list)
     workflow_steps: list[WorkflowStep] = Field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

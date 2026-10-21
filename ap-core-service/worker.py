@@ -107,7 +107,7 @@ def process_once() -> bool:
                 case_id,
                 fields=fields,
                 validation=result.get("validation") or {},
-                idempotency_key=f"extract:{case_id}",
+                idempotency_key=f"extract:{case_id}:{work_id}",
             )
 
             client.complete_work(

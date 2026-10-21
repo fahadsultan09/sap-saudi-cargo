@@ -192,3 +192,81 @@ def test_progress_is_saved_only_while_processing(tmp_path, monkeypatch):
         assert client.post(f"/internal/v1/cases/{case}/progress",json=progress).json()["accepted"] is True
         saved=client.get(f"/api/v1/cases/{case}").json()
         assert saved["status"]=="PROCESSING" and saved["validation"]["agent_trace"]==progress["agent_trace"]
+
+
+def test_processor_review_is_audited_and_cannot_approve(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case = register(client).json()["case_id"]
+        client.post(f"/internal/v1/cases/{case}/extraction-result", json={"fields": FIELDS, "idempotency_key": "processor-review-extract"})
+        url = f"/api/v1/cases/{case}/processor/review"
+        assert client.post(url, headers=APPROVER, json={}).status_code == 403
+        response = client.post(url, headers=PROCESSOR, json={})
+        assert response.status_code == 200 and response.json()["status"] == "READY_FOR_APPROVAL"
+        saved = client.get(f"/api/v1/cases/{case}").json()
+        assert saved["validation"]["processor_review"]["user_id"] == "faizan"
+        assert saved["last_edited_by"] == "faizan"
+        assert client.post(f"/api/v1/cases/{case}/approve", headers=PROCESSOR, json={}).status_code == 403
+        assert client.post(f"/api/v1/cases/{case}/approve", headers=APPROVER, json={}).json()["status"] == "APPROVED"
+
+
+def test_any_warning_blocks_review_and_approval(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        for index, validation in enumerate([
+            {"checks": {"tax": "WARNING"}},
+            {"checks": {"bank": "FAIL"}},
+            {"confidence": .61, "source_verdict": {"status": "MATCH"}},
+            {"agent_trace": [{"agent": "SCANNER", "status": "failed"}]},
+            {"source_verdict": {"status": "MATCH", "comparisons": [{"check": "bank", "result": "CHECK"}]}},
+        ]):
+            case = register(client, f"warning-{index}".encode()).json()["case_id"]
+            fields = {**FIELDS, "invoice_number": f"WARN-{index}"}
+            response = client.post(f"/internal/v1/cases/{case}/extraction-result", json={"fields": fields, "validation": validation, "idempotency_key": f"warning-extract-{index}"})
+            assert response.json()["status"] == "NEEDS_REVIEW"
+            assert client.post(f"/api/v1/cases/{case}/processor/review", headers=PROCESSOR, json={}).status_code == 409
+            # Guard even a legacy ready-for-approval record whose status conflicts with evidence.
+            with db.transaction() as conn:
+                conn.execute("UPDATE cases SET status='READY_FOR_APPROVAL' WHERE id=?", (case,))
+            assert client.post(f"/api/v1/cases/{case}/approve", headers=APPROVER, json={}).status_code == 409
+
+
+def test_flag_issue_requires_notes_and_records_exception(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case = register(client).json()["case_id"]
+        client.post(f"/internal/v1/cases/{case}/extraction-result", json={"fields": FIELDS, "idempotency_key": "flag-issue-extraction"})
+        url = f"/api/v1/cases/{case}/processor/flag"
+        assert client.post(url, headers=PROCESSOR, json={"comment": " "}).status_code == 422
+        response = client.post(url, headers=PROCESSOR, json={"comment": "Bank account differs from invoice"})
+        assert response.json()["status"] == "NEEDS_REVIEW"
+        saved = client.get(f"/api/v1/cases/{case}").json()
+        assert saved["validation"]["processor_exception"] == "Bank account differs from invoice"
+        assert client.post(f"/api/v1/cases/{case}/processor/review", headers=PROCESSOR, json={}).status_code == 409
+        assert client.get(f"/api/v1/cases/{case}/history").json()["items"][-1]["event_type"] == "PROCESSOR_EXCEPTION_REPORTED"
+
+
+def test_rerun_creates_new_work_and_accepts_fresh_extraction(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case = upload(client).json()["case_id"]
+        work = client.post("/internal/v1/work-items/lease", json={"worker_id": "worker"}).json()["work_item"]
+        client.post(f"/internal/v1/cases/{case}/extraction-result", json={"fields": FIELDS, "idempotency_key": f"extract:{case}:{work['id']}"})
+        client.post(f"/internal/v1/work-items/{work['id']}/complete", json={"worker_id": "worker", "outcome": "SUCCEEDED", "idempotency_key": "first-run-complete"})
+        url = f"/api/v1/cases/{case}/processor/rerun"
+        assert client.post(url, headers=APPROVER, json={}).status_code == 403
+        assert client.post(url, headers=PROCESSOR, json={}).json()["status"] == "RECEIVED"
+        assert client.post(url, headers=PROCESSOR, json={}).status_code == 409
+        next_work = client.post("/internal/v1/work-items/lease", json={"worker_id": "worker"}).json()["work_item"]
+        assert next_work["id"] != work["id"] and next_work["payload"]["document_ref"]
+        response = client.post(f"/internal/v1/cases/{case}/extraction-result", json={"fields": {**FIELDS, "total_amount": "123.00"}, "idempotency_key": f"extract:{case}:{next_work['id']}"})
+        assert response.status_code == 200
+        assert client.get(f"/api/v1/cases/{case}").json()["total_amount"] == "123.00"
+
+
+def test_review_rule_history_exposes_recorded_core_results(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case = register(client).json()["case_id"]
+        snapshot = [{"rule_id": "OVERALL_CONFIDENCE", "parameter": "Minimum confidence: 0.75", "observed": "0.9", "outcome": "PASS"}]
+        client.post(f"/internal/v1/cases/{case}/extraction-result", json={"fields": FIELDS, "validation": {"finance_rules": snapshot}, "idempotency_key": "rule-dialog-extraction"})
+        assert client.get(f"/api/v1/cases/{case}").json()["validation"]["finance_rules"] == snapshot
+        public = client.get(f"/api/v1/cases/{case}/rule-results")
+        assert public.status_code == 200
+        assert public.json() == client.get(f"/internal/v1/cases/{case}/rule-results").json()
+        assert {row["rule_code"] for row in public.json()["items"]} == {"REQUIRED_FIELDS_PRESENT", "BUSINESS_DUPLICATE"}

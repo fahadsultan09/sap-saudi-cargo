@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from .config import APP_ENV, DB_PATH, LEASE_SECONDS, MAX_WORK_ATTEMPTS, SERVICE_API_KEY
 from .db import connect, dumps, init_db, loads, now, transaction
+from .review_checks import review_exceptions
 from .schemas import Actor, AgentResult, Decision, ExtractionResult, FieldCorrection, LeaseRequest, ProgressUpdate, RegisterUpload, TransitionRequest, WorkCompletion
 
 app = FastAPI(title="AP Automation · AP Core", version="0.1.0", description="Business state authority for AP automation. Agents advise; AP Core commits state and decides next steps.")
@@ -253,11 +254,16 @@ def route_case(c, case_id: str, f: dict[str, Any], validation: dict[str, Any], c
             if not Decimal(str(amount)).is_finite(): amount_error="AMOUNT_NOT_FINITE"
         except (InvalidOperation, ValueError): amount_error="AMOUNT_INVALID"
     if amount_error: blocking.append(amount_error)
+    # Re-evaluate fields/duplicates from this correction, not the previous stored result.
+    exceptions = review_exceptions({**validation, "missing_fields": missing,
+        "checks": {**validation.get("checks", {}), "duplicate": "suspected_duplicate" if duplicate else "not_checked"}})
+    if exceptions: blocking.append("VALIDATION_EXCEPTION")
     next_status="NEEDS_REVIEW" if blocking else "READY_FOR_APPROVAL"
     full_match=(validation.get("source_verdict") or {}).get("status")=="MATCH"
     if duplicate: reason="Potential duplicate invoice; compare with matched case."
     # A full-match verdict says "approve right away"; it must not be shown when AP Core's own checks block.
     elif summary and not (blocking and full_match): reason=summary
+    elif exceptions: reason="Payment blocked · " + "; ".join(exceptions)
     elif blocking: reason="Required fields or validations need human review."
     else: reason="Required fields present; awaiting independent approval."
     # Agent checks (e.g. VERIFIER's PO match) are kept; the duplicate check is AP Core's own.
@@ -287,6 +293,9 @@ def submit_extraction(case_id: str, req: ExtractionResult):
     with transaction() as c:
         row=c.execute("SELECT * FROM cases WHERE id=?",(case_id,)).fetchone()
         if not row: raise HTTPException(404,"Case not found")
+        if row["status"] not in {"PROCESSING", "RECEIVED"}:
+            prior = c.execute("SELECT 1 FROM model_judgements WHERE case_id=? AND idempotency_key=?", (case_id, req.idempotency_key)).fetchone()
+            if not prior: raise HTTPException(409, "Case is no longer accepting extraction results")
         previous=c.execute("SELECT 1 FROM model_judgements WHERE idempotency_key=?",(req.idempotency_key,)).fetchone()
         if previous: return {"case_id":case_id,"duplicate_submission":True,"status":row["status"]}
         c.execute("INSERT OR IGNORE INTO model_judgements(id,case_id,agent_name,judgement_type,payload_json,model_version,idempotency_key,created_at) VALUES(?,?,?,?,?,?,?,?)",(str(uuid.uuid4()),case_id,"SCANNER","EXTRACTION_RESULT",dumps(req.fields),None,req.idempotency_key,now()))
@@ -363,6 +372,7 @@ def get_judgements(case_id: str):
         rows=c.execute("SELECT * FROM model_judgements WHERE case_id=? ORDER BY created_at",(case_id,)).fetchall()
     return {"items":[{**dict(r),"payload":loads(r["payload_json"],{})} for r in rows]}
 
+@app.get("/api/v1/cases/{case_id}/rule-results", dependencies=[Depends(service_auth)])
 @app.get("/internal/v1/cases/{case_id}/rule-results", dependencies=[Depends(service_auth)])
 def get_rule_results(case_id: str):
     with connect() as c:
@@ -424,9 +434,52 @@ def correct_fields(case_id: str, req: FieldCorrection, actor: Actor = require_ro
             event(c,case_id,"STATE_TRANSITION","SYSTEM_ACTION","ap-core","Reopened for review after correction.",{"from":row["status"],"to":"NEEDS_REVIEW"})
         # A person checked the fields against the document, so earlier agent flags no longer apply; AP Core's own rules run again.
         validation={**loads(row["validation_json"],{}),"blocking":[]}
+        validation.pop("processor_review", None)
         return route_case(c,case_id,fields,validation,None)
 
 DECISIONS={"approve":("APPROVED","APPROVAL_APPROVED"),"return":("RETURNED","APPROVAL_RETURNED"),"reject":("REJECTED","APPROVAL_REJECTED")}
+
+@app.post("/api/v1/cases/{case_id}/processor/{action}", dependencies=[Depends(service_auth)])
+def processor_action(case_id: str, action: Literal["review", "flag", "rerun"], req: Decision,
+                     actor: Actor = require_roles(*PROCESSOR_ROLES)):
+    with transaction() as c:
+        row = c.execute("SELECT * FROM cases WHERE id=?", (case_id,)).fetchone()
+        if not row: raise HTTPException(404, "Case not found")
+        if row["status"] not in {"NEEDS_REVIEW", "RETURNED", "PROCESSING_ERROR", "READY_FOR_APPROVAL"}:
+            raise HTTPException(409, "This invoice is not available for processor review")
+        validation = loads(row["validation_json"], {})
+        if action == "review":
+            if row["status"] == "PROCESSING_ERROR":
+                raise HTTPException(409, "Correct the fields or re-run extraction first")
+            result = route_case(c, case_id, loads(row["fields_json"], {}), validation, None)
+            if result["blocking"]:
+                raise HTTPException(409, "Resolve the invoice exceptions before marking it reviewed")
+            validation = loads(c.execute("SELECT validation_json FROM cases WHERE id=?", (case_id,)).fetchone()[0], {})
+            validation["processor_review"] = {"user_id": actor.user_id, "reviewed_at": now()}
+            target, event_type, reason = "READY_FOR_APPROVAL", "PROCESSOR_REVIEWED", "Reviewed by processor; awaiting independent approval."
+        elif action == "flag":
+            if len(req.comment.strip()) < 3: raise HTTPException(422, "Describe the discrepancy in at least 3 characters")
+            validation["processor_exception"] = req.comment.strip()
+            validation["blocking"] = list(dict.fromkeys([*validation.get("blocking", []), "PROCESSOR_EXCEPTION"]))
+            validation.pop("processor_review", None)
+            target, event_type, reason = "NEEDS_REVIEW", "PROCESSOR_EXCEPTION_REPORTED", req.comment.strip()
+        else:
+            if c.execute("SELECT 1 FROM work_items WHERE case_id=? AND status IN ('QUEUED','LEASED','RETRY')", (case_id,)).fetchone():
+                raise HTTPException(409, "Processing is already queued or running")
+            doc = c.execute("SELECT * FROM documents WHERE case_id=? ORDER BY created_at DESC LIMIT 1", (case_id,)).fetchone()
+            if not doc: raise HTTPException(409, "Stored document is required to re-run extraction")
+            task_id, stamp = str(uuid.uuid4()), now()
+            payload = {"document_ref": doc["storage_key"], "file_name": doc["file_name"]}
+            c.execute("INSERT INTO work_items(id,case_id,task_type,status,payload_json,attempts,max_attempts,available_at,idempotency_key,created_at,updated_at) VALUES(?,?,'PROCESS_DOCUMENT','QUEUED',?,0,?,?,?,?,?)",
+                      (task_id, case_id, dumps(payload), MAX_WORK_ATTEMPTS, stamp, f"rerun:{task_id}", stamp, stamp))
+            validation = {"agent_trace": [], "source_checks": []}
+            target, event_type, reason = "RECEIVED", "EXTRACTION_REQUEUED", "Processor requested a new extraction and validation run."
+        # Processor review also participates in separation of duties.
+        c.execute("UPDATE cases SET status=?,validation_json=?,review_reason=?,last_edited_by=?,updated_at=?,version=version+1 WHERE id=?",
+                  (target, dumps(validation), reason, actor.user_id, now(), case_id))
+        event(c, case_id, event_type, "HUMAN_DECISION", actor.user_id, reason, {"role": actor.role, "from": row["status"], "to": target, "comment": req.comment.strip()})
+    return {"case_id": case_id, "status": target}
+
 
 @app.post("/api/v1/cases/{case_id}/{decision}", dependencies=[Depends(service_auth)])
 def decide(case_id: str, decision: Literal["approve","return","reject"], req: Decision, actor: Actor = require_roles(*APPROVER_ROLES)):
@@ -438,6 +491,8 @@ def decide(case_id: str, decision: Literal["approve","return","reject"], req: De
         row=c.execute("SELECT * FROM cases WHERE id=?",(case_id,)).fetchone()
         if not row: raise HTTPException(404,"Case not found")
         current=row["status"]
+        if target=="APPROVED" and review_exceptions(loads(row["validation_json"], {})):
+            raise HTTPException(409, "Resolve validation exceptions before approval")
         if target=="APPROVED" and actor.user_id in {row["created_by"],row["last_edited_by"]}:
             raise HTTPException(403,"Approval must be independent: you uploaded or corrected this invoice")
         if current=="READY_FOR_APPROVAL" and target!="REJECTED":

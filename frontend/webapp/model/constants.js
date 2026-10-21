@@ -290,6 +290,9 @@ sap.ui.define([], function () {
 
         // Readable audit-trail titles per AP Core event type.
         EVENT_TITLES: {
+            PROCESSOR_REVIEWED: "Reviewed by processor",
+            PROCESSOR_EXCEPTION_REPORTED: "Exception reported",
+            EXTRACTION_REQUEUED: "New extraction requested",
             CASE_REGISTERED: "Invoice uploaded",
             DUPLICATE_UPLOAD_DETECTED: "Same file uploaded again",
             WORK_ITEM_LEASED: "Agent processing started",

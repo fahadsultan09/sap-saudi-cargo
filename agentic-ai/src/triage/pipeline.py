@@ -591,6 +591,33 @@ def validate_extraction(state: TriageState) -> TriageState:
     if not line_items:
         review_reasons.append("No line items extracted")
 
+    # Snapshot only rules evaluated in this stage, using the thresholds from this run.
+    finance_rules = []
+    for name in required_fields:
+        finance_rules.append({"rule_id": "REQUIRED_FIELD:" + name,
+            "description": "Required field for invoice type " + invoice_type,
+            "parameter": name + " must be present", "observed": "Present" if header_fields.get(name) else "Missing",
+            "outcome": "FAIL" if name in missing_required else "PASS"})
+        score = field_confidences.get(name)
+        finance_rules.append({"rule_id": "FIELD_CONFIDENCE:" + name,
+            "description": "Confidence of required field " + name,
+            "parameter": "Minimum confidence: " + str(MIN_REQUIRED_FIELD_CONFIDENCE),
+            "observed": str(score) if score is not None else "Not recorded",
+            "outcome": "UNKNOWN" if score is None else "FAIL" if score < MIN_REQUIRED_FIELD_CONFIDENCE else "PASS"})
+    finance_rules.extend([
+        {"rule_id": "OVERALL_CONFIDENCE", "description": "Mean extraction confidence over scored required fields (all scored fields if no required fields have scores)",
+         "parameter": "Minimum confidence: " + str(MIN_CONFIDENCE_THRESHOLD), "observed": str(overall_confidence),
+         "outcome": "FAIL" if overall_confidence < MIN_CONFIDENCE_THRESHOLD else "PASS"},
+        {"rule_id": "LINE_ITEMS_PRESENT", "description": "At least one line item must be extracted",
+         "parameter": "Minimum line item count: 1", "observed": str(len(line_items)), "outcome": "PASS" if line_items else "FAIL"},
+    ])
+    for name in conditional_fields:
+        finance_rules.append({"rule_id": "CONDITIONAL_FIELD:" + name,
+            "description": "Advisory conditional field for invoice type " + invoice_type,
+            "parameter": name + " should be present (advisory only)",
+            "observed": "Missing" if name in missing_conditional else "Present",
+            "outcome": "WARNING" if name in missing_conditional else "PASS"})
+
     review_required = len(review_reasons) > 0
     review_reason = "; ".join(review_reasons) if review_reasons else None
 
@@ -608,7 +635,7 @@ def validate_extraction(state: TriageState) -> TriageState:
     if review_required:
         evidence.append(f"Review reason: {review_reason}")
     logger.info("Validation: confidence=%.2f, review_required=%s", overall_confidence, review_required)
-    return {**state, "confidence": overall_confidence,
+    return {**state, "finance_rules": finance_rules, "confidence": overall_confidence,
             "missing_required_fields": missing_required,
             "low_confidence_fields": low_confidence,
             "review_required": review_required,
@@ -631,6 +658,7 @@ def build_triage_result(state: TriageState) -> TriageState:
         review_required=state.get("review_required", True),
         review_reason=state.get("review_reason"),
         missing_fields=state.get("missing_required_fields", []),
+        finance_rules=state.get("finance_rules", []),
         workflow_steps=state.get("workflow_steps", []),
     )
     result_dict = result.to_dict()
