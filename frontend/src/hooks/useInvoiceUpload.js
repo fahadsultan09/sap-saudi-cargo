@@ -1,35 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiJson, casePath } from "../lib/api";
-import { extractionConfidence } from "../lib/confidence";
-import { POLL_MS, PROCESS_STEPS, PROCESSING, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
+import { apiJson } from "../lib/api";
+import { PROCESS_STEPS, UPLOAD_WATCH_MIN_MS } from "../lib/constants";
 import { playAgentRunway, stepsAtIndex } from "../lib/agentRunway";
-import { buildPipeline } from "../lib/pipeline";
 import { clearUploadSession, loadUploadSession, saveUploadSession } from "../lib/uploadSession";
 import { takePendingFile } from "../lib/pendingUpload";
-
-function finalizeSteps(row) {
-  const piped = buildPipeline(row);
-  return piped.map((step) => {
-    if (step.key === "decide") {
-      return {
-        ...step,
-        state: "awaiting",
-        description: "Handing off to you…",
-        outcome: "Ready for your decision",
-        nowLabel: "Ready for you…",
-      };
-    }
-    if (step.state === "pending" || step.state === "running") {
-      return {
-        ...step,
-        state: "done",
-        description: step.outcome || step.description,
-      };
-    }
-    return step;
-  });
-}
 
 function readRestoredSession() {
   const saved = loadUploadSession();
@@ -39,6 +14,7 @@ function readRestoredSession() {
 
 /**
  * Shared invoice upload + agent runway state for Home (and Desk handoff).
+ * After the API accepts the file, live polling moves to /process/:caseId.
  */
 export function useInvoiceUpload({ enabled, showToast } = {}) {
   const navigate = useNavigate();
@@ -66,13 +42,10 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
   const [error, setError] = useState("");
   const [detail, setDetail] = useState(null);
   const [duplicate, setDuplicate] = useState(null);
-  const pollRef = useRef(null);
   const runwayRef = useRef(null);
-  const apiDoneRef = useRef(null);
 
   useEffect(
     () => () => {
-      clearTimeout(pollRef.current);
       runwayRef.current?.cancel();
     },
     [],
@@ -85,19 +58,17 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handoff once when enabled
   }, [enabled]);
 
-  function persistComplete({ id, name, nextSteps, conf }) {
-    saveUploadSession({
-      caseId: id,
-      fileName: name,
-      steps: nextSteps,
-      confidence: conf,
-      phase: "complete",
-    });
+  function goToReview(id = caseId) {
+    if (!id) {
+      showToast?.("Case id missing — open the invoice from Desk");
+      return;
+    }
+    navigate(`/review/${id}`, { state: { fromUpload: true, caseId: id } });
   }
 
-  function goToReview(id = caseId) {
+  function goToProcess(id = caseId) {
     if (!id) return;
-    navigate(`/review/${id}`, { state: { fromUpload: true, caseId: id } });
+    navigate(`/process/${id}`, { state: { fromUpload: true, fileName } });
   }
 
   async function uploadFile(file) {
@@ -109,17 +80,13 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
     setCaseId("");
     setCaseRow(null);
     setSteps(stepsAtIndex(0, file.name));
-    apiDoneRef.current = null;
     clearUploadSession();
 
     runwayRef.current?.cancel();
     const runway = playAgentRunway({
       fileName: file.name,
       minMs: UPLOAD_WATCH_MIN_MS,
-      onFrame: (next) => {
-        if (apiDoneRef.current?.stillWorking) return;
-        setSteps(next);
-      },
+      onFrame: (next) => setSteps(next),
     });
     runwayRef.current = runway;
 
@@ -164,6 +131,14 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
         return;
       }
 
+      if (!id) {
+        runway.cancel();
+        setError("Upload succeeded but no case id was returned");
+        setPhase("idle");
+        setSteps([]);
+        return;
+      }
+
       setCaseId(id);
       saveUploadSession({
         caseId: id,
@@ -172,12 +147,12 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
         confidence: null,
         phase: "watching",
       });
-      showToast?.("Invoice received — agents spinning up");
-      // Stay on Home: green Agent Runway is the post-upload theater.
-      pollUntilDone(id);
-      await runway.promise;
-      const finalId = await waitForCase(id);
-      finishReady(finalId || id);
+      showToast?.("Invoice received — opening process room");
+      runway.cancel();
+      // Process page owns live polling + sticky Review dock.
+      navigate(`/process/${id}`, { state: { fromUpload: true, fileName: file.name } });
+      setPhase("idle");
+      setSteps([]);
     } catch (err) {
       runway.cancel();
       const body = err?.body;
@@ -208,64 +183,6 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
     setDuplicate(null);
     if (!newId) return;
     goToReview(newId);
-  }
-
-  function waitForCase(id) {
-    if (apiDoneRef.current && !apiDoneRef.current.stillWorking) {
-      return Promise.resolve(id);
-    }
-    return new Promise((resolve) => {
-      const check = () => {
-        if (apiDoneRef.current && !apiDoneRef.current.stillWorking) {
-          resolve(id);
-          return;
-        }
-        pollRef.current = setTimeout(check, 200);
-      };
-      check();
-    });
-  }
-
-  function pollUntilDone(id) {
-    clearTimeout(pollRef.current);
-    pollRef.current = setTimeout(async () => {
-      try {
-        const row = await apiJson("GET", casePath(id));
-        const stillWorking = PROCESSING.includes(row.status);
-        apiDoneRef.current = { stillWorking, row };
-        setCaseRow(row);
-        if (stillWorking) {
-          setSteps(buildPipeline(row));
-          pollUntilDone(id);
-        } else {
-          const piped = buildPipeline(row);
-          if (piped.some((s) => s.state === "done")) {
-            setSteps((prev) => {
-              const runwayAhead = prev.filter((s) => s.state === "running" || s.state === "done").length;
-              return runwayAhead >= 3 ? prev : piped;
-            });
-          }
-        }
-      } catch (err) {
-        setError(err.message);
-        setPhase("idle");
-        runwayRef.current?.cancel();
-      }
-    }, POLL_MS);
-  }
-
-  function finishReady(id) {
-    clearTimeout(pollRef.current);
-    const row = apiDoneRef.current?.row;
-    const nextSteps = row ? finalizeSteps(row) : stepsAtIndex(PROCESS_STEPS.length - 1, fileName);
-    const conf = row ? extractionConfidence(row) : null;
-    setSteps(nextSteps);
-    setConfidence(conf);
-    setCaseId(id);
-    if (row) setCaseRow(row);
-    setPhase("complete");
-    persistComplete({ id, name: fileName || row?.file_name || "", nextSteps, conf });
-    showToast?.("Reading finished — review when you’re ready");
   }
 
   function onDrop(e) {
@@ -320,6 +237,7 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
     startAnother,
     reviewLater,
     goToReview,
+    goToProcess,
     continueAfterDuplicate,
     PROCESS_STEPS_LEN: PROCESS_STEPS.length,
   };

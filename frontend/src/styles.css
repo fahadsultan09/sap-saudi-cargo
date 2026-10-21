@@ -3459,6 +3459,39 @@ a {
   backdrop-filter: blur(12px);
 }
 
+.process-dock--home {
+  margin-top: 1rem;
+}
+
+.process-dock--ready {
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow:
+    0 16px 40px rgba(8, 40, 34, 0.14),
+    0 0 0 3px rgba(201, 162, 39, 0.22);
+}
+
+.btn-primary--pulse {
+  animation: review-cta-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes review-cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 22px rgba(11, 122, 102, 0.28);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 12px 28px rgba(11, 122, 102, 0.42);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary--pulse {
+    animation: none;
+  }
+}
+
 .process-dock__confidence {
   appearance: none;
   border: 0;

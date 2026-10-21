@@ -162,6 +162,15 @@ export default function Home({ userId, showToast }) {
         : "Drop a PDF below — agents run here while you watch";
 
   function onStepSelect(step) {
+    // YOUR TURN / ready — don't bury the next action in a details-only sheet.
+    if (
+      step?.key === "decide" &&
+      upload.caseId &&
+      (upload.complete || step.state === "awaiting")
+    ) {
+      upload.goToReview();
+      return;
+    }
     setSelectedStep(step);
   }
 
@@ -404,6 +413,23 @@ export default function Home({ userId, showToast }) {
           ) : null}
         </section>
       )}
+
+      {upload.complete && upload.caseId ? (
+        <div className="process-dock process-dock--home" role="region" aria-label="Review actions">
+          <div className="process-dock__confidence" aria-hidden="true">
+            <span className="section-label">Your turn</span>
+            <strong>Agents finished — review this invoice</strong>
+          </div>
+          <div className="process-dock__actions btn-row">
+            <button type="button" className="btn btn-primary" onClick={() => upload.goToReview()}>
+              Review invoice
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={upload.reviewLater}>
+              Review later
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {processor && !upload.active ? (
         <label

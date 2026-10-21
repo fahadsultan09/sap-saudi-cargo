@@ -231,6 +231,43 @@ export default function Process({ showToast }) {
     setDetailKey(step.key);
   }
 
+  function onStepSelect(step) {
+    if (!step?.key) return;
+    setSelectedKey(step.key);
+    // YOUR TURN — open stage sheet with Review CTAs (don't feel like a no-op).
+    if (step.key === "decide" && (complete || step.state === "awaiting")) {
+      setDetailKey(step.key);
+    }
+  }
+
+  function decideSheetActions() {
+    if (!caseId || working) return null;
+    return (
+      <div className="btn-row">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => {
+            setDetailKey(null);
+            goReview();
+          }}
+        >
+          Review invoice
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => {
+            setDetailKey(null);
+            reviewLater();
+          }}
+        >
+          Review later
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="page-enter process-page">
       <header className="process-page__chrome">
@@ -266,25 +303,35 @@ export default function Process({ showToast }) {
               variant="hero"
               interactive
               detailsViaHint
-              onStepSelect={(step) => setSelectedKey(step.key)}
+              onStepSelect={onStepSelect}
               onStepDetails={openStageDetails}
               title={runwayTitle}
-              subtitle={runwaySubtitle}
+              subtitle={
+                complete
+                  ? "Your turn — use Review invoice below, or tap Your review"
+                  : runwaySubtitle
+              }
               selectedKey={selectedStep?.key}
             />
           )}
         </div>
       </div>
 
-      <div className="process-dock" role="region" aria-label="Process actions">
+      <div
+        className={`process-dock${complete ? " process-dock--ready" : ""}`}
+        role="region"
+        aria-label="Process actions"
+      >
         <button
           type="button"
           className="process-dock__confidence"
           onClick={() => setConfidenceOpen(true)}
           aria-label="Extraction confidence"
         >
-          <span className="section-label">Confidence</span>
-          {confidence?.hasAny ? (
+          <span className="section-label">{complete ? "Your turn" : "Confidence"}</span>
+          {complete ? (
+            <strong>Ready — open Review to decide</strong>
+          ) : confidence?.hasAny ? (
             <strong>
               {confidence.overall != null ? `${confidence.overall}%` : "—"}
               <span className="muted"> · {confidenceLabel(confidence.source)}</span>
@@ -297,7 +344,7 @@ export default function Process({ showToast }) {
         <div className="process-dock__actions btn-row">
           <button
             type="button"
-            className="btn btn-primary"
+            className={`btn btn-primary${complete ? " btn-primary--pulse" : ""}`}
             onClick={goReview}
             disabled={!caseId || working}
           >
@@ -312,7 +359,11 @@ export default function Process({ showToast }) {
         </div>
       </div>
 
-      <StageDetailSheet step={detailStep} onClose={() => setDetailKey(null)} />
+      <StageDetailSheet
+        step={detailStep}
+        onClose={() => setDetailKey(null)}
+        actions={detailStep?.key === "decide" ? decideSheetActions() : null}
+      />
 
       <DetailSheet
         open={confidenceOpen}
