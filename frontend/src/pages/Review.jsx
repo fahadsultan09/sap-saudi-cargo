@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { apiBlob, apiJson, casePath } from "../lib/api";
 import { nextDecidable } from "../lib/caseBoard";
-import { canApprove, canProcess, getUser } from "../lib/config";
+import { canApprove, canProcess, config, getUser } from "../lib/config";
 import { confidenceLabel, extractionConfidence } from "../lib/confidence";
 import { DECIDABLE, POLL_MS } from "../lib/constants";
 import { mapAuditTrail } from "../lib/history";
@@ -20,13 +20,14 @@ import {
 import { loadUploadSession } from "../lib/uploadSession";
 import ProcessTheater from "../components/ProcessTheater";
 import DecisionModal from "../components/DecisionModal";
+import DecisionSuccess from "../components/DecisionSuccess";
 import InvoicePdf from "../components/InvoicePdf";
 import StageDetailSheet from "../components/StageDetailSheet";
 import DetailSheet from "../components/DetailSheet";
 import ComparisonPanel from "../components/ComparisonPanel";
 import AuditTimeline from "../components/AuditTimeline";
 
-export default function Review({ userId, showToast }) {
+export default function Review({ userId, onUserChange, showToast }) {
   const { caseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,8 +47,10 @@ export default function Review({ userId, showToast }) {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState("");
   const [decisionDone, setDecisionDone] = useState(null);
+  const [fieldsSaved, setFieldsSaved] = useState(null);
   const [queue, setQueue] = useState([]);
   const pdfUrlRef = useRef("");
+  const approverUser = config.users.find((u) => canApprove(u));
 
   const fromUpload = useMemo(() => {
     if (location.state?.fromUpload) return true;
@@ -150,6 +153,7 @@ export default function Review({ userId, showToast }) {
 
   useEffect(() => {
     setDecisionDone(null);
+    setFieldsSaved(null);
     setReviewTab("fields");
   }, [caseId]);
 
@@ -298,6 +302,12 @@ export default function Review({ userId, showToast }) {
         showToast?.("Corrections saved");
         await load();
         loadAudit();
+        setFieldsSaved({
+          title: "Saved",
+          message: approverUser
+            ? "Switch to Approver (top-right Role) to decide, or go back to Desk."
+            : "Corrections are on the case — open Desk when you’re ready.",
+        });
       } else {
         const result = await apiJson("POST", `${casePath(caseId)}/${current.kind}`, {
           comment: text,
@@ -1034,59 +1044,60 @@ export default function Review({ userId, showToast }) {
       </DetailSheet>
 
       {decisionDone ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="decision-done-title">
-          <div className="modal decision-success">
-            <p className="section-label">Decision recorded</p>
-            <h3 id="decision-done-title">{decisionDone.label}</h3>
-            {decisionDone.postingNote ? (
-              <p className="decision-success__posting">{decisionDone.postingNote}</p>
-            ) : null}
-            <p className="muted">
-              {decisionDone.nextId
-                ? "Open the next invoice in the queue, or return to the case board."
-                : "Queue is clear for now — back to the board when you’re ready."}
-            </p>
-            <div className="btn-row">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => navigate("/desk")}
-              >
-                Back to desk
-              </button>
-              {canApprove(user) ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => navigate("/approvals")}
-                >
-                  Approvals queue
-                </button>
-              ) : null}
-              {decisionDone.nextId ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    const next = decisionDone.nextId;
-                    setDecisionDone(null);
-                    navigate(`/review/${next}`);
-                  }}
-                >
-                  Open next{decisionDone.nextTitle ? `: ${decisionDone.nextTitle}` : ""}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => navigate("/desk")}
-                >
-                  Case board
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <DecisionSuccess
+          eyebrow="Decision recorded"
+          title={decisionDone.label}
+          postingNote={decisionDone.postingNote}
+          message={
+            decisionDone.nextId
+              ? "Open the next invoice, go to Desk, or return Home — you’re not stuck on Review."
+              : "Queue is clear for now. Go to Desk or Home when you’re ready."
+          }
+          tertiaryLabel="Home"
+          onTertiary={() => navigate("/")}
+          secondaryLabel="Back to Desk"
+          onSecondary={() => navigate("/desk")}
+          extraLabel={canApprove(user) ? "Approvals queue" : undefined}
+          onExtra={canApprove(user) ? () => navigate("/approvals") : undefined}
+          primaryLabel={
+            decisionDone.nextId
+              ? `Open next${decisionDone.nextTitle ? `: ${decisionDone.nextTitle}` : ""}`
+              : "Back to Desk"
+          }
+          onPrimary={() => {
+            if (decisionDone.nextId) {
+              const next = decisionDone.nextId;
+              setDecisionDone(null);
+              navigate(`/review/${next}`);
+            } else {
+              navigate("/desk");
+            }
+          }}
+        />
+      ) : null}
+
+      {fieldsSaved ? (
+        <DecisionSuccess
+          eyebrow="Corrections saved"
+          title={fieldsSaved.title}
+          message={fieldsSaved.message}
+          tertiaryLabel="Home"
+          onTertiary={() => navigate("/")}
+          secondaryLabel="Back to Desk"
+          onSecondary={() => navigate("/desk")}
+          extraLabel={approverUser && onUserChange ? `Switch to ${approverUser.roleLabel}` : undefined}
+          onExtra={
+            approverUser && onUserChange
+              ? () => {
+                  onUserChange(approverUser.id);
+                  setFieldsSaved(null);
+                  showToast?.(`Switched to ${approverUser.roleLabel} — you can decide now`);
+                }
+              : undefined
+          }
+          primaryLabel="Stay on Review"
+          onPrimary={() => setFieldsSaved(null)}
+        />
       ) : null}
 
       {busy ? (

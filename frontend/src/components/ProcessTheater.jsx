@@ -264,42 +264,48 @@ export default function ProcessTheater({
         </div>
       </div>
 
-      <div className={`theater-runway${mini || hero ? " theater-runway--mini" : ""}${hero ? " theater-runway--hero" : ""}`}>
-        {steps.map((step, index) => {
-          const prevDone = index === 0 || steps[index - 1]?.state === "done";
-          const filled =
-            step.state === "done" ||
-            ((step.state === "running" || step.state === "awaiting") && prevDone);
-          const connectorFilled = index > 0 && steps[index - 1]?.state === "done";
-          const connectorActive =
-            index > 0 &&
-            (steps[index - 1]?.state === "running" || steps[index - 1]?.state === "awaiting");
+      <div className={`theater-runway-wrap${hero ? " theater-runway-wrap--hero" : ""}`}>
+        <div
+          className={`theater-runway${mini || hero ? " theater-runway--mini" : ""}${hero ? " theater-runway--hero" : ""}`}
+          role="list"
+          aria-label="Agent stages"
+        >
+          {steps.map((step, index) => {
+            const prevDone = index === 0 || steps[index - 1]?.state === "done";
+            const filled =
+              step.state === "done" ||
+              ((step.state === "running" || step.state === "awaiting") && prevDone);
+            const connectorFilled = index > 0 && steps[index - 1]?.state === "done";
+            const connectorActive =
+              index > 0 &&
+              (steps[index - 1]?.state === "running" || steps[index - 1]?.state === "awaiting");
 
-          return (
-            <div key={step.key} className="theater-slot">
-              {index > 0 ? (
-                <Connector
-                  filled={connectorFilled || filled}
-                  active={connectorActive}
+            return (
+              <div key={step.key} className="theater-slot" role="listitem">
+                {index > 0 ? (
+                  <Connector
+                    filled={connectorFilled || filled}
+                    active={connectorActive}
+                    index={index}
+                    idle={idle}
+                  />
+                ) : null}
+                <AgentNode
+                  step={step}
                   index={index}
+                  compact={compact}
+                  showTechnical={showTechnical}
+                  interactive={interactive}
                   idle={idle}
+                  selected={selectedKey === step.key}
+                  onSelect={onStepSelect}
+                  onDetails={onStepDetails}
+                  detailsViaHint={detailsViaHint}
                 />
-              ) : null}
-              <AgentNode
-                step={step}
-                index={index}
-                compact={compact}
-                showTechnical={showTechnical}
-                interactive={interactive}
-                idle={idle}
-                selected={selectedKey === step.key}
-                onSelect={onStepSelect}
-                onDetails={onStepDetails}
-                detailsViaHint={detailsViaHint}
-              />
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {!mini && !hero && progress.percent >= 100 ? (

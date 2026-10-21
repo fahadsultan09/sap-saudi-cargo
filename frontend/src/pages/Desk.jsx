@@ -146,6 +146,8 @@ export default function Desk({ userId }) {
           <input
             type="file"
             accept="application/pdf,.pdf"
+            title=""
+            aria-label="Choose PDF invoice"
             onChange={(e) => handoffFile(e.target.files?.[0])}
           />
         </label>

@@ -56,7 +56,12 @@ export default function App() {
         <Route path="approvals" element={<Approvals userId={userId} showToast={showToast} />} />
         {/* Bookmarks / old links: upload lives on Home now */}
         <Route path="upload" element={<Navigate to="/" replace />} />
-        <Route path="review/:caseId" element={<Review userId={userId} showToast={showToast} />} />
+        <Route
+          path="review/:caseId"
+          element={
+            <Review userId={userId} onUserChange={onUserChange} showToast={showToast} />
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

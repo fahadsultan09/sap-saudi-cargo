@@ -450,6 +450,8 @@ export default function Home({ userId, showToast }) {
           <input
             type="file"
             accept="application/pdf,.pdf"
+            title=""
+            aria-label="Choose PDF invoice"
             onChange={(e) => upload.uploadFile(e.target.files?.[0])}
           />
         </label>
