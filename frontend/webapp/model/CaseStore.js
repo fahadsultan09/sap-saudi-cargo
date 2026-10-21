@@ -17,6 +17,8 @@ sap.ui.define([
             this._documentBlobUrl = null;
             this._refreshTimer = null;
             this._casePollTimer = null;
+            this._uploadWatchTimer = null;
+            this._uploadWatchCaseId = null;
             this._documentCaseId = null;
             this._processingIds = [];
             this._model = new JSONModel({
@@ -25,6 +27,11 @@ sap.ui.define([
                 welcome: {},
                 busy: false,
                 kpiCards: [],
+                deskLink: {
+                    openText: "All invoices",
+                    chipText: "",
+                    attention: false
+                },
                 upload: {
                     visible: false,
                     message: "",
@@ -32,7 +39,11 @@ sap.ui.define([
                     fileName: "",
                     watching: false,
                     nowText: "",
-                    progressPercent: 0
+                    progressPercent: 0,
+                    caseId: "",
+                    result: "",
+                    homeReview: false,
+                    promptBrowse: false
                 },
                 uploadSteps: [],
                 permissions: { processor: false, approver: false },
@@ -137,6 +148,7 @@ sap.ui.define([
                 that._model.setProperty("/pipelineBanner", that._pipelineBanner(aCases));
                 that._model.setProperty("/queueWarning", that._queueWarning(aCases));
                 that._model.setProperty("/pipelineBannerDots", that._pipelineBannerDots(aCases));
+                that._setDeskLink(aCases, aGroups);
                 that.applyStatusFilter();
                 that._watchProcessing(aCases);
             }).catch(this._showError);
@@ -193,6 +205,19 @@ sap.ui.define([
                 count: iCount,
                 text: "Page " + (iPage + 1) + " of " + iCount,
                 range: "Showing " + sRows + " of " + aCases.length
+            });
+        },
+
+        // Home “Open desk” CTA — total count + optional needs-review chip from the same list load.
+        _setDeskLink: function (aCases, aGroups) {
+            var oReview = (aGroups || []).filter(function (oGroup) {
+                return oGroup.key === "review";
+            })[0];
+            var iReview = oReview ? oReview.count : 0;
+            this._model.setProperty("/deskLink", {
+                openText: "All invoices (" + aCases.length + ")",
+                chipText: iReview === 1 ? "1 needs review" : iReview + " need review",
+                attention: iReview > 0
             });
         },
 
@@ -334,8 +359,10 @@ sap.ui.define([
                 if (that._model.getProperty("/selectedCaseId") !== oCase.id) {
                     return;
                 }
-                // Pause while the user is on another screen; Review restarts via route match.
-                if (that._model.getProperty("/section") !== "review") {
+                // Pause off Review / Home-inline review; those screens restart via route or upload finish.
+                var sSection = that._model.getProperty("/section");
+                var bHomeInline = sSection === "dashboard" && that._model.getProperty("/upload/homeReview");
+                if (sSection !== "review" && !bHomeInline) {
                     return;
                 }
                 that.loadCase(oCase.id);
@@ -345,6 +372,187 @@ sap.ui.define([
         // Shared mapper for Upload stay-and-watch and Review Agent Results.
         buildPipelineFromCase: function (oCase) {
             return this._mapPipelineSteps(oCase || {}, (oCase && oCase.validation) || {});
+        },
+
+        // After upload, Home shows the green process theater; poll here so it survives nav away from Upload.
+        startUploadWatch: function (sCaseId) {
+            var that = this;
+            this.stopUploadWatch();
+            if (!sCaseId) {
+                return;
+            }
+            this._uploadWatchCaseId = sCaseId;
+            this._model.setProperty("/upload/watching", true);
+            this._model.setProperty("/upload/caseId", sCaseId);
+
+            var fnTick = function () {
+                if (that._uploadWatchCaseId !== sCaseId) {
+                    return;
+                }
+                that.call("GET", that.casePath(sCaseId)).then(function (oCase) {
+                    if (that._uploadWatchCaseId !== sCaseId) {
+                        return;
+                    }
+                    var aSteps = that.buildPipelineFromCase(oCase);
+                    var oProgress = that.pipelineProgress(aSteps);
+                    that._model.setProperty("/uploadSteps", aSteps);
+                    that._model.setProperty("/upload/nowText", oProgress.nowText);
+                    that._model.setProperty("/upload/progressPercent", oProgress.percent);
+
+                    if (C.PROCESSING_STATUSES.indexOf(oCase.status) < 0) {
+                        var bReady = oCase.status === "READY_FOR_APPROVAL";
+                        that.stopUploadWatch();
+                        that._model.setProperty("/busy", false);
+                        that._model.setProperty("/upload/watching", true);
+                        that._model.setProperty("/upload/result", bReady ? "ready" : "review");
+                        that._model.setProperty("/upload/homeReview", true);
+                        that._model.setProperty("/upload/nowText", bReady
+                            ? "Done: every detail matches SAP. The invoice now waits for an approver."
+                            : "Done: the invoice needs a review before it can be approved.");
+                        that._model.setProperty("/upload/message", "Processing finished.");
+                        that.loadCases();
+                        that.loadCase(sCaseId);
+                        return;
+                    }
+                    that._uploadWatchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
+                }).catch(function () {
+                    if (that._uploadWatchCaseId === sCaseId) {
+                        that._uploadWatchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
+                    }
+                });
+            };
+
+            this._uploadWatchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
+        },
+
+        stopUploadWatch: function () {
+            clearTimeout(this._uploadWatchTimer);
+            this._uploadWatchTimer = null;
+            this._uploadWatchCaseId = null;
+        },
+
+        clearUploadTheater: function () {
+            this.stopUploadWatch();
+            this._model.setProperty("/upload/watching", false);
+            this._model.setProperty("/upload/visible", false);
+            this._model.setProperty("/upload/result", "");
+            this._model.setProperty("/upload/homeReview", false);
+            this._model.setProperty("/upload/nowText", "");
+            this._model.setProperty("/upload/progressPercent", 0);
+            this._model.setProperty("/upload/caseId", "");
+            this._model.setProperty("/busy", false);
+        },
+
+        // Shared by Home and Upload: reset the green pipeline step rail.
+        resetUploadSteps: function () {
+            this._model.setProperty("/uploadSteps", C.PIPELINE_STEPS.map(function (oStep) {
+                return {
+                    key: oStep.key,
+                    title: oStep.title,
+                    service: oStep.service || "",
+                    description: oStep.description,
+                    nowLabel: "",
+                    icon: oStep.icon,
+                    state: "pending",
+                    statusLabel: C.PIPELINE_STATUS_LABELS.pending
+                };
+            }));
+        },
+
+        setUploadStepState: function (sKey, sState) {
+            var aSteps = (this._model.getProperty("/uploadSteps") || []).map(function (oStep) {
+                if (oStep.key !== sKey) {
+                    return oStep;
+                }
+                var sNow = sState === "running" ? (C.PIPELINE_NOW_LABELS[sKey] || "") : "";
+                return Object.assign({}, oStep, {
+                    state: sState,
+                    statusLabel: C.PIPELINE_STATUS_LABELS[sState] || sState,
+                    nowLabel: sNow,
+                    description: sNow || oStep.description,
+                    icon: sState === "done" ? "sap-icon://accept"
+                        : sState === "failed" ? "sap-icon://error"
+                            : sState === "running" ? "sap-icon://synchronize"
+                                : oStep.icon
+                });
+            });
+            this._model.setProperty("/uploadSteps", aSteps);
+        },
+
+        // Upload from Home or Upload screen. Sets watching=true and starts the poll;
+        // theater stays until clearUploadTheater (Review / Dismiss). Does not navigate.
+        uploadInvoiceFile: function (oFile) {
+            var that = this;
+            var oFormData = new FormData();
+            oFormData.append("file", oFile, oFile.name);
+
+            this.clearUploadTheater();
+            this.resetUploadSteps();
+            this._model.setProperty("/upload", {
+                visible: true,
+                message: "Receiving " + oFile.name + "…",
+                state: "Information",
+                fileName: oFile.name,
+                watching: false,
+                nowText: C.PIPELINE_NOW_LABELS.receive,
+                progressPercent: 8,
+                caseId: "",
+                result: "",
+                homeReview: false,
+                promptBrowse: false
+            });
+            this._model.setProperty("/busy", true);
+            this.setUploadStepState("receive", "running");
+
+            return this.call("POST", "/api/v1/cases/upload", oFormData).then(function (oResult) {
+                var sCaseId = (oResult && (oResult.case_id || oResult.id)) || "";
+                if (oResult && oResult.duplicate) {
+                    that._model.setProperty("/upload/visible", false);
+                    that._model.setProperty("/busy", false);
+                    return {
+                        duplicate: true,
+                        caseId: sCaseId,
+                        status: oResult.status,
+                        fileName: oFile.name
+                    };
+                }
+                that.setUploadStepState("receive", "done");
+                that.setUploadStepState("classify", "running");
+                that._model.setProperty("/upload/visible", true);
+                that._model.setProperty("/upload/message", "Agents are working — watch the pipeline here.");
+                that._model.setProperty("/upload/state", "Information");
+                that._model.setProperty("/upload/watching", true);
+                that._model.setProperty("/upload/caseId", sCaseId);
+                that._model.setProperty("/upload/nowText", C.PIPELINE_NOW_LABELS.classify);
+                that._model.setProperty("/upload/progressPercent", 22);
+                that._model.setProperty("/busy", false);
+                if (sCaseId) {
+                    that.startUploadWatch(sCaseId);
+                    that.loadCases();
+                }
+                return {
+                    duplicate: false,
+                    caseId: sCaseId,
+                    fileName: oFile.name
+                };
+            }).catch(function (oError) {
+                that._model.setProperty("/upload", {
+                    visible: true,
+                    message: "Upload failed",
+                    state: "Error",
+                    fileName: oFile.name,
+                    watching: false,
+                    nowText: "",
+                    progressPercent: 0,
+                    caseId: "",
+                    result: "",
+                    homeReview: false,
+                    promptBrowse: false
+                });
+                that.setUploadStepState("receive", "failed");
+                that._model.setProperty("/busy", false);
+                throw oError;
+            });
         },
 
         pipelineProgress: function (aSteps) {

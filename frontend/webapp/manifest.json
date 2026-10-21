@@ -54,12 +54,14 @@
             "routes": [
                 { "name": "home", "pattern": "", "target": "dashboard" },
                 { "name": "dashboard", "pattern": "dashboard", "target": "dashboard" },
+                { "name": "desk", "pattern": "desk", "target": "desk" },
                 { "name": "upload", "pattern": "upload", "target": "upload" },
                 { "name": "review", "pattern": "review/:caseId:", "target": "review" },
                 { "name": "approvals", "pattern": "approvals", "target": "approvals" }
             ],
             "targets": {
                 "dashboard": { "id": "dashboard", "name": "Dashboard" },
+                "desk": { "id": "desk", "name": "Desk" },
                 "upload": { "id": "upload", "name": "Upload" },
                 "review": { "id": "review", "name": "Review" },
                 "approvals": { "id": "approvals", "name": "Approvals" }

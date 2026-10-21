@@ -6,16 +6,19 @@ sap.ui.define([
 ], function (BaseController, MessageToast, MessageBox, C) {
     "use strict";
 
-    // After the file lands, stay on Upload and poll the case so every step lights up live. When processing ends,
-    // offer the next step: Review invoice (or Needs review) and Go to dashboard. Approving is the approver's job.
+    // Upload screen still works; after receive we hand off to Home where the green theater stays
+    // until Review / Dismiss. CaseStore owns the poll so it survives this navigation.
     return BaseController.extend("saudicargo.ap.automation.controller.Upload", {
         onInit: function () {
-            this._resetSteps();
+            if (!this.getData().getProperty("/upload/watching")) {
+                this.getCaseStore().resetUploadSteps();
+            }
             this.getRouter().getRoute("upload").attachPatternMatched(this._onRouteMatched, this);
         },
 
         onExit: function () {
-            this._stopWatch();
+            clearTimeout(this._watchTimer);
+            this._watchTimer = null;
         },
 
         _onRouteMatched: function () {
@@ -24,8 +27,9 @@ sap.ui.define([
                 this.getRouter().navTo("dashboard", {}, true);
                 return;
             }
+            // Home owns the live theater; reset idle Upload UI when returning here.
             if (!this.getData().getProperty("/upload/watching")) {
-                this._resetSteps();
+                this.getCaseStore().resetUploadSteps();
             }
         },
 
@@ -42,95 +46,61 @@ sap.ui.define([
             this._uploadInvoiceFile(oFile);
         },
 
+        // Hand off to Home: keep the green theater and open Clear Desk under it.
         onReviewInvoice: function () {
-            this._goToReview(this.getData().getProperty("/upload/caseId"));
+            var sCaseId = this.getData().getProperty("/upload/caseId");
+            this.getData().setProperty("/upload/homeReview", true);
+            if (sCaseId) {
+                this.getCaseStore().loadCase(sCaseId);
+            }
+            this.navTo("dashboard");
         },
 
         onGoToDashboard: function () {
-            this._resetSteps();
-            this.getData().setProperty("/upload/visible", false);
+            this.getCaseStore().clearUploadTheater();
             this.getCaseStore().loadCases();
             this.navTo("dashboard");
         },
 
         _uploadInvoiceFile: function (oFile) {
             var that = this;
-            var oData = this.getData();
-            var oFormData = new FormData();
-            oFormData.append("file", oFile, oFile.name);
-
-            this._stopWatch();
-            this._resetSteps();
-            oData.setProperty("/upload", {
-                visible: true,
-                message: "Receiving " + oFile.name + "…",
-                state: "Information",
-                fileName: oFile.name,
-                watching: false,
-                nowText: C.PIPELINE_NOW_LABELS.receive,
-                progressPercent: 8,
-                caseId: "",
-                result: ""
-            });
-            oData.setProperty("/busy", true);
             that._setDropZoneBusy(true);
-            that._setStepState("receive", "running");
 
-            this.getCaseStore().call("POST", "/api/v1/cases/upload", oFormData).then(function (oResult) {
-                var sCaseId = (oResult && (oResult.case_id || oResult.id)) || "";
-                // AP Core recognises the exact same file and returns its existing case instead of a new one.
-                if (oResult && oResult.duplicate) {
-                    oData.setProperty("/upload/visible", false);
-                    oData.setProperty("/busy", false);
-                    that._setDropZoneBusy(false);
-                    // A dialog, not a toast: the user must know this is the earlier invoice, not a new run.
+            this.getCaseStore().uploadInvoiceFile(oFile).then(function (oOutcome) {
+                that._setDropZoneBusy(false);
+                if (oOutcome.duplicate) {
                     MessageBox.information(
-                        "“" + oFile.name + "” was already uploaded, so it is not processed again. "
-                        + "The existing invoice opens instead (status: "
-                        + (C.STATUS_LABELS[oResult.status] || oResult.status) + ").",
+                        "“" + oOutcome.fileName + "” was already uploaded, so it is not processed again. "
+                        + "Open the existing invoice (status: "
+                        + (C.STATUS_LABELS[oOutcome.status] || oOutcome.status)
+                        + ") or upload another file.",
                         {
                             title: "Already uploaded",
-                            actions: ["Open existing invoice"],
-                            onClose: function () {
-                                that._goToReview(sCaseId);
+                            actions: ["Open existing invoice", "Upload another"],
+                            emphasizedAction: "Open existing invoice",
+                            onClose: function (sAction) {
+                                if (sAction === "Upload another") {
+                                    that._openHomeUploadPicker();
+                                    return;
+                                }
+                                if (sAction === "Open existing invoice") {
+                                    that._goToReview(oOutcome.caseId);
+                                }
                             }
                         }
                     );
                     return;
                 }
-                that._setStepState("receive", "done");
-                that._setStepState("classify", "running");
-                oData.setProperty("/upload/visible", true);
-                oData.setProperty("/upload/message", "Agents are working — watch the pipeline.");
-                oData.setProperty("/upload/state", "Information");
-                oData.setProperty("/upload/watching", true);
-                oData.setProperty("/upload/caseId", sCaseId);
-                oData.setProperty("/upload/nowText", C.PIPELINE_NOW_LABELS.classify);
-                oData.setProperty("/upload/progressPercent", 22);
-                that._setDropZoneBusy(true);
-                MessageToast.show(oFile.name + " received — watching Classify…");
-                if (sCaseId) {
-                    that._startWatch(sCaseId);
+                // Hand off to Home; theater stays there until Review / Dismiss.
+                if (oOutcome.caseId) {
+                    MessageToast.show(oOutcome.fileName + " received — opening Home pipeline…");
+                    that.navTo("dashboard");
                 } else {
-                    // No case id in response — still show a short staged demo then leave.
                     that._startStagedFallback();
                 }
             }).catch(function (oError) {
-                oData.setProperty("/upload", {
-                    visible: true,
-                    message: "Upload failed",
-                    state: "Error",
-                    fileName: oFile.name,
-                    watching: false,
-                    nowText: "",
-                    progressPercent: 0,
-                    caseId: "",
-                    result: ""
-                });
-                that._setStepState("receive", "failed");
-                MessageBox.error(oError.message);
-                oData.setProperty("/busy", false);
                 that._setDropZoneBusy(false);
+                MessageBox.error(oError.message);
             }).finally(function () {
                 var oUploader = that.byId("fileUploader");
                 if (oUploader) {
@@ -139,54 +109,14 @@ sap.ui.define([
             });
         },
 
-        _startWatch: function (sCaseId) {
-            var that = this;
-            this._watchCaseId = sCaseId;
-
-            var fnTick = function () {
-                if (that._watchCaseId !== sCaseId) {
-                    return;
-                }
-                that.getCaseStore().call("GET", that.getCaseStore().casePath(sCaseId)).then(function (oCase) {
-                    if (that._watchCaseId !== sCaseId) {
-                        return;
-                    }
-                    var aSteps = that.getCaseStore().buildPipelineFromCase(oCase);
-                    var oProgress = that.getCaseStore().pipelineProgress(aSteps);
-                    that.getData().setProperty("/uploadSteps", aSteps);
-                    that.getData().setProperty("/upload/nowText", oProgress.nowText);
-                    that.getData().setProperty("/upload/progressPercent", oProgress.percent);
-
-                    // Stay while the invoice is queued and while the agents work, so every step is seen as
-                    // it completes; once processing is over, keep the finished rail and show the next action.
-                    if (C.PROCESSING_STATUSES.indexOf(oCase.status) < 0) {
-                        var bReady = oCase.status === "READY_FOR_APPROVAL";
-                        that._stopWatch();
-                        that._setDropZoneBusy(false);
-                        that.getData().setProperty("/busy", false);
-                        that.getData().setProperty("/upload/result", bReady ? "ready" : "review");
-                        that.getData().setProperty("/upload/nowText", bReady
-                            ? "Done: every detail matches SAP. The invoice now waits for an approver."
-                            : "Done: the invoice needs a review before it can be approved.");
-                        that.getData().setProperty("/upload/message", "Processing finished.");
-                        return;
-                    }
-                    that._watchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
-                }).catch(function () {
-                    if (that._watchCaseId === sCaseId) {
-                        that._watchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
-                    }
-                });
-            };
-
-            this._watchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
-        },
-
-        // If upload returns no case id, animate the first steps locally then open the dashboard.
+        // If upload returns no case id, animate steps on Home then leave the theater open.
         _startStagedFallback: function () {
             var that = this;
             var iStarted = Date.now();
             this._watchCaseId = "__staged__";
+            this.getData().setProperty("/upload/watching", true);
+            this.navTo("dashboard");
+            this.getCaseStore().loadCases();
             var aPlan = [
                 { at: 400, key: "classify", state: "running" },
                 { at: 1600, key: "classify", state: "done" },
@@ -199,7 +129,7 @@ sap.ui.define([
                     if (that._watchCaseId !== "__staged__") {
                         return;
                     }
-                    that._setStepState(oItem.key, oItem.state);
+                    that.getCaseStore().setUploadStepState(oItem.key, oItem.state);
                     var aSteps = that.getData().getProperty("/uploadSteps") || [];
                     var oProgress = that.getCaseStore().pipelineProgress(aSteps);
                     that.getData().setProperty("/upload/nowText", oProgress.nowText);
@@ -210,74 +140,30 @@ sap.ui.define([
                 if (that._watchCaseId !== "__staged__") {
                     return;
                 }
-                that._stopWatch();
+                that._watchCaseId = null;
                 that.getData().setProperty("/busy", false);
-                that._setDropZoneBusy(false);
-                that.getData().setProperty("/upload/watching", false);
+                that.getData().setProperty("/upload/result", "review");
+                that.getData().setProperty("/upload/nowText", "Open the case from the list to keep watching.");
+                that.getData().setProperty("/upload/message", "Processing finished.");
                 MessageToast.show("Open the case from the dashboard to keep watching.");
-                that.navTo("dashboard");
                 that.getCaseStore().loadCases();
             }, Math.max(C.UPLOAD_WATCH_MIN_MS, 3800) - (Date.now() - iStarted));
         },
 
         _goToReview: function (sCaseId) {
-            this._stopWatch();
-            var oData = this.getData();
-            oData.setProperty("/busy", false);
+            this.getCaseStore().clearUploadTheater();
+            clearTimeout(this._watchTimer);
+            this._watchTimer = null;
+            this._watchCaseId = null;
             this._setDropZoneBusy(false);
-            oData.setProperty("/upload/watching", false);
-            oData.setProperty("/upload/visible", false);
             this.getCaseStore().loadCases();
             this.navTo("review", { caseId: sCaseId });
         },
 
-        _stopWatch: function () {
-            clearTimeout(this._watchTimer);
-            this._watchTimer = null;
-            this._watchCaseId = null;
-        },
-
-        _resetSteps: function () {
-            this._stopWatch();
-            var oData = this.getData();
-            oData.setProperty("/uploadSteps", C.PIPELINE_STEPS.map(function (oStep) {
-                return {
-                    key: oStep.key,
-                    title: oStep.title,
-                    service: oStep.service || "",
-                    description: oStep.description,
-                    nowLabel: "",
-                    icon: oStep.icon,
-                    state: "pending",
-                    statusLabel: C.PIPELINE_STATUS_LABELS.pending
-                };
-            }));
-            oData.setProperty("/upload/watching", false);
-            oData.setProperty("/upload/nowText", "");
-            oData.setProperty("/upload/progressPercent", 0);
-            oData.setProperty("/upload/caseId", "");
-            oData.setProperty("/upload/result", "");
-        },
-
-        _setStepState: function (sKey, sState) {
-            var oData = this.getData();
-            var aSteps = (oData.getProperty("/uploadSteps") || []).map(function (oStep) {
-                if (oStep.key !== sKey) {
-                    return oStep;
-                }
-                var sNow = sState === "running" ? (C.PIPELINE_NOW_LABELS[sKey] || "") : "";
-                return Object.assign({}, oStep, {
-                    state: sState,
-                    statusLabel: C.PIPELINE_STATUS_LABELS[sState] || sState,
-                    nowLabel: sNow,
-                    description: sNow || oStep.description,
-                    icon: sState === "done" ? "sap-icon://accept"
-                        : sState === "failed" ? "sap-icon://error"
-                            : sState === "running" ? "sap-icon://synchronize"
-                                : oStep.icon
-                });
-            });
-            oData.setProperty("/uploadSteps", aSteps);
+        // Home owns intake; ask Dashboard to open its file picker after we land there.
+        _openHomeUploadPicker: function () {
+            this.getData().setProperty("/upload/promptBrowse", true);
+            this.navTo("dashboard");
         },
 
         _setDropZoneBusy: function (bBusy) {

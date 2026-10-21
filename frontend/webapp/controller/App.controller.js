@@ -6,7 +6,7 @@ sap.ui.define([
 ], function (BaseController, Fragment, MessageToast, api) {
     "use strict";
 
-    // The shell around every screen: header and user menu.
+    // The shell around every screen: header and user menu (no side nav).
     return BaseController.extend("saudicargo.ap.automation.controller.App", {
         onInit: function () {
             this._casesLoaded = false;
@@ -22,10 +22,22 @@ sap.ui.define([
                 return;
             }
             this.getData().setProperty("/section", sRoute);
-            if (!this._casesLoaded || sRoute === "dashboard" || sRoute === "approvals") {
+            if (!this._casesLoaded || sRoute === "dashboard" || sRoute === "desk" || sRoute === "approvals") {
                 this._casesLoaded = true;
                 this.getCaseStore().loadCases();
             }
+        },
+
+        onGoHome: function () {
+            this.navTo("dashboard");
+        },
+
+        onGoDesk: function () {
+            this.navTo("desk");
+        },
+
+        onGoApprovals: function () {
+            this.navTo("approvals");
         },
 
         // ------------------------------------------------------------- user menu

@@ -79,6 +79,41 @@ html, body, .sapUiBody {
     font-size: 0.75rem;
 }
 
+/* Top bar links — Home / Desk / Approvals (no side nav) */
+.apTopNav {
+    gap: 0.15rem;
+}
+
+.apTopNavBtn.sapMBtn .sapMBtnInner {
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+.apTopNavBtn.sapMBtn:hover .sapMBtnInner,
+.apTopNavBtn.sapMBtn:focus .sapMBtnInner {
+    background: var(--ap-brand-light);
+}
+
+.apDeskJump {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border-radius: var(--ap-radius-lg);
+    border: 1px solid var(--ap-border);
+    background: var(--ap-surface);
+    box-shadow: var(--ap-shadow);
+    gap: 0.75rem;
+}
+
+.apDeskJump .apSectionTitle.sapMTitle {
+    margin: 0;
+}
+
+.apDeskOpen.sapMBtn .sapMBtnInner,
+.apDeskAttention.sapMBtn .sapMBtnInner {
+    border-radius: 999px;
+    font-weight: 600;
+}
+
 .apProfileAvatar.sapFAvatar {
     cursor: pointer;
     box-shadow: 0 0 0 2px var(--ap-brand-light);
@@ -411,6 +446,13 @@ html, body, .sapUiBody {
     overflow: hidden;
 }
 
+/* Compact intake strip on Home — full width under welcome, before Desk jump */
+.apHeroDrop--home {
+    flex: none;
+    width: 100%;
+    min-height: 12.5rem;
+}
+
 .apHeroDrop--dragover {
     border-color: var(--ap-brand);
     border-style: solid;
@@ -595,6 +637,11 @@ html, body, .sapUiBody {
     box-shadow: var(--ap-shadow-lift);
 }
 
+/* Home (Dashboard) process theater after upload — same green rail, full width under welcome */
+.apPipeHero--home {
+    width: 100%;
+}
+
 .apPipeHeroKicker.sapMText {
     color: rgba(255, 255, 255, 0.85) !important;
     font-weight: 700;
@@ -695,12 +742,22 @@ html, body, .sapUiBody {
     gap: 0;
 }
 
+.apReviewShell--home {
+    min-height: 42rem;
+}
+
+.apHomeReview .apSectionTitle.sapMTitle {
+    font-family: var(--ap-font-display);
+    letter-spacing: -0.02em;
+}
+
 .apReviewSplit {
     gap: 0.85rem;
     min-height: 0;
     padding: 0 0.75rem;
 }
 
+.apPdfPane,
 .apReviewMain {
     border-radius: var(--ap-radius);
     background: var(--ap-surface);
@@ -710,10 +767,48 @@ html, body, .sapUiBody {
     min-height: 0;
 }
 
+.apPdfPaneHeader,
 .apReviewHeader {
     padding: 0.7rem 0.9rem;
     border-bottom: 1px solid var(--ap-border);
     background: var(--ap-surface-2);
+}
+
+.apPdfPaneHeader .sapMText {
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ap-muted);
+}
+
+.apPdfPaneBody {
+    position: relative;
+    background: #1a2229;
+}
+
+.apPdfPaneBody > .sapMFlexItem {
+    position: static;
+}
+
+.apPdfFrame,
+.apDocImage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #1a2229;
+}
+
+.apDocImage {
+    object-fit: contain;
+}
+
+.apPdfEmpty {
+    position: absolute;
+    inset: 0;
+    background: var(--ap-surface);
 }
 
 /* Invoice total, purchase order, invoice date and reading confidence under the header's title */
@@ -1306,6 +1401,7 @@ html, body, .sapUiBody {
 @media (max-width: 900px) {
     .apUploadTitle.sapMTitle { font-size: 1.5rem !important; }
     .apWelcome .sapMTitle { font-size: 1.3rem !important; }
+    .apPdfPane { min-height: 45vh !important; }
     .apDecisionBar { justify-content: stretch; }
     .apDecisionBarLabel { width: 100%; margin-bottom: 0.35rem; }
 }

@@ -2,7 +2,8 @@
 	controllerName="saudicargo.ap.automation.controller.Dashboard"
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns="sap.m"
-	xmlns:core="sap.ui.core">
+	xmlns:core="sap.ui.core"
+	xmlns:u="sap.ui.unified">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection">
 		<VBox class="sapUiMediumMargin">
 			<HBox class="apWelcome sapUiMediumMarginBottom" alignItems="Center"
@@ -12,101 +13,110 @@
 					<Title text="{apData>/welcome/greeting}" level="H2"/>
 					<Text text="{apData>/welcome/subtitle}" class="sapUiTinyMarginTop"/>
 				</VBox>
-				<HBox class="sapUiSmallMarginTopBottom">
+				<HBox class="sapUiSmallMarginTopBottom" wrap="Wrap" alignItems="Center">
 					<Button text="Upload invoice" icon="sap-icon://upload" press="onGoUpload"
-						visible="{apData>/permissions/processor}" class="apLightButton sapUiSmallMarginEnd"/>
+						visible="{apData>/permissions/processor}" class="apLightButton sapUiSmallMarginEnd"
+						enabled="{= !${apData>/busy} &amp;&amp; !${apData>/upload/watching} }"/>
+					<Button text="Open desk" icon="sap-icon://table-view" press="onGoDesk"
+						class="apGhostButton sapUiTinyMarginEnd"/>
 					<Button text="Approval queue ({= ${apData>/approvals}.length })" icon="sap-icon://approvals"
 						press="onGoQueue" visible="{apData>/permissions/approver}" class="apGhostButton"/>
 				</HBox>
 			</HBox>
-			<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.KpiStrip" type="XML"/>
-			<VBox class="apCaseBoard">
-				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCaseBoardHeader">
-					<Title text="Cases" level="H3" class="apSectionTitle"/>
-					<HBox alignItems="Center">
-						<HBox items="{apData>/filterOptions}" wrap="Wrap" class="apFilter sapUiTinyMarginEnd">
-							<ToggleButton text="{apData>text}" pressed="{= ${apData>key} === ${apData>/statusFilter} }"
-								press="onStatusFilterPress" class="apFilterPill"/>
-						</HBox>
-						<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh" press="onRefreshCases"/>
-					</HBox>
-				</HBox>
-				<MessageStrip text="{apData>/queueWarning}" type="Warning" showIcon="true"
-					visible="{= !!${apData>/queueWarning} }" class="sapUiSmallMarginBottom"/>
-				<VBox visible="{= !!${apData>/pipelineBanner} }" class="apPipelineBanner sapUiSmallMarginBottom">
-					<HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
-						<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
-						<core:Icon src="sap-icon://process" size="0.875rem" class="apReasonIcon sapUiTinyMarginEnd"/>
-						<Text text="{apData>/pipelineBanner}" wrapping="true"/>
-					</HBox>
-					<HBox class="apPipeMini" alignItems="Center" items="{apData>/pipelineBannerDots}">
-						<HBox alignItems="Center" class="apPipeMiniItem">
-							<customData>
-								<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
-							</customData>
-							<VBox class="apPipeMiniDot"/>
-							<Text text="{apData>short}" class="apPipeMiniLabel"/>
-							<VBox class="apPipeMiniConnector"/>
-						</HBox>
+			<!-- Home intake: upload starts here; hides while green theater is live -->
+			<VBox id="homeDropZone" class="apHeroDrop apHeroDrop--home sapUiMediumMarginBottom"
+				alignItems="Center" justifyContent="Center"
+				visible="{= ${apData>/permissions/processor} &amp;&amp; !${apData>/upload/watching} }">
+				<VBox alignItems="Center" class="apHeroDropInner">
+					<VBox class="apHeroDropBadge sapUiTinyMarginBottom" alignItems="Center" justifyContent="Center">
+						<core:Icon src="sap-icon://add-document" size="1.5rem" class="apHeroDropIcon"/>
+					</VBox>
+					<Title text="Drop invoice to start" level="H3" class="apHeroDropTitle"/>
+					<Text text="or browse — PDF, up to 25 MB. Watch the full pipeline on this page."
+						class="apHeroDropHint sapUiTinyMarginTop sapUiSmallMarginBottom"/>
+					<u:FileUploader id="homeFileUploader" fileType="pdf" sameFilenameAllowed="true"
+						buttonOnly="true" buttonText="Browse files" tooltip="Choose a PDF invoice"
+						style="Emphasized" change="onHomeUploadChange"
+						enabled="{= !${apData>/busy} &amp;&amp; !${apData>/upload/watching} }"
+						class="apHeroDropBrowse"/>
+					<HBox class="apHeroDropFormats sapUiTinyMarginTop" wrap="Wrap" justifyContent="Center">
+						<ObjectStatus text="PDF" inverted="true" class="apFormatChip"/>
 					</HBox>
 				</VBox>
-				<Table items="{apData>/pagedCases}" fixedLayout="false" class="apTable">
-					<noData>
-						<IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
-							title="No cases here yet" description="{= ${apData>/permissions/processor} ? 'Upload an invoice to start, or change the status filter.' : 'No invoices match this status filter yet.' }"/>
-					</noData>
-					<columns>
-						<Column><Text text="Invoice" wrapping="false"/></Column>
-						<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Supplier" wrapping="false"/></Column>
-						<Column hAlign="End" width="8rem"><Text text="Amount" wrapping="false"/></Column>
-						<Column hAlign="Center" width="9rem"><Text text="Status" wrapping="false"/></Column>
-						<Column minScreenWidth="Tablet" demandPopin="true" importance="Low">
-							<Text text="Created ({apData>/timeZoneLabel})" wrapping="false"/>
-						</Column>
-					</columns>
-					<items>
-						<ColumnListItem type="Navigation" press="onCasePress">
-							<cells>
-								<VBox>
-									<ObjectIdentifier title="{apData>id}"/>
-									<HBox visible="{= !!${apData>processing} }" class="apPipeMini apPipeMini--row sapUiTinyMarginTop"
-										alignItems="Center" items="{apData>pipelineDots}">
-										<HBox alignItems="Center" class="apPipeMiniItem">
-											<customData>
-												<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
-											</customData>
-											<VBox class="apPipeMiniDot" tooltip="{apData>title}"/>
-											<VBox class="apPipeMiniConnector"/>
-										</HBox>
-									</HBox>
-									<Text text="{apData>pipelineHint}" class="apPipelineHint"
-										visible="{= !!${apData>pipelineHint} }"/>
-								</VBox>
-								<Text text="{apData>supplier}"/>
-								<Text text="{apData>amount}" class="apAmount"/>
-								<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"
-									icon="{= ${apData>processing} ? 'sap-icon://synchronize' : '' }">
-									<customData>
-										<core:CustomData key="processing" value="{= String(${apData>processing}) }" writeToDom="true"/>
-									</customData>
-								</ObjectStatus>
-								<Text text="{apData>date} "/>
-							</cells>
-						</ColumnListItem>
-					</items>
-				</Table>
-				<HBox visible="{= ${apData>/cases}.length > 0 }" alignItems="Center" justifyContent="SpaceBetween"
-					class="apPager">
-					<Text text="{apData>/page/range}" class="apTimelineMeta"/>
-					<HBox alignItems="Center">
-						<Button icon="sap-icon://navigation-left-arrow" type="Transparent" tooltip="Previous page"
-							press="onPreviousPage" enabled="{= ${apData>/page/index} > 0 }"/>
-						<Text text="{apData>/page/text}" class="apPagerText"/>
-						<Button icon="sap-icon://navigation-right-arrow" type="Transparent" tooltip="Next page"
-							press="onNextPage" enabled="{= ${apData>/page/index} &lt; ${apData>/page/count} - 1 }"/>
+				<VBox visible="{apData>/busy}" class="apHeroDropBusy" alignItems="Center" justifyContent="Center">
+					<VBox class="apUploadSpinnerRing"/>
+					<Text text="{apData>/upload/fileName}" class="apHeroDropBusyFile sapUiSmallMarginTop"/>
+					<Text text="Receiving your file…" class="apHeroDropBusyLabel sapUiTinyMarginTop"/>
+				</VBox>
+			</VBox>
+			<!-- Green process theater: stays until Review or Dismiss — not auto-hidden when agents finish -->
+			<VBox visible="{apData>/upload/watching}" class="apPipeHero apPipeHero--home sapUiMediumMarginBottom">
+				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apPipeHeroHeader sapUiTinyMarginBottom">
+					<VBox>
+						<HBox alignItems="Center" class="sapUiTinyMarginBottom">
+							<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+							<Text text="Full pipeline · live" class="apPipeHeroKicker"/>
+						</HBox>
+						<Title text="Watch the complete cycle" level="H3" class="apPipeHeroTitle"/>
+						<Text text="{apData>/upload/fileName}" class="apPipeHeroFile sapUiTinyMarginTop"/>
+					</VBox>
+					<HBox alignItems="Center" visible="{= !!${apData>/upload/result} }" class="apUploadActions">
+						<Button text="Dismiss" icon="sap-icon://decline" press="onDismissHomePipeline"
+							class="apLightButton sapUiTinyMarginEnd"/>
+						<Button text="Review invoice" icon="sap-icon://inspect" type="Emphasized" press="onReviewHomePipeline"
+							visible="{= ${apData>/upload/result} === 'ready' }"/>
+						<Button text="Needs review" icon="sap-icon://alert" type="Attention" press="onReviewHomePipeline"
+							visible="{= ${apData>/upload/result} === 'review' }"/>
 					</HBox>
 				</HBox>
+				<HBox class="apPipeTrack" renderType="Bare" items="{apData>/uploadSteps}">
+					<VBox class="apPipeTrackStep" alignItems="Center">
+						<customData>
+							<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+						</customData>
+						<VBox class="apPipeTrackDot" alignItems="Center" justifyContent="Center">
+							<core:Icon src="{apData>icon}" size="1rem"/>
+						</VBox>
+						<Text text="{apData>title}" class="apPipeTrackLabel sapUiTinyMarginTop" textAlign="Center"/>
+						<Text text="{apData>service}" class="apPipeTrackService" textAlign="Center"
+							visible="{= !!${apData>service} }"/>
+						<ObjectStatus text="{apData>statusLabel}" class="apStepStatus sapUiTinyMarginTop"/>
+					</VBox>
+				</HBox>
+				<HBox visible="{= !!${apData>/upload/nowText} }" alignItems="Center" class="apPipeNow sapUiSmallMarginTop">
+					<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+					<Text text="{apData>/upload/nowText}" class="apPipeNowText"/>
+				</HBox>
+				<ProgressIndicator class="apPipeProgress sapUiTinyMarginTop"
+					percentValue="{apData>/upload/progressPercent}"
+					displayValue="{apData>/upload/progressPercent}% complete"
+					state="Information" showValue="true"/>
 			</VBox>
+			<!-- After pipeline finishes: Clear Desk stays on Home under the green theater -->
+			<VBox id="homeReviewAnchor"
+				visible="{= !!${apData>/upload/result} &amp;&amp; ${apData>/upload/homeReview} &amp;&amp; ${apData>/selectedInvoice/hasCase} }"
+				class="apHomeReview sapUiMediumMarginBottom">
+				<Title text="Review invoice" level="H4" class="apSectionTitle sapUiTinyMarginBottom"/>
+				<Text text="PDF, fields, and decide actions — still on Home under the pipeline."
+					class="apTimelineMeta sapUiTinyMarginBottom"/>
+				<mvc:XMLView id="homeReviewPanel" viewName="saudicargo.ap.automation.view.ReviewPanel"
+					height="42rem" class="apReviewShell--home"/>
+			</VBox>
+			<!-- One-click path to Desk (KPIs + Cases board) -->
+			<HBox class="apDeskJump sapUiMediumMarginBottom" alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
+				<VBox>
+					<Title text="Invoice desk" level="H4" class="apSectionTitle"/>
+					<Text text="KPIs, filters, and the full cases board live on Desk."
+						class="apTimelineMeta sapUiTinyMarginTop"/>
+				</VBox>
+				<HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginTopBottom">
+					<Button text="{apData>/deskLink/chipText}" icon="sap-icon://alert"
+						press="onGoDesk" type="Attention" class="apDeskAttention sapUiTinyMarginEnd"
+						visible="{apData>/deskLink/attention}"/>
+					<Button text="{apData>/deskLink/openText}" icon="sap-icon://table-view"
+						press="onGoDesk" type="Emphasized" class="apDeskOpen"/>
+				</HBox>
+			</HBox>
 		</VBox>
 	</Page>
 </mvc:View>
