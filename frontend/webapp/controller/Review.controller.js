@@ -10,14 +10,10 @@ sap.ui.define([
         },
 
         _onRouteMatched: function (oEvent) {
-            var that = this;
             var sCaseId = oEvent.getParameter("arguments").caseId;
             if (sCaseId) {
-                this.getCaseStore().loadCase(sCaseId).then(function () {
-                    if (that.getData().getProperty("/selectedInvoice/isProcessing")) {
-                        that.getData().setProperty("/reviewTabKey", "steps");
-                    }
-                });
+                this.getData().setProperty("/reviewTabKey", "overview");
+                this.getCaseStore().loadCase(sCaseId);
             }
         }
     });

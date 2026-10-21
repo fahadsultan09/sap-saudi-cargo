@@ -27,11 +27,6 @@ sap.ui.define([
                 welcome: {},
                 busy: false,
                 kpiCards: [],
-                deskLink: {
-                    openText: "All invoices",
-                    chipText: "",
-                    attention: false
-                },
                 upload: {
                     visible: false,
                     message: "",
@@ -48,6 +43,8 @@ sap.ui.define([
                 uploadSteps: [],
                 permissions: { processor: false, approver: false },
                 statusFilter: "",
+                searchQuery: "",
+                caseLoading: false,
                 filterOptions: [],
                 allCases: [],
                 cases: [],
@@ -57,7 +54,8 @@ sap.ui.define([
                 pipelineBanner: "",
                 queueWarning: "",
                 pipelineBannerDots: [],
-                reviewTabKey: "agents",
+                reviewTabKey: "overview",
+                infoTabKey: "supplier",
                 selectedCaseId: "",
                 selectedInvoice: this._emptyInvoice(),
                 auditTrail: []
@@ -132,9 +130,9 @@ sap.ui.define([
                     return Object.assign({ count: that._countStatuses(aCases, oGroup.statuses) }, oGroup);
                 });
                 that._model.setProperty("/kpiCards", [
-                    { label: "Total invoices", value: aCases.length, icon: "sap-icon://documents", tone: "brand" }
+                    { label: "Total invoices", value: aCases.length, icon: "sap-icon://documents", tone: "brand", filterKey: "" }
                 ].concat(aGroups.map(function (oGroup) {
-                    return { label: oGroup.label, value: oGroup.count, icon: oGroup.icon, tone: oGroup.tone };
+                    return { label: oGroup.label, value: oGroup.count, icon: oGroup.icon, tone: oGroup.tone, filterKey: oGroup.key };
                 })));
                 that._model.setProperty("/filterOptions", [{ key: "", text: "All (" + aCases.length + ")" }].concat(
                     aGroups.map(function (oGroup) {
@@ -148,7 +146,6 @@ sap.ui.define([
                 that._model.setProperty("/pipelineBanner", that._pipelineBanner(aCases));
                 that._model.setProperty("/queueWarning", that._queueWarning(aCases));
                 that._model.setProperty("/pipelineBannerDots", that._pipelineBannerDots(aCases));
-                that._setDeskLink(aCases, aGroups);
                 that.applyStatusFilter();
                 that._watchProcessing(aCases);
             }).catch(this._showError);
@@ -179,16 +176,18 @@ sap.ui.define([
             }
         },
 
-        // A new filter starts at the first page; a refresh keeps the current page.
+        // The status filter, then the search (invoice number, supplier or PO). A new filter starts at the first
+        // page; a refresh keeps the current page.
         applyStatusFilter: function (bFirstPage) {
             var sGroup = this._model.getProperty("/statusFilter");
-            var aRows = this._model.getProperty("/allCases");
+            var sQuery = (this._model.getProperty("/searchQuery") || "").trim().toLowerCase();
             var oGroup = C.CASE_GROUPS.filter(function (oItem) {
                 return oItem.key === sGroup;
             })[0];
-            this._model.setProperty("/cases", oGroup ? aRows.filter(function (oRow) {
-                return oGroup.statuses.indexOf(oRow.statusCode) >= 0;
-            }) : aRows);
+            this._model.setProperty("/cases", this._model.getProperty("/allCases").filter(function (oRow) {
+                return (!oGroup || oGroup.statuses.indexOf(oRow.statusCode) >= 0)
+                    && (!sQuery || [oRow.id, oRow.supplier, oRow.po].join(" ").toLowerCase().indexOf(sQuery) >= 0);
+            }));
             this.showPage(bFirstPage ? 0 : this._model.getProperty("/page/index"));
         },
 
@@ -205,19 +204,6 @@ sap.ui.define([
                 count: iCount,
                 text: "Page " + (iPage + 1) + " of " + iCount,
                 range: "Showing " + sRows + " of " + aCases.length
-            });
-        },
-
-        // Home “Open desk” CTA — total count + optional needs-review chip from the same list load.
-        _setDeskLink: function (aCases, aGroups) {
-            var oReview = (aGroups || []).filter(function (oGroup) {
-                return oGroup.key === "review";
-            })[0];
-            var iReview = oReview ? oReview.count : 0;
-            this._model.setProperty("/deskLink", {
-                openText: "All invoices (" + aCases.length + ")",
-                chipText: iReview === 1 ? "1 needs review" : iReview + " need review",
-                attention: iReview > 0
             });
         },
 
@@ -241,6 +227,7 @@ sap.ui.define([
                 caseId: oCase.id,
                 id: oCase.invoice_number || oCase.file_name,
                 supplier: oCase.supplier_name || "—",
+                po: oCase.po_number || "",
                 amount: this._formatAmount(oCase),
                 statusCode: oCase.status,
                 status: C.STATUS_LABELS[oCase.status] || oCase.status,
@@ -332,6 +319,8 @@ sap.ui.define([
         loadCase: function (sCaseId) {
             var that = this;
             var sPath = this.casePath(sCaseId);
+            // A refresh of the open invoice stays quiet; opening another one shows the panel as busy.
+            this._model.setProperty("/caseLoading", this._model.getProperty("/selectedInvoice/caseId") !== sCaseId);
             this._model.setProperty("/selectedCaseId", sCaseId);
             return Promise.all([
                 this.call("GET", sPath),
@@ -341,10 +330,12 @@ sap.ui.define([
                 that._applyHistory(aResults[1]);
                 that._loadDocument(aResults[0]);
                 that._scheduleCasePoll(aResults[0]);
-            }).catch(this._showError);
+            }).catch(this._showError).finally(function () {
+                that._model.setProperty("/caseLoading", false);
+            });
         },
 
-        // While Clear Desk is open on a processing case, keep the pipeline rail live.
+        // While the review page is open on a processing case, keep the pipeline rail live.
         _scheduleCasePoll: function (oCase) {
             var that = this;
             clearTimeout(this._casePollTimer);
@@ -369,7 +360,7 @@ sap.ui.define([
             }, C.PIPELINE_POLL_MS);
         },
 
-        // Shared mapper for Upload stay-and-watch and Review Agent Results.
+        // Shared mapper for the Home pipeline and the review page's flow strip.
         buildPipelineFromCase: function (oCase) {
             return this._mapPipelineSteps(oCase || {}, (oCase && oCase.validation) || {});
         },
@@ -575,7 +566,7 @@ sap.ui.define([
                 sNow = oRunning.nowLabel || C.PIPELINE_NOW_LABELS[oRunning.key]
                     || ("Working on " + oRunning.title + "…");
             } else if (iDone >= iTotal) {
-                sNow = "Pipeline complete — ready on Clear Desk.";
+                sNow = "All checks finished — ready for your review.";
             } else {
                 sNow = "Waiting for the next agent step…";
             }
@@ -615,15 +606,15 @@ sap.ui.define([
                 agents: [],
                 agentDetail: null,
                 verdict: { points: [] },
+                supplierSap: { known: false },
+                sapInfo: { known: false },
                 fieldsTitle: "",
                 editing: false,
                 fieldsGuidance: "",
-                isProcessing: false,
-                pipelineNow: "",
-                pipelinePercent: 0,
-                pipelineSummary: "",
-                queueWarning: "",
-                pipelineTitle: ""
+                fieldsDiffOnly: false,
+                fieldsDiffCount: 0,
+                fieldGroups: [],
+                queueWarning: ""
             };
         },
 
@@ -633,8 +624,6 @@ sap.ui.define([
             var sStatus = oCase.status;
             var aFields = this._mapFields(oCase, oValidation);
             var aPipeline = this._mapPipelineSteps(oCase, oValidation);
-            var oProgress = this.pipelineProgress(aPipeline);
-            var bProcessing = C.PROCESSING_STATUSES.indexOf(sStatus) >= 0;
             var oIssues = this._mapIssues(oCase, oValidation);
             var aAgents = this._mapAgents(oCase, oValidation, aPipeline);
             // Keep the agent the user opened while the same case refreshes.
@@ -654,24 +643,38 @@ sap.ui.define([
                 supplier: oCase.supplier_name || "Unknown supplier",
                 status: C.STATUS_LABELS[sStatus] || sStatus,
                 statusState: C.STATUS_STATES[sStatus] || "None",
-                overview: this._mapOverview(oCase, oValidation, oIssues.count),
+                overview: this._mapOverview(oCase, oValidation),
                 issues: oIssues.rows,
                 agents: aAgents,
                 agentDetail: this._pickAgent(aAgents, sAgentKey),
                 verdict: this._mapVerdict(oCase, oValidation, oIssues.rows),
+                supplierSap: this._mapSupplier(oValidation),
+                sapInfo: this._mapSapInfo(oValidation),
                 fieldsTitle: this._fieldsTitle(oValidation),
+                // The flow strip at the top of the review page (#/review; Home shows its own pipeline).
                 pipelineSteps: aPipeline,
-                isProcessing: bProcessing,
-                pipelineNow: oProgress.nowText,
                 queueWarning: this._queuedTooLong(oCase)
                     ? "Processing has not started after more than " + C.QUEUE_WARNING_MS / 60000
                         + " minutes. The processing service (worker) may be stopped."
                     : "",
-                pipelinePercent: oProgress.percent,
-                pipelineSummary: oProgress.doneCount + " of " + oProgress.total + " steps complete",
-                pipelineTitle: "Processing steps · " + (bProcessing ? oProgress.nowText
-                    : oProgress.doneCount + " of " + oProgress.total + " complete"),
                 fields: aFields,
+                // The same field objects, by group, for the Fields section's cards (edits reach both).
+                fieldGroups: C.FIELD_GROUPS.map(function (oGroup) {
+                    var aGroupFields = aFields.filter(function (oField) {
+                        return oField.group === oGroup.key;
+                    });
+                    return Object.assign({
+                        fields: aGroupFields,
+                        diffCount: aGroupFields.filter(function (oField) {
+                            return oField.differs;
+                        }).length
+                    }, oGroup);
+                }),
+                // "Compare fields" on the flow shows only the rows that differ from SAP.
+                fieldsDiffOnly: false,
+                fieldsDiffCount: aFields.filter(function (oField) {
+                    return oField.differs;
+                }).length,
                 fieldsGuidance: this._fieldsGuidance(sStatus, oPermissions.processor, aFields),
                 fileName: oCase.file_name,
                 documentUrl: sExistingUrl,
@@ -730,15 +733,15 @@ sap.ui.define([
                         sDescription = "Decision recorded — invoice rejected.";
                     } else if (bAwaitingApproval) {
                         sState = "waiting";
-                        sDescription = "Waiting for an approver to approve, return or reject on Dock Decide.";
+                        sDescription = "Waiting for an approver to approve, return or reject it.";
                     } else if (bNeedsHuman) {
                         sState = "waiting";
                         sDescription = sStatus === "RETURNED"
-                            ? "Returned for corrections on Clear Desk before Dock Decide."
-                            : "Open Clear Desk to check fields, then use Dock Decide.";
+                            ? "Returned for corrections before it can be approved."
+                            : "Check the details, then send it on for approval.";
                     } else if (bError) {
                         sState = "pending";
-                        sDescription = "Fix extraction on Clear Desk, then send for approval.";
+                        sDescription = "Enter the details on the Fields tab, then send for approval.";
                     } else {
                         sState = "pending";
                     }
@@ -777,7 +780,7 @@ sap.ui.define([
                         sState = "skipped";
                         sDescription = oValidation.agents_completed
                             ? "Did not run for this invoice."
-                            : "Did not run — the invoice details were entered on Clear Desk.";
+                            : "Did not run — the invoice details were entered by hand.";
                     }
                 } else if (bError) {
                     // An agent without a trace never ran; with no trace at all, processing stopped at the first one.
@@ -883,35 +886,31 @@ sap.ui.define([
 
         // ------------------------------------------------------- agent results
 
-        // Headline, message and key facts at the top of Agent Results.
-        _mapOverview: function (oCase, oValidation, iIssues) {
-            var aOutcome = C.OUTCOMES[oCase.status]
-                || ["None", "sap-icon://hint", C.STATUS_LABELS[oCase.status] || oCase.status, ""];
+        // The invoice's master data in the header: document type and key facts.
+        _mapOverview: function (oCase, oValidation) {
             var oClassification = oValidation.ai_core || {};
             var sType = (oCase.fields || {}).document_type || oClassification.document_type || "";
             var aType = C.DOCUMENT_TYPES[sType]
                 || [sType ? sType.replace(/_/g, " ") : "Not recognised yet", "sap-icon://document"];
-            var fConfidence = oClassification.confidence;
-            var sText = aOutcome[3].indexOf("{0}") < 0 ? aOutcome[3]
-                : iIssues ? aOutcome[3].replace("{0}", iIssues === 1 ? "1 issue" : iIssues + " issues")
-                    : "Check the details on the Fields tab before approval.";
+            // How sure the extraction is of what it read: SAP Document AI's confidence averaged over the required
+            // fields (invoice number, date, supplier, total, currency). The classifier's own confidence only says
+            // how sure it is of the document type. 0 means nothing was read.
+            var fConfidence = oValidation.confidence > 0 ? oValidation.confidence : null;
             return {
-                state: aOutcome[0],
-                icon: aOutcome[1],
-                title: aOutcome[2],
-                text: sText,
                 documentType: aType[0],
                 documentIcon: aType[1],
                 facts: [
                     { label: "Invoice total", value: this._formatAmount(oCase) },
                     { label: "Purchase order", value: oCase.po_number || "—" },
+                    { label: "Company code", value: oCase.company_code || "—" },
                     { label: "Invoice date", value: oCase.invoice_date || "—" },
-                    // As a percentage, coloured green (high), yellow (average) or red (low).
+                    // As a percentage: green when high, yellow when average, red below the review threshold.
                     {
                         label: "Reading confidence",
-                        value: typeof fConfidence === "number" ? Math.round(fConfidence * 100) + "%" : "—",
-                        tone: typeof fConfidence !== "number" ? ""
-                            : fConfidence >= 0.85 ? "high" : fConfidence >= 0.6 ? "average" : "low"
+                        value: fConfidence === null ? "—" : Math.round(fConfidence * 100) + "%",
+                        tone: fConfidence === null ? ""
+                            : fConfidence >= C.CONFIDENCE_HIGH ? "high"
+                                : fConfidence >= C.CONFIDENCE_REVIEW ? "average" : "low"
                     }
                 ]
             };
@@ -967,7 +966,13 @@ sap.ui.define([
                 aIssues.filter(function (oIssue) {
                     return oIssue.area === sArea;
                 }).forEach(function (oIssue, iIndex) {
-                    aRows.push({ area: iIndex ? "" : sArea, group: sArea, title: oIssue.title, detail: oIssue.detail });
+                    aRows.push({
+                        area: iIndex ? "" : sArea,
+                        group: sArea,
+                        title: oIssue.title,
+                        detail: oIssue.detail,
+                        tab: C.ISSUE_SECTIONS[sArea] || "details"
+                    });
                 });
             });
             return { count: aRows.length, rows: aRows };
@@ -1034,6 +1039,13 @@ sap.ui.define([
             return oPick;
         },
 
+        // The review page target of a flow step (see PIPELINE_STEPS).
+        stepTarget: function (sStepKey) {
+            return (C.PIPELINE_STEPS.filter(function (oStep) {
+                return oStep.key === sStepKey;
+            })[0] || {}).target || "overview";
+        },
+
         // A click on the stepper: show that agent's details.
         selectAgent: function (sKey) {
             var aAgents = this._model.getProperty("/selectedInvoice/agents");
@@ -1091,6 +1103,9 @@ sap.ui.define([
                     return [oField.label.replace(/\s*\(.*\)$/, ""),
                         (sValue || "Not found") + (aLow.indexOf(oField.key) >= 0 ? " · low confidence, check the PDF" : "")];
                 }, this);
+                if (oValidation.confidence > 0) {
+                    aFieldPoints.unshift(["Reading confidence", Math.round(oValidation.confidence * 100) + "%"]);
+                }
                 if (aBlocking.indexOf("EXTRACTION_NOT_COMPLETED") >= 0) {
                     return fnResult("Could not read the whole invoice", "Check the missing details against the PDF.", false,
                         aFieldPoints);
@@ -1209,7 +1224,175 @@ sap.ui.define([
             })));
         },
 
-        // The verdict on the Summary tab: a headline (can this invoice be paid?) and a few pointers on why,
+        // Supplier tab: the purchase order's supplier as SAP has it (master data, status, bank accounts)
+        // next to the supplier on the invoice.
+        _mapSupplier: function (oValidation) {
+            var oVerdict = oValidation.source_verdict || {};
+            var oSap = oVerdict.supplier;
+            if (!oSap) {
+                return {
+                    known: false,
+                    message: oVerdict.status === "NOT_FOUND"
+                        ? "The purchase order was not found in SAP, so its supplier could not be looked up."
+                        : "The supplier is looked up in SAP once the invoice has been checked against it."
+                };
+            }
+            var oCompared = (oVerdict.comparisons || []).filter(function (oRow) {
+                return oRow.check === "supplier";
+            })[0];
+            var oMatch = oCompared && (C.SOURCE_RESULTS[oCompared.result] || { label: oCompared.result, state: "None" });
+            var aBlocks = [
+                [oSap.posting_block, "Blocked for posting", "Open for posting"],
+                [oSap.purchasing_block, "Blocked for purchasing", "Open for purchasing"],
+                [oSap.deletion_flag, "Marked for deletion", "Not marked for deletion"]
+            ];
+            return {
+                known: true,
+                title: "Supplier in SAP",
+                facts: [
+                    { label: "Supplier number", value: oSap.supplier_id },
+                    { label: "Name", value: oSap.name },
+                    {
+                        label: "Address",
+                        value: [oSap.street, [oSap.postal_code, oSap.city].filter(Boolean).join(" "), oSap.region,
+                            oSap.country].filter(Boolean).join(", ")
+                    },
+                    { label: "VAT number", value: oSap.vat_number },
+                    { label: "Telephone", value: oSap.telephone },
+                    { label: "Account group", value: oSap.account_group },
+                    { label: "In SAP since", value: (oSap.created_on || "").slice(0, 10) }
+                ].filter(function (oFact) {
+                    return oFact.value;
+                }),
+                statuses: aBlocks.map(function (aBlock) {
+                    return {
+                        text: aBlock[0] ? aBlock[1] : aBlock[2],
+                        state: aBlock[0] ? "Error" : "Success",
+                        icon: aBlock[0] ? "sap-icon://locked" : "sap-icon://sys-enter-2"
+                    };
+                }),
+                blocked: aBlocks.some(function (aBlock) {
+                    return aBlock[0];
+                }),
+                banks: oSap.bank_accounts || [],
+                invoiceName: oCompared ? oCompared.invoice || "—" : "—",
+                sapName: oSap.name,
+                matchText: oMatch ? oMatch.label : "",
+                matchState: oMatch ? oMatch.state : "None",
+                matchIcon: oMatch ? oMatch.icon : ""
+            };
+        },
+
+        // Info section: what SAP holds for the purchase order, one sub-tab each (purchase order and its lines,
+        // goods receipts, GL accounts, cost centers). The supplier and bank sub-tabs use _mapSupplier.
+        _mapSapInfo: function (oValidation) {
+            var that = this;
+            var oVerdict = oValidation.source_verdict || {};
+            var oRecords = oVerdict.sap_records;
+            if (!oRecords) {
+                return {
+                    known: false,
+                    message: oVerdict.status === "NOT_FOUND"
+                        ? "The purchase order was not found in SAP, so there is no SAP data to show."
+                        : "The SAP data appears here once the invoice has been checked against SAP."
+                };
+            }
+            var oPo = oRecords.purchase_order;
+            var fnMoney = function (sValue, sCurrency) {
+                return that._money(sValue, sCurrency || oPo.currency);
+            };
+            var fnDate = function (sValue) {
+                return (sValue || "").slice(0, 10) || "—";
+            };
+            // A problem text such as "GL account 999999 is not in the SAP chart of accounts" as a short status.
+            var fnStatus = function (sProblem, sOk) {
+                return sProblem
+                    ? {
+                        status: /not in/.test(sProblem) ? "Not in SAP"
+                            : /no longer valid/.test(sProblem) ? "No longer valid" : "Blocked or marked for deletion",
+                        state: "Error",
+                        icon: "sap-icon://decline"
+                    }
+                    : { status: sOk, state: "Success", icon: "sap-icon://accept" };
+            };
+            var oReceiptRow = (oVerdict.comparisons || []).filter(function (oRow) {
+                return oRow.check === "goods_receipt";
+            })[0];
+            var aMissing = oPo.lines.filter(function (oLine) {
+                return oLine.active && oLine.receipt_expected && !oLine.received;
+            });
+            return {
+                known: true,
+                po: {
+                    deleted: oPo.deleted,
+                    facts: [
+                        { label: "Purchase order", value: oPo.po_number },
+                        { label: "Type", value: C.PO_TYPES[oPo.document_type] || oPo.document_type || "—" },
+                        { label: "Status in SAP", value: oPo.deleted ? "Deleted" : "Active", tone: oPo.deleted ? "low" : "high" },
+                        { label: "Company code", value: oPo.company_code || "—" },
+                        { label: "Currency", value: oPo.currency || "—" },
+                        { label: "Created on", value: fnDate(oPo.document_date) },
+                        { label: "Total value", value: fnMoney(oPo.total_amount) }
+                    ],
+                    lines: oPo.lines.map(function (oLine) {
+                        return {
+                            item: oLine.item,
+                            description: oLine.description || oLine.material || "—",
+                            quantity: oLine.quantity || "—",
+                            unitPrice: fnMoney(oLine.unit_price),
+                            netValue: fnMoney(oLine.net_value),
+                            receipt: !oLine.receipt_expected ? "Not needed" : oLine.received ? "Received" : "Not received",
+                            receiptState: !oLine.receipt_expected ? "None" : oLine.received ? "Success" : "Error"
+                        };
+                    })
+                },
+                receiptsMissing: aMissing.length > 0,
+                receiptsSummary: aMissing.length
+                    ? "No goods receipt in SAP for line " + aMissing.map(function (oLine) {
+                        return oLine.item;
+                    }).join(", ") + ", so the invoice cannot be paid for it yet."
+                    : oReceiptRow ? "Goods receipts are posted in SAP for every line that needs one ("
+                        + oReceiptRow.sap + ")." : "No line of this purchase order needs a goods receipt.",
+                receipts: oRecords.goods_receipts.map(function (oReceipt) {
+                    return {
+                        item: oReceipt.item,
+                        document: oReceipt.document || "—",
+                        date: fnDate(oReceipt.posting_date),
+                        quantity: oReceipt.quantity || "—",
+                        amount: fnMoney(oReceipt.amount, oReceipt.currency)
+                    };
+                }),
+                entries: oRecords.service_entries.map(function (oSheet) {
+                    return {
+                        entrySheet: oSheet.entry_sheet,
+                        item: oSheet.item,
+                        value: fnMoney(oSheet.net_value, oSheet.currency),
+                        status: oSheet.accepted ? "Accepted" : "Not accepted",
+                        state: oSheet.accepted ? "Success" : "Error"
+                    };
+                }),
+                glProblem: oRecords.gl_accounts.some(function (oAccount) {
+                    return oAccount.problem;
+                }),
+                gl: oRecords.gl_accounts.map(function (oAccount) {
+                    return Object.assign({ account: oAccount.account, name: oAccount.name || "—" },
+                        fnStatus(oAccount.problem, "Open for posting"));
+                }),
+                costCenterProblem: oRecords.cost_centers.some(function (oCenter) {
+                    return oCenter.problem;
+                }),
+                costCenters: oRecords.cost_centers.map(function (oCenter) {
+                    return Object.assign({
+                        costCenter: oCenter.cost_center,
+                        name: oCenter.name || "—",
+                        department: oCenter.department || "—",
+                        validTo: (oCenter.valid_to || "").indexOf("9999") === 0 ? "No end date" : fnDate(oCenter.valid_to)
+                    }, fnStatus(oCenter.problem, "Valid"));
+                })
+            };
+        },
+
+        // The verdict on the Overview tab: a headline (can this invoice be paid?) and a few pointers on why,
         // the main concerns and what to do next.
         _mapVerdict: function (oCase, oValidation, aIssues) {
             var sStatus = oCase.status;
@@ -1225,12 +1408,14 @@ sap.ui.define([
             var bSapSide = aRows.some(function (oRow) {
                 return C.SAP_SIDE_CHECKS.indexOf(oRow.check) >= 0 && C.SOURCE_DISCREPANCIES.indexOf(oRow.result) >= 0;
             });
-            var aHeadline = C.VERDICT_HEADLINES[sStatus] || [C.STATUS_LABELS[sStatus] || sStatus, "sap-icon://hint"];
+            var aHeadline = C.VERDICT_HEADLINES[sStatus]
+                || [C.STATUS_LABELS[sStatus] || sStatus, "sap-icon://hint", "None"];
 
             var sReason = bProcessing ? "The invoice is being read and checked against SAP."
                 : sStatus === "PROCESSING_ERROR" ? "The invoice could not be read automatically."
                     : {
-                        MATCH: "Every detail matches " + sPoText + " in SAP.",
+                        MATCH: "Every detail matches " + sPoText + " in SAP"
+                            + (aIssues.length ? ", but other checks still need attention." : "."),
                         MISMATCH: "The invoice doesn't match " + sPoText + " in SAP.",
                         NOT_FOUND: (sPo ? "Purchase order " + sPo : "The purchase order") + " could not be found in SAP.",
                         INCOMPLETE: "Some of the data needed to check the invoice is missing in SAP."
@@ -1267,6 +1452,7 @@ sap.ui.define([
             return {
                 headline: aHeadline[0],
                 icon: aHeadline[1],
+                state: aHeadline[2],
                 points: [
                     sReason,
                     aRows.length && iMatches + " of " + aRows.length + " SAP checks passed"
@@ -1362,6 +1548,7 @@ sap.ui.define([
                 var aHint = /^(.*?)\s*\((.*)\)$/.exec(oField.label);
                 return Object.assign({
                     key: oField.key,
+                    group: C.FIELD_GROUP_OF[oField.key],
                     field: aHint ? aHint[1] : oField.label,
                     placeholder: aHint ? aHint[2] : "",
                     value: sValue,
@@ -1378,6 +1565,7 @@ sap.ui.define([
             }).forEach(function (oRow) {
                 aRows.push(Object.assign({
                     key: "",
+                    group: C.FIELD_GROUP_OF[oRow.check] || "receipts",
                     field: oRow.label,
                     display: oRow.invoice || "—",
                     editable: false,
@@ -1460,12 +1648,17 @@ sap.ui.define([
         },
 
         _formatAmount: function (oCase) {
-            var fNum = Number(oCase.total_amount);
-            if (oCase.total_amount == null || oCase.total_amount === "" || isNaN(fNum)) {
+            return this._money(oCase.total_amount, oCase.currency);
+        },
+
+        // e.g. "1053000.0", "SAR" → "1,053,000.00 SAR"; "—" when there is no number.
+        _money: function (vValue, sCurrency) {
+            var fNum = Number(vValue);
+            if (vValue == null || vValue === "" || isNaN(fNum)) {
                 return "—";
             }
             return fNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                + (oCase.currency ? " " + oCase.currency : "");
+                + (sCurrency ? " " + sCurrency : "");
         },
 
         // "2026-10-15T10:17:23+00:00" → "2026-10-15 13:17" for Saudi Arabia.

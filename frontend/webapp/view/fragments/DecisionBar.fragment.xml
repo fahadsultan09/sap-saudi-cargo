@@ -1,7 +1,7 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
 	<HBox class="apDecisionBar" alignItems="Center" justifyContent="End" wrap="Wrap"
 		visible="{apData>/selectedInvoice/canDecide}">
-		<Text text="Dock Decide" class="apDecisionBarLabel"/>
+		<Text text="Your decision" class="apDecisionBarLabel"/>
 		<Button text="Approve" icon="sap-icon://accept" press="onApproveInvoice"
 			class="apDecisionApprove sapUiTinyMarginBegin"/>
 		<Button text="Return" icon="sap-icon://undo" press="onReturnInvoice"

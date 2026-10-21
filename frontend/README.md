@@ -16,7 +16,7 @@ Open the URL printed by `@ui5/cli serve`. Ensure the gateway (`gateway/`) is up 
 
 1. **Dashboard** — queue + KPI strip; processing cases show a mini pipeline.
 2. **Upload** — drop an invoice; watch the full 5-step pipeline light Done / Working / Pending.
-3. **Clear Desk (Review)** — PDF + Agent Results / Invoice Fields; live pipeline while agents run.
+3. **Review** — open an invoice from the dashboard for its PDF, agent results and invoice fields; live pipeline while agents run. The former `#/desk` URL redirects to the dashboard.
 4. **Dock Decide** — Approve / Return / Reject on the review dock (approver profiles).
 
 ## Design branch note

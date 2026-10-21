@@ -2,317 +2,490 @@
 	controllerName="saudicargo.ap.automation.controller.ReviewPanel"
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns="sap.m"
-	xmlns:core="sap.ui.core"
-	xmlns:html="http://www.w3.org/1999/xhtml">
-<VBox id="reviewPanelRoot" height="100%" visible="{apData>/selectedInvoice/hasCase}" class="apReviewShell apReviewShell--docked">
-			<HBox class="apReviewSplit" height="100%">
+	xmlns:core="sap.ui.core">
+	<!-- One page, top to bottom: the flow, the invoice's master data, then anchor tabs over its sections.
+		 On Home the green pipeline above already shows the flow, so the strip here is hidden there. -->
+	<VBox id="reviewPanelRoot" height="100%" visible="{apData>/selectedInvoice/hasCase}" busy="{apData>/caseLoading}"
+		busyIndicatorDelay="0" class="apReviewShell apReviewShell--docked">
+		<!-- 1. The flow, in its own card -->
+		<VBox class="apFlowCard">
+			<HBox class="apPipeTrack apPanelFlow" renderType="Bare" items="{apData>/selectedInvoice/pipelineSteps}">
+				<VBox class="apPipeTrackStep" alignItems="Center">
+					<customData>
+						<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+					</customData>
+					<VBox class="apPipeTrackDot" alignItems="Center" justifyContent="Center">
+						<core:Icon src="{apData>icon}" size="0.8rem"/>
+					</VBox>
+					<Link text="{apData>title}" press="onFlowStep" class="apPipeTrackLabel sapUiTinyMarginTop"/>
+				</VBox>
+			</HBox>
+		</VBox>
+		<VBox class="apReviewMain" height="100%">
+			<layoutData>
+				<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
+			</layoutData>
+			<!-- 2. Master data: supplier, invoice, status, document type and the key facts -->
+			<VBox class="apReviewHeader">
+				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
+					<VBox>
+						<Title text="{apData>/selectedInvoice/supplier}" level="H3"/>
+						<HBox alignItems="Center" class="sapUiTinyMarginTop" wrap="Wrap">
+							<Text text="Invoice: {apData>/selectedInvoice/id}" class="sapUiMediumMarginEnd"/>
+							<ObjectStatus text="{apData>/selectedInvoice/status}"
+								state="{apData>/selectedInvoice/statusState}" inverted="true" class="sapUiSmallMarginEnd"/>
+							<HBox alignItems="Center" class="apDocType">
+								<core:Icon src="{apData>/selectedInvoice/overview/documentIcon}" class="sapUiTinyMarginEnd"/>
+								<Text text="{apData>/selectedInvoice/overview/documentType}"/>
+							</HBox>
+						</HBox>
+					</VBox>
+					<Button text="View PDF" icon="sap-icon://pdf-attachment" press="onViewInvoice"
+						enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
+				</HBox>
+				<HBox wrap="Wrap" class="apFacts apHeaderFacts" items="{apData>/selectedInvoice/overview/facts}">
+					<VBox class="apFact">
+						<customData>
+							<core:CustomData key="tone" value="{= ${apData>tone} || 'none' }" writeToDom="true"/>
+						</customData>
+						<Text text="{apData>label}" class="apFactLabel"/>
+						<Text text="{apData>value}" class="apFactValue"/>
+					</VBox>
+				</HBox>
+			</VBox>
+			<!-- 3. Tabs as anchors: a click scrolls to that section; the active tab follows the scroll -->
+			<IconTabHeader id="reviewTabs" mode="Inline" select="onTabSelect" selectedKey="{apData>/reviewTabKey}"
+				class="apReviewTabs apAnchorBar">
+				<items>
+					<IconTabFilter text="Overview" key="overview" icon="sap-icon://business-objects-experience"/>
+					<IconTabFilter text="Agents" key="agents" icon="sap-icon://group"/>
+					<IconTabFilter text="{= 'Issues (' + ${apData>/selectedInvoice/issues}.length + ')' }" key="issues"
+						icon="sap-icon://alert" iconColor="{= ${apData>/selectedInvoice/issues}.length ? 'Critical' : 'Default' }"/>
+					<IconTabFilter text="Info" key="info" icon="sap-icon://hint"/>
+					<IconTabFilter text="Fields" key="details" icon="sap-icon://form"/>
+					<IconTabFilter text="Audit Trail" key="audit" icon="sap-icon://history"/>
+				</items>
+			</IconTabHeader>
+			<!-- 4. Every section on one continuous page -->
+			<ScrollContainer id="reviewScroll" height="100%" vertical="true" horizontal="false" class="apReviewBody">
 				<layoutData>
 					<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
 				</layoutData>
-				<!-- PDF / document pane -->
-				<VBox class="apPdfPane" height="100%">
-					<layoutData>
-						<FlexItemData growFactor="1" baseSize="0" minWidth="0" minHeight="70vh"/>
-					</layoutData>
-					<HBox class="apPdfPaneHeader" alignItems="Center" justifyContent="SpaceBetween">
-						<layoutData>
-							<FlexItemData growFactor="0" shrinkFactor="0"/>
-						</layoutData>
-						<Text text="Invoice document"/>
-						<Button text="Open" icon="sap-icon://inspect-open" type="Transparent"
-							press="onOpenDocument" enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
-					</HBox>
-					<VBox class="apPdfPaneBody" height="100%">
-						<layoutData>
-							<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
-						</layoutData>
-						<html:iframe id="invoicePdfFrame" class="apPdfFrame" title="Invoice document preview"
-							src="{apData>/selectedInvoice/documentUrl}"/>
-						<Image src="{apData>/selectedInvoice/documentUrl}" alt="Invoice document preview" class="apDocImage"
-							visible="{= !!${apData>/selectedInvoice/documentUrl} &amp;&amp; !!${apData>/selectedInvoice/documentIsImage} }"/>
-						<VBox visible="{= !${apData>/selectedInvoice/documentUrl} }" alignItems="Center"
-							justifyContent="Center" class="apPdfEmpty">
-							<IllustratedMessage illustrationType="sapIllus-NoData" illustrationSize="Spot"
-								title="Document loading" description="The invoice document appears here when available."/>
+				<VBox id="section-overview" class="apPageSection">
+					<Title text="Overview" level="H4" class="apPageSectionTitle"/>
+					<VBox class="apResults">
+						<MessageStrip text="{apData>/selectedInvoice/queueWarning}" type="Warning" showIcon="true"
+							visible="{= !!${apData>/selectedInvoice/queueWarning} }"/>
+						<!-- Verdict: the decision as a headline, then a few pointers -->
+						<VBox class="apCard apOutcome">
+							<customData>
+								<core:CustomData key="state" value="{apData>/selectedInvoice/verdict/state}" writeToDom="true"/>
+							</customData>
+							<HBox alignItems="Start">
+								<core:Icon src="{apData>/selectedInvoice/verdict/icon}" class="apOutcomeIcon"/>
+								<VBox>
+									<Title text="Verdict · {apData>/selectedInvoice/verdict/headline}" level="H4" class="apOutcomeTitle"/>
+									<VBox items="{apData>/selectedInvoice/verdict/points}" class="apVerdictPoints">
+										<HBox alignItems="Start" renderType="Bare" class="apVerdictPoint">
+											<Text text="•" class="apVerdictBullet"/>
+											<Text text="{apData>text}" class="apVerdictText"/>
+										</HBox>
+									</VBox>
+								</VBox>
+							</HBox>
 						</VBox>
 					</VBox>
 				</VBox>
-				<VBox class="apReviewMain" height="100%">
-					<layoutData>
-						<FlexItemData growFactor="1" baseSize="0" minWidth="0"/>
-					</layoutData>
-					<!-- Header: supplier, invoice, status and document type, then the key facts -->
-					<VBox class="apReviewHeader">
-						<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
-							<VBox>
-								<Title text="{apData>/selectedInvoice/supplier}" level="H3"/>
-								<HBox alignItems="Center" class="sapUiTinyMarginTop" wrap="Wrap">
-									<Text text="Invoice: {apData>/selectedInvoice/id}" class="sapUiMediumMarginEnd"/>
-									<ObjectStatus text="{apData>/selectedInvoice/status}"
-										state="{apData>/selectedInvoice/statusState}" inverted="true" class="sapUiSmallMarginEnd"/>
-									<HBox alignItems="Center" class="apDocType">
-										<core:Icon src="{apData>/selectedInvoice/overview/documentIcon}" class="sapUiTinyMarginEnd"/>
-										<Text text="{apData>/selectedInvoice/overview/documentType}"/>
+				<VBox id="section-agents" class="apPageSection">
+					<Title text="Agents" level="H4" class="apPageSectionTitle"/>
+					<!-- The agents as a process stepper; the selected agent's details below it -->
+					<VBox class="apCard">
+						<Title text="What each agent found" level="H5" class="apSectionTitle"/>
+						<List items="{apData>/selectedInvoice/agents}" showSeparators="None" itemPress="onSelectAgent"
+							class="apStepper">
+							<CustomListItem type="Active" class="apStepperItem">
+								<customData>
+									<core:CustomData key="status" value="{apData>statusKey}" writeToDom="true"/>
+									<core:CustomData key="selected" value="{= ${apData>selected} ? 'true' : 'false' }" writeToDom="true"/>
+								</customData>
+								<VBox alignItems="Center" class="apStepperBody">
+									<HBox alignItems="Center">
+										<core:Icon src="{apData>icon}" visible="{apData>selected}" class="apStepperIcon sapUiTinyMarginEnd"/>
+										<Text text="{apData>agent}" wrapping="false" class="apStepperName"/>
 									</HBox>
+									<ObjectStatus text="{apData>status}" icon="{apData>statusIcon}" state="{apData>state}"
+										inverted="true"/>
+								</VBox>
+							</CustomListItem>
+						</List>
+						<VBox visible="{= !!${apData>/selectedInvoice/agentDetail} }" class="apAgentPanel">
+							<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentPanelHeader">
+								<HBox alignItems="Center">
+									<core:Icon src="{apData>/selectedInvoice/agentDetail/icon}" class="apAgentPanelIcon"/>
+									<VBox>
+										<Text text="{apData>/selectedInvoice/agentDetail/agent}" class="apAgentName"/>
+										<Text text="{apData>/selectedInvoice/agentDetail/task}" class="apAgentTask"/>
+									</VBox>
+								</HBox>
+								<ObjectStatus text="{apData>/selectedInvoice/agentDetail/status}"
+									icon="{apData>/selectedInvoice/agentDetail/statusIcon}"
+									state="{apData>/selectedInvoice/agentDetail/state}" inverted="true"/>
+							</HBox>
+							<HBox alignItems="Center" wrap="Wrap" renderType="Bare" class="apAgentHeadline">
+								<Text text="{apData>/selectedInvoice/agentDetail/result}" class="apAgentResult"/>
+								<Button text="Check comparison" icon="sap-icon://compare" press="onOpenComparison"
+									visible="{= !!${apData>/selectedInvoice/agentDetail/showComparison} }" class="apCheckComparison"/>
+							</HBox>
+							<VBox visible="{= ${apData>/selectedInvoice/agentDetail/points}.length > 0 }" class="apAgentDetails">
+								<Text text="{apData>/selectedInvoice/agentDetail/detail}"
+									visible="{= !!${apData>/selectedInvoice/agentDetail/detail} }" class="apAgentDetail"/>
+								<!-- The facts as a grid (label over value), so even SCANNER's eight fields fit without scrolling -->
+								<HBox items="{apData>/selectedInvoice/agentDetail/points}" renderType="Bare" class="apAgentPoints">
+									<VBox renderType="Bare" class="apAgentPoint">
+										<Text text="{apData>label}" class="apAgentPointLabel"/>
+										<Text text="{apData>value}" class="apAgentPointValue"/>
+									</VBox>
 								</HBox>
 							</VBox>
-							<HBox alignItems="Center" class="apReviewActions">
-								<Button text="View invoice" icon="sap-icon://pdf-attachment" press="onViewInvoice"
-									enabled="{= !!${apData>/selectedInvoice/documentUrl} }"/>
-							</HBox>
-						</HBox>
-						<HBox wrap="Wrap" class="apFacts apHeaderFacts" items="{apData>/selectedInvoice/overview/facts}">
-							<VBox class="apFact">
-								<customData>
-									<core:CustomData key="tone" value="{= ${apData>tone} || 'none' }" writeToDom="true"/>
-								</customData>
-								<Text text="{apData>label}" class="apFactLabel"/>
-								<Text text="{apData>value}" class="apFactValue"/>
-							</VBox>
-						</HBox>
+						</VBox>
 					</VBox>
-					<IconTabBar id="reviewTabs" class="apReviewTabs apIconTabFade" expandable="false" applyContentPadding="false"
-						headerMode="Inline"
-						select="onReviewTabSelect" selectedKey="{apData>/reviewTabKey}">
-						<layoutData>
-							<FlexItemData growFactor="1" baseSize="0" minHeight="0"/>
-						</layoutData>
+				</VBox>
+				<VBox id="section-issues" class="apPageSection">
+					<Title text="Issues" level="H4" class="apPageSectionTitle"/>
+					<Text text="Nothing to resolve on this invoice." visible="{= !${apData>/selectedInvoice/issues}.length }"
+						class="apInfoEmpty"/>
+					<!-- Issues to resolve: each title opens the tab where it is fixed -->
+					<VBox visible="{= ${apData>/selectedInvoice/issues}.length > 0 }" class="apCard">
+						<Title text="{= 'Issues to resolve (' + ${apData>/selectedInvoice/issues}.length + ')' }"
+							level="H5" class="apSectionTitle"/>
+						<VBox items="{apData>/selectedInvoice/issues}" class="apIssueList">
+							<HBox alignItems="Start" renderType="Bare" class="apIssue">
+								<customData>
+									<core:CustomData key="first" value="{= ${apData>area} ? 'true' : 'false' }" writeToDom="true"/>
+								</customData>
+								<Text text="{apData>area}" wrapping="false" class="apIssueArea"/>
+								<core:Icon src="sap-icon://alert" class="apIssueIcon"/>
+								<VBox renderType="Bare" class="apIssueBody">
+									<Link text="{apData>title}" press="onOpenIssue" class="apIssueTitle"/>
+									<Text text="{apData>detail}" visible="{= !!${apData>detail} }" class="apIssueDetail"/>
+								</VBox>
+							</HBox>
+						</VBox>
+					</VBox>
+				</VBox>
+				<VBox id="section-info" class="apPageSection">
+					<Title text="Info · what SAP holds for this invoice" level="H4" class="apPageSectionTitle"/>
+					<IllustratedMessage visible="{= !${apData>/selectedInvoice/sapInfo/known} }"
+						illustrationType="sapIllus-NoData" illustrationSize="Spot" title="No SAP data yet"
+						description="{apData>/selectedInvoice/sapInfo/message}"/>
+					<!-- One sub-tab per SAP record: these switch content (unlike the anchor tabs above) -->
+					<IconTabBar id="infoTabs" visible="{= !!${apData>/selectedInvoice/sapInfo/known} }" headerMode="Inline"
+						expandable="false" applyContentPadding="false" selectedKey="{apData>/infoTabKey}" class="apCard apInfoTabs">
 						<items>
-							<IconTabFilter text="Agent Results" key="agents" icon="sap-icon://business-objects-experience">
-								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
-									<VBox class="apResults">
-										<MessageStrip text="{apData>/selectedInvoice/queueWarning}" type="Warning" showIcon="true"
-											visible="{= !!${apData>/selectedInvoice/queueWarning} }" class="sapUiSmallMarginBottom"/>
-
-										<!-- Outcome: where the invoice stands -->
-										<VBox class="apCard apOutcome">
+							<IconTabFilter text="Supplier" key="supplier" icon="sap-icon://supplier"
+								iconColor="{= ${apData>/selectedInvoice/supplierSap/blocked} ? 'Negative' : 'Default' }">
+								<VBox class="apInfoPane">
+									<HBox items="{apData>/selectedInvoice/supplierSap/facts}" renderType="Bare" class="apAgentPoints">
+										<VBox renderType="Bare" class="apAgentPoint">
+											<Text text="{apData>label}" class="apAgentPointLabel"/>
+											<Text text="{apData>value}" class="apAgentPointValue"/>
+										</VBox>
+									</HBox>
+									<HBox items="{apData>/selectedInvoice/supplierSap/statuses}" wrap="Wrap" renderType="Bare"
+										class="apSupplierStatuses">
+										<ObjectStatus text="{apData>text}" icon="{apData>icon}" state="{apData>state}" inverted="true"/>
+									</HBox>
+									<!-- The supplier on the invoice next to the purchase order's supplier in SAP -->
+									<VBox class="apInfoCompare">
+										<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
+											<Text text="Invoice vs SAP" class="apInfoSubtitle"/>
+											<ObjectStatus text="{apData>/selectedInvoice/supplierSap/matchText}"
+												icon="{apData>/selectedInvoice/supplierSap/matchIcon}"
+												state="{apData>/selectedInvoice/supplierSap/matchState}"/>
+										</HBox>
+										<HBox renderType="Bare" class="apAgentPoints apSupplierCompare">
+											<VBox renderType="Bare" class="apAgentPoint">
+												<Text text="On the invoice" class="apAgentPointLabel"/>
+												<Text text="{apData>/selectedInvoice/supplierSap/invoiceName}" class="apAgentPointValue"/>
+											</VBox>
+											<VBox renderType="Bare" class="apAgentPoint">
+												<Text text="Purchase order's supplier in SAP" class="apAgentPointLabel"/>
+												<Text text="{apData>/selectedInvoice/supplierSap/sapName}" class="apAgentPointValue"/>
+											</VBox>
+										</HBox>
+									</VBox>
+								</VBox>
+							</IconTabFilter>
+							<IconTabFilter text="Purchase order" key="po" icon="sap-icon://sales-order"
+								iconColor="{= ${apData>/selectedInvoice/sapInfo/po/deleted} ? 'Negative' : 'Default' }">
+								<VBox class="apInfoPane">
+									<HBox items="{apData>/selectedInvoice/sapInfo/po/facts}" renderType="Bare" class="apAgentPoints">
+										<VBox renderType="Bare" class="apAgentPoint">
 											<customData>
-												<core:CustomData key="state" value="{apData>/selectedInvoice/overview/state}" writeToDom="true"/>
+												<core:CustomData key="tone" value="{= ${apData>tone} || 'none' }" writeToDom="true"/>
 											</customData>
-											<HBox alignItems="Center">
-												<core:Icon src="{apData>/selectedInvoice/overview/icon}" class="apOutcomeIcon"/>
-												<VBox>
-													<Title text="{apData>/selectedInvoice/overview/title}" level="H4" class="apOutcomeTitle"/>
-													<Text text="{apData>/selectedInvoice/overview/text}" class="apOutcomeText"/>
-												</VBox>
-											</HBox>
+											<Text text="{apData>label}" class="apAgentPointLabel"/>
+											<Text text="{apData>value}" class="apAgentPointValue"/>
 										</VBox>
-
-										<!-- The agents as a process stepper; the selected agent's details below it -->
-										<VBox class="apCard">
-											<Title text="What each agent found" level="H5" class="apSectionTitle"/>
-											<List items="{apData>/selectedInvoice/agents}" showSeparators="None" itemPress="onSelectAgent"
-												class="apStepper">
-												<CustomListItem type="Active" class="apStepperItem">
-													<customData>
-														<core:CustomData key="status" value="{apData>statusKey}" writeToDom="true"/>
-														<core:CustomData key="selected" value="{= ${apData>selected} ? 'true' : 'false' }" writeToDom="true"/>
-													</customData>
-													<VBox alignItems="Center" class="apStepperBody">
-														<HBox alignItems="Center">
-															<core:Icon src="{apData>icon}" visible="{apData>selected}" class="apStepperIcon sapUiTinyMarginEnd"/>
-															<Text text="{apData>agent}" wrapping="false" class="apStepperName"/>
-														</HBox>
-														<ObjectStatus text="{apData>status}" icon="{apData>statusIcon}" state="{apData>state}"
-															inverted="true"/>
-													</VBox>
-												</CustomListItem>
-											</List>
-											<VBox visible="{= !!${apData>/selectedInvoice/agentDetail} }" class="apAgentPanel">
-												<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentPanelHeader">
-													<HBox alignItems="Center">
-														<core:Icon src="{apData>/selectedInvoice/agentDetail/icon}" class="apAgentPanelIcon"/>
-														<VBox>
-															<Text text="{apData>/selectedInvoice/agentDetail/agent}" class="apAgentName"/>
-															<Text text="{apData>/selectedInvoice/agentDetail/task}" class="apAgentTask"/>
-														</VBox>
-													</HBox>
-													<ObjectStatus text="{apData>/selectedInvoice/agentDetail/status}"
-														icon="{apData>/selectedInvoice/agentDetail/statusIcon}"
-														state="{apData>/selectedInvoice/agentDetail/state}" inverted="true"/>
-												</HBox>
-												<HBox alignItems="Center" wrap="Wrap" renderType="Bare" class="apAgentHeadline">
-													<Text text="{apData>/selectedInvoice/agentDetail/result}" class="apAgentResult"/>
-													<Button text="Check comparison" icon="sap-icon://compare" press="onOpenComparison"
-														visible="{= !!${apData>/selectedInvoice/agentDetail/showComparison} }" class="apCheckComparison"/>
-												</HBox>
-												<VBox visible="{= ${apData>/selectedInvoice/agentDetail/points}.length > 0 }" class="apAgentDetails">
-													<Text text="{apData>/selectedInvoice/agentDetail/detail}"
-														visible="{= !!${apData>/selectedInvoice/agentDetail/detail} }" class="apAgentDetail"/>
-													<!-- The facts as a grid (label over value), so even SCANNER's eight fields fit without scrolling -->
-													<HBox items="{apData>/selectedInvoice/agentDetail/points}" renderType="Bare" class="apAgentPoints">
-														<VBox renderType="Bare" class="apAgentPoint">
-															<Text text="{apData>label}" class="apAgentPointLabel"/>
-															<Text text="{apData>value}" class="apAgentPointValue"/>
-														</VBox>
-													</HBox>
-												</VBox>
-											</VBox>
-										</VBox>
-									</VBox>
-								</ScrollContainer>
+									</HBox>
+									<Text text="Purchase order lines" class="apInfoSubtitle"/>
+									<Table items="{apData>/selectedInvoice/sapInfo/po/lines}" fixedLayout="false"
+										class="apTable apGridTable apGridTable--compact sapUiSizeCompact">
+										<columns>
+											<Column width="4rem"><Text text="Line"/></Column>
+											<Column><Text text="Description"/></Column>
+											<Column width="6rem"><Text text="Quantity"/></Column>
+											<Column><Text text="Unit price"/></Column>
+											<Column><Text text="Net value"/></Column>
+											<Column width="9rem"><Text text="Goods receipt"/></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{apData>item}"/>
+													<Text text="{apData>description}"/>
+													<Text text="{apData>quantity}"/>
+													<Text text="{apData>unitPrice}"/>
+													<Text text="{apData>netValue}"/>
+													<ObjectStatus text="{apData>receipt}" state="{apData>receiptState}"/>
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</VBox>
 							</IconTabFilter>
-							<IconTabFilter text="Fields" key="details" icon="sap-icon://form">
-								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
-									<VBox class="apResults">
-										<!-- Each invoice field next to its SAP value; Edit turns the invoice values into inputs -->
-										<VBox id="fieldsCard" class="apCard">
-											<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apFieldsHeader">
-												<Title text="{apData>/selectedInvoice/fieldsTitle}" level="H5" class="apSectionTitle"/>
-												<HBox alignItems="Center" visible="{apData>/selectedInvoice/canEdit}">
-													<Button text="Edit" icon="sap-icon://edit" press="onEditFields"
-														visible="{= !${apData>/selectedInvoice/editing} }"/>
-													<Button text="Cancel" press="onCancelEdit" visible="{apData>/selectedInvoice/editing}"
-														class="sapUiTinyMarginEnd"/>
-													<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
-														press="onSaveCorrections" visible="{apData>/selectedInvoice/editing}"/>
-												</HBox>
-											</HBox>
-											<MessageStrip text="{apData>/selectedInvoice/fieldsGuidance}" type="Information" showIcon="true"
-												visible="{= !!${apData>/selectedInvoice/fieldsGuidance} }" class="sapUiSmallMarginBottom"/>
-											<Table items="{apData>/selectedInvoice/fields}" fixedLayout="false" class="apTable apGridTable apGridTable--compact sapUiSizeCompact">
-												<columns>
-													<Column width="12rem"><Text text="Field"/></Column>
-													<Column><Text text="On the invoice"/></Column>
-													<Column><Text text="In SAP"/></Column>
-													<Column width="9rem"><Text text="Result"/></Column>
-												</columns>
-												<items>
-													<ColumnListItem>
-														<customData>
-															<core:CustomData key="differs" value="{= ${apData>differs} ? 'true' : 'false' }" writeToDom="true"/>
-														</customData>
-														<cells>
-															<Text text="{apData>field}" class="apFieldName"/>
-															<VBox>
-																<Text text="{apData>display}"
-																	visible="{= !${apData>/selectedInvoice/editing} || !${apData>editable} }"/>
-																<Input value="{apData>value}" placeholder="{apData>placeholder}" visible="{= ${apData>/selectedInvoice/editing} &amp;&amp; ${apData>editable} }"
-																	valueState="{= ${apData>needsAttention} ? 'Warning' : 'None' }"
-																	valueStateText="Required before approval"/>
-															</VBox>
-															<Text text="{apData>sap}"/>
-															<ObjectStatus text="{apData>result}" icon="{apData>icon}" state="{apData>state}"/>
-														</cells>
-													</ColumnListItem>
-												</items>
-											</Table>
-										</VBox>
+							<IconTabFilter text="Goods receipt" key="receipts" icon="sap-icon://shipping-status"
+								iconColor="{= ${apData>/selectedInvoice/sapInfo/receiptsMissing} ? 'Negative' : 'Default' }">
+								<VBox class="apInfoPane">
+									<MessageStrip text="{apData>/selectedInvoice/sapInfo/receiptsSummary}" showIcon="true"
+										type="{= ${apData>/selectedInvoice/sapInfo/receiptsMissing} ? 'Error' : 'Success' }"/>
+									<Table items="{apData>/selectedInvoice/sapInfo/receipts}" fixedLayout="false"
+										visible="{= ${apData>/selectedInvoice/sapInfo/receipts}.length > 0 }"
+										class="apTable apGridTable apGridTable--compact sapUiSizeCompact">
+										<columns>
+											<Column width="4rem"><Text text="Line"/></Column>
+											<Column><Text text="Material document"/></Column>
+											<Column><Text text="Posted on"/></Column>
+											<Column><Text text="Quantity"/></Column>
+											<Column><Text text="Amount"/></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{apData>item}"/>
+													<Text text="{apData>document}"/>
+													<Text text="{apData>date}"/>
+													<Text text="{apData>quantity}"/>
+													<Text text="{apData>amount}"/>
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+									<VBox visible="{= ${apData>/selectedInvoice/sapInfo/entries}.length > 0 }">
+										<Text text="Service entry sheets" class="apInfoSubtitle"/>
+										<Table items="{apData>/selectedInvoice/sapInfo/entries}" fixedLayout="false"
+											class="apTable apGridTable apGridTable--compact sapUiSizeCompact">
+											<columns>
+												<Column><Text text="Entry sheet"/></Column>
+												<Column width="4rem"><Text text="Line"/></Column>
+												<Column><Text text="Net value"/></Column>
+												<Column width="9rem"><Text text="Status"/></Column>
+											</columns>
+											<items>
+												<ColumnListItem>
+													<cells>
+														<Text text="{apData>entrySheet}"/>
+														<Text text="{apData>item}"/>
+														<Text text="{apData>value}"/>
+														<ObjectStatus text="{apData>status}" state="{apData>state}"/>
+													</cells>
+												</ColumnListItem>
+											</items>
+										</Table>
 									</VBox>
-								</ScrollContainer>
+								</VBox>
 							</IconTabFilter>
-							<IconTabFilter text="Steps" key="steps" icon="sap-icon://process">
-								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
-									<VBox class="apResults">
-										<!-- Processing steps: live while the agents work -->
-										<VBox class="apCard">
-											<Title text="{apData>/selectedInvoice/pipelineTitle}" level="H5" class="apSectionTitle"/>
-											<ProgressIndicator visible="{apData>/selectedInvoice/isProcessing}" class="apPipeProgress sapUiTinyMarginBottom"
-												percentValue="{apData>/selectedInvoice/pipelinePercent}"
-												displayValue="{apData>/selectedInvoice/pipelineSummary}"
-												state="Information" showValue="true"/>
-											<VBox items="{apData>/selectedInvoice/pipelineSteps}" class="apStepList apPipeRailList">
-												<HBox alignItems="Start" class="apStep">
-													<customData>
-														<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
-														<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
-													</customData>
-													<VBox class="apStepDot" alignItems="Center" justifyContent="Center">
-														<core:Icon src="{apData>icon}" size="0.85rem"/>
-													</VBox>
-													<VBox class="apStepBody sapUiTinyMarginBegin">
-														<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apStepTitleRow">
-															<Text text="{apData>title}" class="apStepTitle"/>
-															<ObjectStatus text="{apData>statusLabel}" class="apStepStatus"/>
-														</HBox>
-														<Text text="{apData>description}" class="apStepText"/>
-														<VBox items="{path: 'apData>checks', templateShareable: false}"
-															visible="{= ${apData>checks}.length > 0 }" class="sapUiTinyMarginTop">
-															<HBox justifyContent="SpaceBetween" alignItems="Center" class="apSubStep">
-																<Text text="{apData>text}" class="apStepText"/>
-																<ObjectStatus text="{apData>result}" state="{apData>state}"/>
-															</HBox>
-														</VBox>
-													</VBox>
-												</HBox>
-											</VBox>
-										</VBox>
-									</VBox>
-								</ScrollContainer>
+							<IconTabFilter text="GL account &amp; cost center" key="accounts" icon="sap-icon://accounting-document-verification"
+								iconColor="{= ${apData>/selectedInvoice/sapInfo/glProblem} || ${apData>/selectedInvoice/sapInfo/costCenterProblem} ? 'Negative' : 'Default' }">
+								<VBox class="apInfoPane">
+									<Text text="GL accounts" class="apInfoSubtitle"/>
+									<Table items="{apData>/selectedInvoice/sapInfo/gl}" fixedLayout="false"
+										class="apTable apGridTable apGridTable--compact sapUiSizeCompact">
+										<noData>
+											<Text text="The purchase order has no GL account assigned in SAP." class="sapUiSmallMargin"/>
+										</noData>
+										<columns>
+											<Column width="10rem"><Text text="GL account"/></Column>
+											<Column><Text text="Name"/></Column>
+											<Column width="14rem"><Text text="Status in SAP"/></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{apData>account}"/>
+													<Text text="{apData>name}"/>
+													<ObjectStatus text="{apData>status}" icon="{apData>icon}" state="{apData>state}"/>
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+									<Text text="Cost centers" class="apInfoSubtitle"/>
+									<Table items="{apData>/selectedInvoice/sapInfo/costCenters}" fixedLayout="false"
+										class="apTable apGridTable apGridTable--compact sapUiSizeCompact">
+										<noData>
+											<Text text="The purchase order has no cost center assigned in SAP." class="sapUiSmallMargin"/>
+										</noData>
+										<columns>
+											<Column width="10rem"><Text text="Cost center"/></Column>
+											<Column><Text text="Name"/></Column>
+											<Column><Text text="Department"/></Column>
+											<Column><Text text="Valid until"/></Column>
+											<Column width="14rem"><Text text="Status in SAP"/></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{apData>costCenter}"/>
+													<Text text="{apData>name}"/>
+													<Text text="{apData>department}"/>
+													<Text text="{apData>validTo}"/>
+													<ObjectStatus text="{apData>status}" icon="{apData>icon}" state="{apData>state}"/>
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</VBox>
 							</IconTabFilter>
-							<IconTabFilter text="{= ${apData>/selectedInvoice/issues}.length ? 'Summary (' + ${apData>/selectedInvoice/issues}.length + ')' : 'Summary' }"
-								key="summary" icon="sap-icon://notes">
-								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
-									<VBox class="apResults">
-										<!-- 1. Verdict: the decision as a headline, then a few pointers -->
-										<VBox class="apCard apOutcome">
-											<customData>
-												<core:CustomData key="state" value="{apData>/selectedInvoice/overview/state}" writeToDom="true"/>
-											</customData>
-											<HBox alignItems="Start">
-												<core:Icon src="{apData>/selectedInvoice/verdict/icon}" class="apOutcomeIcon"/>
-												<VBox>
-													<Title text="Verdict · {apData>/selectedInvoice/verdict/headline}" level="H4" class="apOutcomeTitle"/>
-													<VBox items="{apData>/selectedInvoice/verdict/points}" class="apVerdictPoints">
-														<HBox alignItems="Start" renderType="Bare" class="apVerdictPoint">
-															<Text text="•" class="apVerdictBullet"/>
-															<Text text="{apData>text}" class="apVerdictText"/>
-														</HBox>
-													</VBox>
-												</VBox>
-											</HBox>
-										</VBox>
-										<!-- 2. Issues to resolve: title with the SAP and invoice values below, area shown once per group -->
-										<VBox visible="{= ${apData>/selectedInvoice/issues}.length > 0 }" class="apCard">
-											<Title text="{= 'Issues to resolve (' + ${apData>/selectedInvoice/issues}.length + ')' }"
-												level="H5" class="apSectionTitle"/>
-											<VBox items="{apData>/selectedInvoice/issues}" class="apIssueList">
-												<HBox alignItems="Start" renderType="Bare" class="apIssue">
-													<customData>
-														<core:CustomData key="first" value="{= ${apData>area} ? 'true' : 'false' }" writeToDom="true"/>
-													</customData>
-													<Text text="{apData>area}" wrapping="false" class="apIssueArea"/>
-													<core:Icon src="sap-icon://alert" class="apIssueIcon"/>
-													<VBox renderType="Bare" class="apIssueBody">
-														<Text text="{apData>title}" class="apIssueTitle"/>
-														<Text text="{apData>detail}" visible="{= !!${apData>detail} }" class="apIssueDetail"/>
-													</VBox>
-												</HBox>
-											</VBox>
-										</VBox>
-									</VBox>
-								</ScrollContainer>
-							</IconTabFilter>
-							<IconTabFilter text="Audit Trail" key="audit" icon="sap-icon://history">
-								<ScrollContainer height="100%" vertical="true" horizontal="false" class="apReviewBody">
-									<VBox class="apCard">
-										<Title text="History of invoice {apData>/selectedInvoice/id}" level="H5" class="apSectionTitle"/>
-										<List items="{apData>/auditTrail}" showSeparators="None" class="apTimeline">
-											<noData>
-												<IllustratedMessage illustrationType="sapIllus-NoActivities" illustrationSize="Spot"
-													title="No history yet" description="Every action on this invoice is recorded here."/>
-											</noData>
-											<CustomListItem>
-												<VBox class="apTimelineItem">
-													<customData>
-														<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
-													</customData>
-													<VBox class="apTimelineDot" alignItems="Center" justifyContent="Center">
-														<core:Icon src="{apData>icon}" size="0.75rem"/>
-													</VBox>
-													<Text text="{apData>title}" class="apTimelineTitle"/>
-													<Text text="{apData>description}" class="apTimelineText" visible="{= !!${apData>description} }"/>
-													<Text text="{apData>meta}" class="apTimelineMeta"/>
-												</VBox>
-											</CustomListItem>
-										</List>
-									</VBox>
-								</ScrollContainer>
+							<IconTabFilter text="Bank account" key="bank" icon="sap-icon://loan"
+								iconColor="{= ${apData>/selectedInvoice/supplierSap/banks}.length ? 'Default' : 'Negative' }">
+								<VBox class="apInfoPane">
+									<MessageStrip type="Error" showIcon="true"
+										visible="{= !${apData>/selectedInvoice/supplierSap/banks}.length }"
+										text="No bank account on file in SAP, so this supplier cannot be paid until one is added."/>
+									<Table items="{apData>/selectedInvoice/supplierSap/banks}" fixedLayout="false"
+										visible="{= ${apData>/selectedInvoice/supplierSap/banks}.length > 0 }"
+										class="apTable apGridTable apGridTable--compact sapUiSizeCompact">
+										<columns>
+											<Column><Text text="Bank"/></Column>
+											<Column><Text text="SWIFT / BIC"/></Column>
+											<Column><Text text="Account"/></Column>
+											<Column><Text text="Account holder"/></Column>
+											<Column width="6rem"><Text text="Country"/></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{apData>bank_name}"/>
+													<Text text="{apData>swift_bic}"/>
+													<Text text="{apData>account}"/>
+													<Text text="{apData>account_holder}"/>
+													<Text text="{apData>country}"/>
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</VBox>
 							</IconTabFilter>
 						</items>
 					</IconTabBar>
 				</VBox>
-			</HBox>
-			<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.DecisionBar" type="XML"/>
+				<VBox id="section-details" class="apPageSection">
+					<Title text="Fields" level="H4" class="apPageSectionTitle"/>
+					<VBox class="apResults">
+						<!-- Every field next to its SAP value, in groups; Edit turns the invoice values into inputs -->
+						<VBox id="fieldsCard" class="apCard">
+							<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apFieldsHeader">
+								<Title text="{apData>/selectedInvoice/fieldsTitle}" level="H5" class="apSectionTitle"/>
+								<HBox alignItems="Center" wrap="Wrap" class="apFieldsActions">
+								<SegmentedButton selectedKey="{= ${apData>/selectedInvoice/fieldsDiffOnly} ? 'diff' : 'all' }"
+									selectionChange="onFieldsFilter" class="sapUiTinyMarginEnd">
+									<items>
+										<SegmentedButtonItem key="all" text="All fields"/>
+										<SegmentedButtonItem key="diff" text="Only differences ({apData>/selectedInvoice/fieldsDiffCount})"/>
+									</items>
+								</SegmentedButton>
+							</HBox>
+							<HBox alignItems="Center" visible="{apData>/selectedInvoice/canEdit}">
+									<Button text="Edit" icon="sap-icon://edit" press="onEditFields"
+										visible="{= !${apData>/selectedInvoice/editing} }"/>
+									<Button text="Cancel" press="onCancelEdit" visible="{apData>/selectedInvoice/editing}"
+										class="sapUiTinyMarginEnd"/>
+									<Button text="Save corrections" icon="sap-icon://save" type="Emphasized"
+										press="onSaveCorrections" visible="{apData>/selectedInvoice/editing}"/>
+								</HBox>
+							</HBox>
+							<MessageStrip text="{apData>/selectedInvoice/fieldsGuidance}" type="Information" showIcon="true"
+								visible="{= !!${apData>/selectedInvoice/fieldsGuidance} }" class="sapUiSmallMarginBottom"/>
+							<Text text="Every compared field matches SAP." class="apInfoEmpty"
+								visible="{= ${apData>/selectedInvoice/fieldsDiffOnly} &amp;&amp; !${apData>/selectedInvoice/fieldsDiffCount} }"/>
+							<!-- One card per group; each field is a tile with its invoice and SAP value -->
+							<HBox items="{apData>/selectedInvoice/fieldGroups}" renderType="Bare" class="apFieldGroups">
+								<VBox renderType="Bare" class="apFieldGroup"
+									visible="{= !${apData>/selectedInvoice/fieldsDiffOnly} || ${apData>diffCount} > 0 }">
+									<HBox alignItems="Center" renderType="Bare" class="apFieldGroupHead">
+										<core:Icon src="{apData>icon}" class="apFieldGroupIcon"/>
+										<Text text="{apData>title}" class="apInfoSubtitle"/>
+									</HBox>
+									<HBox items="{path: 'apData>fields', templateShareable: false}" renderType="Bare" class="apFieldTiles">
+										<VBox renderType="Bare" class="apFieldTile"
+											visible="{= !${apData>/selectedInvoice/fieldsDiffOnly} || ${apData>differs} }">
+											<customData>
+												<core:CustomData key="differs" value="{= ${apData>differs} ? 'true' : 'false' }" writeToDom="true"/>
+											</customData>
+											<HBox alignItems="Center" justifyContent="SpaceBetween" renderType="Bare" class="apFieldTileHead">
+												<Text text="{apData>field}" class="apFieldName"/>
+												<ObjectStatus text="{apData>result}" icon="{apData>icon}" state="{apData>state}"/>
+											</HBox>
+											<VBox renderType="Bare" class="apFieldTileRow">
+												<Text text="On the invoice" class="apAgentPointLabel"/>
+												<Text text="{apData>display}" class="apAgentPointValue"
+													visible="{= !${apData>/selectedInvoice/editing} || !${apData>editable} }"/>
+												<Input value="{apData>value}" placeholder="{apData>placeholder}"
+													visible="{= ${apData>/selectedInvoice/editing} &amp;&amp; ${apData>editable} }"
+													valueState="{= ${apData>needsAttention} ? 'Warning' : 'None' }"
+													valueStateText="Required before approval"/>
+											</VBox>
+											<VBox renderType="Bare" class="apFieldTileRow">
+												<Text text="In SAP" class="apAgentPointLabel"/>
+												<Text text="{apData>sap}" class="apAgentPointValue"/>
+											</VBox>
+										</VBox>
+									</HBox>
+								</VBox>
+							</HBox>
+						</VBox>
+					</VBox>
+				</VBox>
+				<VBox id="section-audit" class="apPageSection">
+					<Title text="Audit trail" level="H4" class="apPageSectionTitle"/>
+					<VBox class="apCard">
+						<Title text="History of invoice {apData>/selectedInvoice/id}" level="H5" class="apSectionTitle"/>
+						<List items="{apData>/auditTrail}" showSeparators="None" class="apTimeline">
+							<noData>
+								<IllustratedMessage illustrationType="sapIllus-NoActivities" illustrationSize="Spot"
+									title="No history yet" description="Every action on this invoice is recorded here."/>
+							</noData>
+							<CustomListItem>
+								<VBox class="apTimelineItem">
+									<customData>
+										<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+									</customData>
+									<VBox class="apTimelineDot" alignItems="Center" justifyContent="Center">
+										<core:Icon src="{apData>icon}" size="0.75rem"/>
+									</VBox>
+									<Text text="{apData>title}" class="apTimelineTitle"/>
+									<Text text="{apData>description}" class="apTimelineText" visible="{= !!${apData>description} }"/>
+									<Text text="{apData>meta}" class="apTimelineMeta"/>
+								</VBox>
+							</CustomListItem>
+						</List>
+					</VBox>
+				</VBox>
+			</ScrollContainer>
 		</VBox>
+		<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.DecisionBar" type="XML"/>
+		<!-- Back to the top of the page; shown once the page is scrolled down -->
+		<Button id="toTop" icon="sap-icon://navigation-up-arrow" tooltip="Back to top" press="onScrollTop"
+			class="apToTop"/>
+	</VBox>
 </mvc:View>

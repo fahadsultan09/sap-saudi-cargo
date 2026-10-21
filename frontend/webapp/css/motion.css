@@ -37,11 +37,6 @@
     100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes apTabFade {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
 /* Live “working” pulse on pipeline now-dot */
 .apPipeNowDot {
     width: 0.55rem;
@@ -112,11 +107,6 @@
     animation: apFadeUp var(--ap-slow) var(--ap-ease-out);
 }
 
-.apPipeTrackStep[data-state="done"] .apPipeTrackConnector,
-.apStep[data-state="done"] + .apStep .apStepConnector {
-    background: var(--ap-brand);
-}
-
 .apPipeProgress .sapMPIBar {
     transition: width var(--ap-slow) var(--ap-ease-out);
 }
@@ -124,10 +114,6 @@
 .apHeroDrop--busy .apHeroDropInner {
     opacity: 0.25;
     pointer-events: none;
-}
-
-.apTabFadeReplay {
-    animation: apTabFade var(--ap-base) var(--ap-ease-out);
 }
 
 .apWelcome,
@@ -149,7 +135,6 @@
     .apWelcome,
     .apKpi,
     .apCaseBoard,
-    .apTabFadeReplay,
     .apStep[data-state="running"] .apStepDot::after,
     .apPipeTrackStep[data-state="running"] .apPipeTrackDot::after {
         animation: none !important;

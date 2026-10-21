@@ -15,7 +15,7 @@
 				<Text text="Runway intake · one invoice at a time"/>
 			</HBox>
 			<Title text="Start the AP pipeline" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
-			<Text text="Drop a file and watch the full cycle light up: Received → Classify (CLASSIFIER) → Extract (SCANNER) → Finance rules → Clear Desk."
+			<Text text="Drop a file and watch the full cycle light up: Received → Classify (CLASSIFIER) → Extract (SCANNER) → Finance rules → SAP checks → your review."
 				class="apUploadLead sapUiMediumMarginBottom"
 				visible="{= !${apData>/upload/watching} }"/>
 

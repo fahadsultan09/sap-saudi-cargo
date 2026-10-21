@@ -91,6 +91,32 @@ sap.ui.define([], function () {
             { key: "company_code", label: "Company Code" }
         ],
 
+        // Fields section: the groups its tiles are shown in, and which group each invoice field or SAP check
+        // belongs to.
+        FIELD_GROUPS: [
+            { key: "invoice", title: "Invoice", icon: "sap-icon://document-text" },
+            { key: "supplier", title: "Supplier", icon: "sap-icon://supplier" },
+            { key: "po", title: "Purchase order", icon: "sap-icon://sales-order" },
+            { key: "receipts", title: "Goods receipt & accounts", icon: "sap-icon://shipping-status" }
+        ],
+        FIELD_GROUP_OF: {
+            invoice_number: "invoice",
+            invoice_date: "invoice",
+            currency: "invoice",
+            total_amount: "invoice",
+            amount: "invoice",
+            supplier_name: "supplier",
+            supplier_id: "supplier",
+            supplier_status: "supplier",
+            bank: "supplier",
+            po_number: "po",
+            company_code: "po",
+            goods_receipt: "receipts",
+            service_entry: "receipts",
+            gl_account: "receipts",
+            cost_center: "receipts"
+        },
+
         // SAP data checks that compare an invoice field, shown on that field's row (check → field key).
         FIELD_CHECKS: {
             purchase_order: "po_number",
@@ -105,6 +131,8 @@ sap.ui.define([], function () {
             {
                 key: "receive",
                 title: "Received",
+                // A click on the step goes to its outcome on the review page.
+                target: "audit",
                 service: "",
                 description: "Your file lands in AP Console and gets a case.",
                 icon: "sap-icon://upload-to-cloud",
@@ -113,6 +141,7 @@ sap.ui.define([], function () {
             {
                 key: "classify",
                 title: "Classify",
+                target: "agents:CLASSIFIER",
                 service: "AI classification",
                 description: "Confirms it is an invoice or credit note.",
                 icon: "sap-icon://inspect",
@@ -121,6 +150,7 @@ sap.ui.define([], function () {
             {
                 key: "extract",
                 title: "Extract",
+                target: "agents:SCANNER",
                 service: "AI extraction",
                 description: "Reads supplier, amounts, PO, dates and line items.",
                 icon: "sap-icon://create-form",
@@ -129,6 +159,7 @@ sap.ui.define([], function () {
             {
                 key: "finance",
                 title: "Finance rules",
+                target: "agents:FINANCE_RULES",
                 service: "Rules",
                 description: "AP Core checks required fields and duplicates.",
                 icon: "sap-icon://lab",
@@ -138,6 +169,7 @@ sap.ui.define([], function () {
             {
                 key: "po",
                 title: "PO match",
+                target: "agents:VERIFIER",
                 service: "Purchase order",
                 description: "Compares the invoice with its purchase order in SAP.",
                 icon: "sap-icon://compare",
@@ -147,7 +179,8 @@ sap.ui.define([], function () {
             // The SAP data check (agent SOURCE_CHECK) as its own steps; sourceChecks are the checks each covers.
             {
                 key: "sapPo",
-                title: "Fetch purchase order",
+                title: "Fetch PO",
+                target: "info:po",
                 service: "SAP data check",
                 description: "Finds the invoice's purchase order in SAP.",
                 icon: "sap-icon://sales-order",
@@ -158,6 +191,7 @@ sap.ui.define([], function () {
             {
                 key: "sapSupplier",
                 title: "Verify supplier",
+                target: "info:supplier",
                 service: "SAP data check",
                 description: "Checks the supplier, that it is active, and its bank details in SAP.",
                 icon: "sap-icon://supplier",
@@ -167,7 +201,8 @@ sap.ui.define([], function () {
             },
             {
                 key: "sapFields",
-                title: "Compare invoice fields",
+                title: "Compare fields",
+                target: "details:differences",
                 service: "SAP data check",
                 description: "Compares currency, company code, amount and date with the purchase order.",
                 icon: "sap-icon://compare",
@@ -177,7 +212,8 @@ sap.ui.define([], function () {
             },
             {
                 key: "sapReceipt",
-                title: "Check goods receipt",
+                title: "Goods receipt",
+                target: "info:receipts",
                 service: "SAP data check",
                 description: "Checks the goods or services were received in SAP.",
                 icon: "sap-icon://shipping-status",
@@ -187,7 +223,8 @@ sap.ui.define([], function () {
             },
             {
                 key: "sapAccounts",
-                title: "Check account assignment",
+                title: "Accounts",
+                target: "info:accounts",
                 service: "SAP data check",
                 description: "Checks the PO's GL accounts and cost centers exist and are open.",
                 icon: "sap-icon://accounting-document-verification",
@@ -198,6 +235,7 @@ sap.ui.define([], function () {
             {
                 key: "investigate",
                 title: "Investigation",
+                target: "agents:RECONCILER",
                 service: "Summary",
                 description: "Explains open findings and recommends what to check next.",
                 icon: "sap-icon://search",
@@ -206,9 +244,10 @@ sap.ui.define([], function () {
             },
             {
                 key: "decide",
-                title: "Needs review / Approve",
-                service: "Clear Desk · Dock Decide",
-                description: "Check fields on Clear Desk, then approve, return or reject on the dock.",
+                title: "Review & approve",
+                target: "overview",
+                service: "You and the approver",
+                description: "A person checks the invoice, then an approver approves, returns or rejects it.",
                 icon: "sap-icon://approvals",
                 agent: null
             }
@@ -294,21 +333,6 @@ sap.ui.define([], function () {
             NOT_COMPARABLE: { label: "Not comparable", state: "None", icon: "sap-icon://less" }
         },
 
-        // Review overview: headline and message per case status (state colours the banner).
-        OUTCOMES: {
-            RECEIVED: ["Information", "sap-icon://pending", "Queued", "The invoice is waiting to be processed."],
-            PROCESSING: ["Information", "sap-icon://process", "Processing", "The invoice is being read and checked against SAP."],
-            NEEDS_REVIEW: ["Warning", "sap-icon://alert", "Needs your review", "{0} to resolve before approval. See the Summary tab."],
-            RETURNED: ["Warning", "sap-icon://undo", "Returned for corrections", "The approver sent this invoice back. {0} to resolve."],
-            PROCESSING_ERROR: ["Error", "sap-icon://error", "Processing failed", "Enter the invoice details on the Fields tab using the PDF."],
-            READY_FOR_APPROVAL: ["Success", "sap-icon://approvals", "Ready for approval", "All invoice details match SAP."],
-            PENDING_APPROVAL: ["Success", "sap-icon://approvals", "Ready for approval", "All invoice details match SAP."],
-            APPROVED: ["Success", "sap-icon://accept", "Approved", "The invoice is approved. Posting to SAP is not enabled yet."],
-            POSTING: ["Success", "sap-icon://accept", "Approved", "The invoice is being posted to SAP."],
-            POSTED: ["Success", "sap-icon://accept", "Posted", "The invoice is posted in SAP."],
-            REJECTED: ["Error", "sap-icon://decline", "Rejected", "The invoice was rejected."]
-        },
-
         // Document types the agents recognise: label and icon.
         DOCUMENT_TYPES: {
             invoice: ["Invoice", "sap-icon://document-text"],
@@ -321,6 +345,19 @@ sap.ui.define([], function () {
 
         // Issues to resolve, in this order of areas.
         ISSUE_AREAS: ["Invoice details", "Purchase order", "Supplier", "Amounts & dates", "Goods receipt", "Accounting"],
+        // Where an issue of each area is resolved: "info:<sub-tab>" for SAP records, otherwise Fields.
+        ISSUE_SECTIONS: {
+            Supplier: "info:supplier",
+            "Purchase order": "info:po",
+            "Goods receipt": "info:receipts",
+            Accounting: "info:accounts"
+        },
+        // SAP purchasing document types (EKKO-BSART) in words.
+        PO_TYPES: {
+            NB: "Standard purchase order",
+            FO: "Framework order",
+            UB: "Stock transport order"
+        },
         // Per SAP check: [area, short title, what the values are called in the detail line].
         SOURCE_ISSUES: {
             purchase_order: ["Purchase order", "Purchase order not found", "PO"],
@@ -337,25 +374,30 @@ sap.ui.define([], function () {
             cost_center: ["Accounting", "Cost center not valid", "cost center"]
         },
 
-        // Summary tab: the verdict's headline and icon per case status.
+        // Overview tab: the verdict's headline, icon and colour per case status.
         VERDICT_HEADLINES: {
-            RECEIVED: ["Checks in progress", "sap-icon://pending"],
-            PROCESSING: ["Checks in progress", "sap-icon://process"],
-            PROCESSING_ERROR: ["Could not be read automatically", "sap-icon://error"],
-            NEEDS_REVIEW: ["Not ready for approval", "sap-icon://alert"],
-            RETURNED: ["Returned for corrections", "sap-icon://undo"],
-            READY_FOR_APPROVAL: ["Ready for approval", "sap-icon://approvals"],
-            PENDING_APPROVAL: ["Ready for approval", "sap-icon://approvals"],
-            APPROVED: ["Approved", "sap-icon://accept"],
-            POSTING: ["Approved", "sap-icon://accept"],
-            POSTED: ["Posted to SAP", "sap-icon://accept"],
-            REJECTED: ["Rejected", "sap-icon://decline"]
+            RECEIVED: ["Checks in progress", "sap-icon://pending", "Information"],
+            PROCESSING: ["Checks in progress", "sap-icon://process", "Information"],
+            PROCESSING_ERROR: ["Could not be read automatically", "sap-icon://error", "Error"],
+            NEEDS_REVIEW: ["Not ready for approval", "sap-icon://alert", "Warning"],
+            RETURNED: ["Returned for corrections", "sap-icon://undo", "Warning"],
+            READY_FOR_APPROVAL: ["Ready for approval", "sap-icon://approvals", "Success"],
+            PENDING_APPROVAL: ["Ready for approval", "sap-icon://approvals", "Success"],
+            APPROVED: ["Approved", "sap-icon://accept", "Success"],
+            POSTING: ["Approved", "sap-icon://accept", "Success"],
+            POSTED: ["Posted to SAP", "sap-icon://accept", "Success"],
+            REJECTED: ["Rejected", "sap-icon://decline", "Error"]
         },
         // SAP data checks whose problems lie in SAP itself, not on the invoice.
         SAP_SIDE_CHECKS: ["purchase_order", "supplier_status", "bank", "goods_receipt", "service_entry", "gl_account",
             "cost_center"],
 
-        // Agent Results table: what each agent does.
+        // Reading confidence bands: below CONFIDENCE_REVIEW the agents send the invoice to review
+        // (MIN_CONFIDENCE_THRESHOLD in agentic-ai), from CONFIDENCE_HIGH it is shown as high.
+        CONFIDENCE_REVIEW: 0.75,
+        CONFIDENCE_HIGH: 0.85,
+
+        // Agent stepper on the Overview tab: what each agent does.
         AGENT_TASKS: {
             CLASSIFIER: "Recognises the type of document",
             SCANNER: "Reads the invoice details",

@@ -8,7 +8,7 @@
 				class="apBackLink"/>
 		</Toolbar>
 		<VBox class="sapUiMediumMargin">
-			<Title text="Dock Decide queue" level="H3" class="apSectionTitle sapUiTinyMarginBottom"/>
+			<Title text="Approval queue" level="H3" class="apSectionTitle sapUiTinyMarginBottom"/>
 			<Text text="Invoices waiting for Approve, Return, or Reject."
 				class="apTimelineMeta sapUiSmallMarginBottom"/>
 			<VBox class="apCaseBoard">

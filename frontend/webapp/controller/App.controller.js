@@ -16,28 +16,16 @@ sap.ui.define([
         // Remembers the current screen and refreshes the lists where they are shown.
         _onRouteMatched: function (oEvent) {
             var sRoute = oEvent.getParameter("name");
-            // The bare address shows the dashboard under its own name, #/dashboard (replacing the history entry).
-            if (sRoute === "home") {
+            // Replace old bookmarks and the bare address with the dashboard's canonical URL.
+            if (sRoute === "home" || sRoute === "legacyDesk") {
                 this.getRouter().navTo("dashboard", {}, true);
                 return;
             }
             this.getData().setProperty("/section", sRoute);
-            if (!this._casesLoaded || sRoute === "dashboard" || sRoute === "desk" || sRoute === "approvals") {
+            if (!this._casesLoaded || sRoute === "dashboard" || sRoute === "approvals") {
                 this._casesLoaded = true;
                 this.getCaseStore().loadCases();
             }
-        },
-
-        onGoHome: function () {
-            this.navTo("dashboard");
-        },
-
-        onGoDesk: function () {
-            this.navTo("desk");
-        },
-
-        onGoApprovals: function () {
-            this.navTo("approvals");
         },
 
         // ------------------------------------------------------------- user menu

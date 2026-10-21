@@ -46,7 +46,7 @@ sap.ui.define([
             this._uploadInvoiceFile(oFile);
         },
 
-        // Hand off to Home: keep the green theater and open Clear Desk under it.
+        // Hand off to Home: keep the green theater and open the review under it.
         onReviewInvoice: function () {
             var sCaseId = this.getData().getProperty("/upload/caseId");
             this.getData().setProperty("/upload/homeReview", true);

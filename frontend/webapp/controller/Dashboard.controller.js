@@ -6,7 +6,7 @@ sap.ui.define([
 ], function (BaseController, MessageToast, MessageBox, C) {
     "use strict";
 
-    // Home: upload here, then keep the green process theater until Review or Dismiss.
+    // Home: every invoice (KPI tiles, search, filters, list), and uploads with their live pipeline and review.
     return BaseController.extend("saudicargo.ap.automation.controller.Dashboard", {
         onInit: function () {
             var oRouter = this.getRouter();
@@ -38,10 +38,6 @@ sap.ui.define([
             }, 0);
         },
 
-        onGoDesk: function () {
-            this.navTo("desk");
-        },
-
         // Open the Home file picker when idle; otherwise fall back to the Upload screen.
         onGoUpload: function () {
             if (this.getData().getProperty("/upload/watching") || this.getData().getProperty("/busy")) {
@@ -58,6 +54,37 @@ sap.ui.define([
             this.navTo("upload");
         },
 
+        onRefreshCases: function () {
+            this.getCaseStore().loadCases();
+        },
+
+        onStatusFilterPress: function (oEvent) {
+            var oButton = oEvent.getSource();
+            // Pressing the active filter again must not switch it off.
+            oButton.setPressed(true);
+            this.getData().setProperty("/statusFilter", oButton.getBindingContext("apData").getProperty("key"));
+            this.getCaseStore().applyStatusFilter(true);
+        },
+
+        onKpiPress: function (oEvent) {
+            this.getData().setProperty("/statusFilter",
+                oEvent.getParameter("listItem").getBindingContext("apData").getProperty("filterKey"));
+            this.getCaseStore().applyStatusFilter(true);
+        },
+
+        onSearch: function (oEvent) {
+            this.getData().setProperty("/searchQuery", oEvent.getSource().getValue());
+            this.getCaseStore().applyStatusFilter(true);
+        },
+
+        onPreviousPage: function () {
+            this.getCaseStore().showPage(this.getData().getProperty("/page/index") - 1);
+        },
+
+        onNextPage: function () {
+            this.getCaseStore().showPage(this.getData().getProperty("/page/index") + 1);
+        },
+
         onGoQueue: function () {
             this.navTo("approvals");
         },
@@ -71,11 +98,12 @@ sap.ui.define([
             this._uploadFromHome(oFile);
         },
 
-        // Reveal / scroll to the inline Clear Desk panel under the green theater (stay on Home).
+        // Needs review / Review invoice: scroll to the panel under the pipeline and open its Overview tab.
         onReviewHomePipeline: function () {
             var that = this;
             var sCaseId = this.getData().getProperty("/upload/caseId");
             this.getData().setProperty("/upload/homeReview", true);
+            this.getData().setProperty("/reviewTabKey", "overview");
             var fnScroll = function () {
                 var oAnchor = that.byId("homeReviewAnchor");
                 var oDom = oAnchor && oAnchor.getDomRef();
@@ -90,6 +118,17 @@ sap.ui.define([
             }
         },
 
+        // A step on the pipeline (once processing is done): open the review below and show that step's outcome.
+        onPipelineStep: function (oEvent) {
+            var oBus = this.getOwnerComponent().getEventBus();
+            var sTarget = this.getCaseStore().stepTarget(oEvent.getSource().getBindingContext("apData").getProperty("key"));
+            this.getData().setProperty("/upload/homeReview", true);
+            // Let the review panel render first when it was not shown yet.
+            setTimeout(function () {
+                oBus.publish("review", "goTo", { target: sTarget });
+            }, 100);
+        },
+
         onDismissHomePipeline: function () {
             this.getCaseStore().clearUploadTheater();
             this.getCaseStore().loadCases();
@@ -97,9 +136,7 @@ sap.ui.define([
 
         _uploadFromHome: function (oFile) {
             var that = this;
-            this._setHomeDropBusy(true);
             this.getCaseStore().uploadInvoiceFile(oFile).then(function (oOutcome) {
-                that._setHomeDropBusy(false);
                 if (oOutcome.duplicate) {
                     MessageBox.information(
                         "“" + oOutcome.fileName + "” was already uploaded, so it is not processed again. "
@@ -132,10 +169,9 @@ sap.ui.define([
                 MessageToast.show(oOutcome.fileName + " received — watching pipeline…");
                 if (!oOutcome.caseId) {
                     that.getData().setProperty("/upload/result", "review");
-                    that.getData().setProperty("/upload/nowText", "Open the case from Desk to keep watching.");
+                    that.getData().setProperty("/upload/nowText", "Open the invoice from the list below to keep watching.");
                 }
             }).catch(function (oError) {
-                that._setHomeDropBusy(false);
                 MessageBox.error(oError.message);
             }).finally(function () {
                 var oUploader = that.byId("homeFileUploader");
@@ -143,15 +179,6 @@ sap.ui.define([
                     oUploader.clear();
                 }
             });
-        },
-
-        _setHomeDropBusy: function (bBusy) {
-            var oZone = this.byId("homeDropZone");
-            if (!oZone) {
-                return;
-            }
-            oZone.toggleStyleClass("apHeroDrop--busy", !!bBusy);
-            oZone.toggleStyleClass("apHeroDrop--watching", !!this.getData().getProperty("/upload/watching"));
         },
 
         _attachHomeDropZone: function () {
@@ -171,13 +198,13 @@ sap.ui.define([
                 e.preventDefault();
                 e.stopPropagation();
                 if (!that.getData().getProperty("/busy") && !that.getData().getProperty("/upload/watching")) {
-                    oZone.addStyleClass("apHeroDrop--dragover");
+                    oZone.addStyleClass("apWelcome--dragover");
                 }
             };
             var fnOut = function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                oZone.removeStyleClass("apHeroDrop--dragover");
+                oZone.removeStyleClass("apWelcome--dragover");
             };
             var fnDrop = function (e) {
                 fnOut(e);

@@ -385,7 +385,7 @@ def complete_work(work_item_id: str, req: WorkCompletion):
         reason={"SUCCEEDED":"Worker task completed.","RETRY":"Processing attempt failed; it will be retried.","FAILED":"Automatic processing failed."}[state]
         event(c,row["case_id"],"WORK_ITEM_COMPLETED","SYSTEM_ACTION",req.worker_id,reason,{"work_item_id":work_item_id,"outcome":req.outcome,"result":req.result,"error":err,"idempotency_key":req.idempotency_key})
         if state=="FAILED":
-            c.execute("UPDATE cases SET status='PROCESSING_ERROR',review_reason=?,updated_at=?,version=version+1 WHERE id=? AND status='PROCESSING'",("Automatic processing failed. Enter the invoice details from the PDF on Clear Desk.",stamp,row["case_id"]))
+            c.execute("UPDATE cases SET status='PROCESSING_ERROR',review_reason=?,updated_at=?,version=version+1 WHERE id=? AND status='PROCESSING'",("Automatic processing failed. Open the invoice from the dashboard and enter its details from the PDF.",stamp,row["case_id"]))
     return {"work_item_id":work_item_id,"status":state,"attempts":row["attempts"],"available_at":available}
 
 

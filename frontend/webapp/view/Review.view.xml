@@ -9,9 +9,8 @@
 		</Toolbar>
 		<IllustratedMessage visible="{= !${apData>/selectedInvoice/hasCase} }"
 			illustrationType="sapIllus-NoTasks" illustrationSize="Scene"
-			title="Clear Desk is empty" description="{= ${apData>/permissions/processor} ? 'Open a case from Desk or upload an invoice on Home to review it here.' : 'Open a case from Desk to review it here.' }"/>
+			title="No invoice open" description="{= ${apData>/permissions/processor} ? 'Open an invoice from the list on Home, or upload one, to review it here.' : 'Open an invoice from the list on Home to review it here.' }"/>
 		<mvc:XMLView id="reviewRoutePanel" viewName="saudicargo.ap.automation.view.ReviewPanel"
-			height="calc(100vh - 8.25rem)" visible="{apData>/selectedInvoice/hasCase}"
-			class="apReviewShell--route"/>
+			visible="{apData>/selectedInvoice/hasCase}" class="apReviewShell--route"/>
 	</Page>
 </mvc:View>
