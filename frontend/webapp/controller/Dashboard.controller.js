@@ -118,7 +118,7 @@ sap.ui.define([
             }
         },
 
-        // A step on the pipeline (once processing is done): open the review below and show that step's outcome.
+        // A pipeline step opens its live findings in the shared review below.
         onPipelineStep: function (oEvent) {
             var oBus = this.getOwnerComponent().getEventBus();
             var sTarget = this.getCaseStore().stepTarget(oEvent.getSource().getBindingContext("apData").getProperty("key"));

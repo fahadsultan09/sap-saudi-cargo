@@ -15,7 +15,7 @@ sap.ui.define([
     "use strict";
 
     // The page's sections, top to bottom; each tab key matches a section-<key> id in the view.
-    var SECTIONS = ["overview", "agents", "issues", "info", "details", "lineItems", "audit"];
+    var SECTIONS = ["overview", "agents", "issues", "info", "details", "audit"];
 
     // Shared review panel (Home under the pipeline, and #/review): master data, tabs and the decide bar.
     return BaseController.extend("saudicargo.ap.automation.controller.ReviewPanel", {
@@ -95,11 +95,11 @@ sap.ui.define([
             var that = this;
             var invoice = this.getData().getProperty("/selectedInvoice");
             var rows = (invoice.financeRules || []).map(function (rule) {
-                return that._financeRuleRow(rule, "Finance Rules stage");
+                return that._financeRuleRow(rule, "Invoice reading checks");
             });
             var model = new JSONModel({invoice: invoice.id, rows: rows, busy: true, error: "",
-                notice: rows.length ? "Thresholds and results were recorded when this invoice was processed."
-                    : "This invoice has no saved Finance Rules detail. Re-run extraction to record the tested rules and thresholds. No historical results have been inferred."});
+                notice: rows.length ? "These results were saved when the invoice was checked."
+                    : "Detailed reading checks were not saved for this invoice. Run extraction again to record them. Any available invoice checks are listed below."});
             this.getView().setModel(model, "financeRules");
             if (!this._financeDialog) {
                 this._financeDialog = Fragment.load({id: this.getView().getId(),
@@ -114,7 +114,7 @@ sap.ui.define([
                         return that._financeRuleRow({rule_id: rule.rule_code, description: rule.reason,
                             parameter: rule.rule_code === "REQUIRED_FIELDS_PRESENT" ? "All required AP Core fields must be present"
                                 : rule.rule_code === "BUSINESS_DUPLICATE" ? "Supplier + invoice number + company code must not match another non-rejected case" : "See recorded evidence",
-                            evidence: evidence, outcome: rule.outcome}, "AP Core · " + rule.created_at);
+                            evidence: evidence, outcome: rule.outcome}, "Invoice validation · " + rule.created_at);
                     });
                     model.setProperty("/rows", rows.concat(core));
                 }).catch(function (error) { model.setProperty("/error", "AP Core rule history could not be loaded: " + error.message); })
@@ -122,7 +122,7 @@ sap.ui.define([
         },
 
         _financeRuleRow: function (rule, stage) {
-            return Object.assign({}, rule, {observed: FinanceRuleMessages.observation(rule), stage: stage, state: rule.outcome === "PASS" ? "Success"
+            return Object.assign({}, rule, FinanceRuleMessages.presentation(rule), {observed: FinanceRuleMessages.observation(rule), stage: stage, state: rule.outcome === "PASS" ? "Success"
                 : rule.outcome === "FAIL" ? "Error" : rule.outcome === "WARNING" ? "Warning" : "None"});
         },
 

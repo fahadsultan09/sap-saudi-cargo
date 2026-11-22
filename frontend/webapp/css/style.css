@@ -1848,3 +1848,18 @@ html, body, .sapUiBody {
 .apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="failed"]::before { background: var(--ap-error); }
 
 .apAgentInfoStatus { gap: 0.35rem; flex: 0 0 auto; }
+
+/* Invoice lines sit beneath the header facts, before the review actions and tabs. */
+.apHeaderLineItems {
+    padding: 0.65rem 0.9rem;
+    gap: 0.4rem;
+    max-height: 18rem;
+    overflow: auto;
+    border-bottom: 1px solid var(--ap-border);
+}
+.apHeaderLineItems .sapMTitle { font-size: 0.875rem; }
+
+/* Response findings separate the observed problem from the next action. */
+.apResponseItem { min-width: 0; gap: 0.2rem; padding-bottom: 0.65rem; }
+.apResponseTitle.sapMText { font-weight: 700; color: var(--ap-ink); }
+.apResponseAction.sapMText { color: var(--ap-muted); line-height: 1.5; }

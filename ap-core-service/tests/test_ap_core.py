@@ -270,3 +270,32 @@ def test_review_rule_history_exposes_recorded_core_results(tmp_path, monkeypatch
         assert public.status_code == 200
         assert public.json() == client.get(f"/internal/v1/cases/{case}/rule-results").json()
         assert {row["rule_code"] for row in public.json()["items"]} == {"REQUIRED_FIELDS_PRESENT", "BUSINESS_DUPLICATE"}
+
+
+def test_progress_displays_partial_data_without_routing_or_mutating_canonical_fields(tmp_path, monkeypatch):
+    with setup_client(tmp_path, monkeypatch) as client:
+        case = register(client).json()["case_id"]
+        client.post("/internal/v1/work-items/lease", json={"worker_id": "worker"})
+        progress = {"agent_trace": [{"agent": "SCANNER", "status": "completed"}], "source_checks": [],
+                    "fields": {"invoice_number": "LIVE-1", "supplier_name": "Live Supplier", "line_items": [{"amount": 100}]},
+                    "validation": {"ai_core": {"document_type": "invoice"}, "processor_review": {"user_id": "forged"}}}
+        assert client.post(f"/internal/v1/cases/{case}/progress", json=progress).json()["accepted"] is True
+        saved = client.get(f"/api/v1/cases/{case}").json()
+        assert saved["status"] == "PROCESSING"
+        assert saved["invoice_number"] == "LIVE-1"
+        assert saved["fields"]["line_items"] == [{"amount": 100}]
+        assert "processor_review" not in saved["validation"]
+        with db.connect() as conn:
+            assert conn.execute("SELECT invoice_number FROM cases WHERE id=?", (case,)).fetchone()[0] is None
+            assert conn.execute("SELECT COUNT(*) FROM rule_results WHERE case_id=?", (case,)).fetchone()[0] == 0
+        # A fresh attempt must not keep data from a previous attempt's later stages.
+        client.post(f"/internal/v1/cases/{case}/progress", json={**progress, "validation": {"confidence": .95, "source_verdict": {"status": "MATCH"}}})
+        client.post(f"/internal/v1/cases/{case}/progress", json=progress)
+        refreshed = client.get(f"/api/v1/cases/{case}").json()
+        assert "source_verdict" not in refreshed["validation"]
+        assert "confidence" not in refreshed["validation"]
+        client.post(f"/internal/v1/cases/{case}/extraction-result", json={"fields": FIELDS, "validation": {}, "idempotency_key": "final-after-live-progress"})
+        assert client.post(f"/internal/v1/cases/{case}/progress", json=progress).json()["accepted"] is False
+        final = client.get(f"/api/v1/cases/{case}").json()
+        assert final["invoice_number"] == FIELDS["invoice_number"]
+        assert "live_fields" not in final["validation"]

@@ -15,6 +15,7 @@ from .classifier import ClassifierTriageAgent
 from .verifier import VerifierMatchingAgent
 from .reconciler import ReconcilerInvestigationAgent
 from .plumb import PlumbReconciliationAgent
+from .progress import progress_snapshot
 
 logger = logging.getLogger("sacc_agents")
 
@@ -51,10 +52,17 @@ class APAgentOrchestrator:
         """on_progress receives each finished step (and each SAP data check) as it happens."""
         trace: list[AgentTrace] = []
         progress = on_progress or (lambda event: None)
+        classification: dict[str, Any] = {}
+        extraction: dict[str, Any] = {}
+        triage: dict[str, Any] = {}
+        matching: dict[str, Any] = {}
+        source_verdict: dict[str, Any] = {}
+        investigation: dict[str, Any] = {}
 
         def record(entry: AgentTrace) -> None:
             trace.append(entry)
             progress({"type": "step", "step": entry.model_dump()})
+            progress(progress_snapshot(classification, extraction, triage, matching, source_verdict, investigation))
 
         overall_start = time.perf_counter()
         classifier_start = time.perf_counter()

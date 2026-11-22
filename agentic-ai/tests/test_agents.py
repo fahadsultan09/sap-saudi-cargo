@@ -69,6 +69,20 @@ def test_orchestrator_runs_classifier_scanner_and_deterministic_rules():
     assert result.validation["document_ai_job_id"] == "job-123"
 
 
+def test_orchestrator_emits_incremental_data_after_each_agent():
+    events = []
+    flow = APAgentOrchestrator(classifier=ClassifierTriageAgent(client=FakeAICore()),
+                               scanner=ScannerExtractionAgent(client=FakeDocAI()), rules=FakeRules())
+    flow.run("invoice.pdf", "invoice.pdf", on_progress=events.append)
+    snapshots = [event for event in events if event["type"] == "data"]
+    assert len(snapshots) == 3
+    assert snapshots[0]["validation"]["ai_core"]["document_type"] == "invoice"
+    assert "confidence" not in snapshots[0]["validation"]
+    assert snapshots[1]["validation"]["document_ai_job_id"] == "job-123"
+    assert snapshots[2]["validation"]["confidence"] == .5
+    assert snapshots[2]["validation"]["missing_fields"] == ["invoice_number"]
+
+
 def test_mock_agents_do_not_fabricate_invoice_values():
     from agents.mock_agents import MockClassifierAgent, MockScannerAgent
 

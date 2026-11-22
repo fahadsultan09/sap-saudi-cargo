@@ -56,7 +56,7 @@
 						<VBox class="apPipeTrackDot" alignItems="Center" justifyContent="Center">
 							<core:Icon src="{apData>icon}" size="1rem"/>
 						</VBox>
-						<Link text="{apData>title}" press="onPipelineStep" enabled="{= !!${apData>/upload/result} }"
+						<Link text="{apData>title}" press="onPipelineStep" enabled="{= !!${apData>/upload/caseId} }"
 							class="apPipeTrackLabel sapUiTinyMarginTop"/>
 						<Text text="{apData>service}" class="apPipeTrackService" textAlign="Center"
 							visible="{= !!${apData>service} }"/>
@@ -72,9 +72,9 @@
 					displayValue="{apData>/upload/progressPercent}% complete"
 					state="Information" showValue="true"/>
 			</VBox>
-			<!-- After processing: the invoice's master data and tabs right under the pipeline -->
+			<!-- The shared review cards are visible while processing and fill with saved observations. -->
 			<VBox id="homeReviewAnchor"
-				visible="{= !!${apData>/upload/result} &amp;&amp; ${apData>/upload/homeReview} &amp;&amp; ${apData>/selectedInvoice/hasCase} }"
+				visible="{= ${apData>/upload/homeReview} &amp;&amp; ${apData>/selectedInvoice/hasCase} &amp;&amp; ${apData>/selectedInvoice/caseId} === ${apData>/upload/caseId} }"
 				class="apHomeReview sapUiMediumMarginBottom">
 				<mvc:XMLView id="homeReviewPanel" viewName="saudicargo.ap.automation.view.ReviewPanel"
 					class="apReviewShell--home"/>

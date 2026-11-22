@@ -53,6 +53,12 @@ def case_dict(row) -> dict[str, Any]:
     d = dict(row)
     d["fields"] = loads(d.pop("fields_json", "{}"), {})
     d["validation"] = loads(d.pop("validation_json", "{}"), {})
+    # Provisional extraction is a read model only. It cannot change business state or routing fields.
+    if d["status"] in {"RECEIVED", "PROCESSING"}:
+        live = d["validation"].get("live_fields", {})
+        d["fields"] = dict(live)
+        for name in ("invoice_number", "supplier_id", "supplier_name", "company_code", "currency", "total_amount", "invoice_date", "po_number"):
+            d[name] = live.get(name)
     return d
 
 @app.get("/health")
@@ -284,6 +290,16 @@ def save_progress(case_id: str, req: ProgressUpdate):
         if not row: raise HTTPException(404,"Case not found")
         if row["status"]!="PROCESSING": return {"case_id":case_id,"accepted":False}
         validation={**loads(row["validation_json"],{}),"agent_trace":req.agent_trace,"source_checks":req.source_checks}
+        if req.validation is not None:
+            # Only display evidence can be supplied through progress, never authorization flags.
+            for name in ("ai_core", "document_ai_status", "document_ai_job_id", "confidence", "missing_fields", "finance_rules", "triage_review_reason", "blocking", "verifier_matching", "source_verdict", "investigation"):
+                if name in req.validation:
+                    validation[name] = req.validation[name]
+                else:
+                    # Snapshots contain all evidence collected in this attempt; do not retain a prior attempt's result.
+                    validation.pop(name, None)
+        if req.fields is not None:
+            validation["live_fields"] = req.fields
         c.execute("UPDATE cases SET validation_json=?,updated_at=? WHERE id=?",(dumps(validation),now(),case_id))
     return {"case_id":case_id,"accepted":True}
 

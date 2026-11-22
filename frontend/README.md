@@ -21,6 +21,8 @@ Open the URL printed by `@ui5/cli serve`. Ensure the gateway (`gateway/`) is up 
 
 ## Processor review
 
+After upload, the shared review cards appear beneath the live dashboard pipeline immediately. Cards show waiting messages until their data is available, then populate from saved per-agent progress snapshots. Invoice facts, line items, reading scores, source comparisons, agent findings and audit history refresh while processing. Editing and review decisions remain disabled until processing finishes. Restart AP Core, Agentic AI and the worker to activate the progress snapshot contract; existing completed invoices continue to use their final results.
+
 AP processors open the existing review panel in **Full Data View**. **Split View** opens the data/PDF layout on demand, side by side at desktop widths of 1280px and above; smaller screens stack the panes. Issues are presented in the existing Issues to resolve list. The information icon to the left of each selected agent's status opens its scope and recorded findings. For **Finance Rules**, it shows recorded triage rules, run-time confidence thresholds, client-friendly findings, and results, plus separately timestamped AP Core checks. Older invoices without detailed triage snapshots are labeled accordingly. The processor toolbar offers **Mark as Reviewed** and **Re-run Extraction**. Manager decisions remain restricted to approver roles.
 
 Failed checks and warnings block submission and approval in AP Core. **Mark as Reviewed** records the processor and displays **Awaiting Approval** while retaining the canonical `READY_FOR_APPROVAL` state. Re-extraction queues a new durable work item and requires the worker to be running. Restart AP Core, the worker, and the gateway after installing these changes.

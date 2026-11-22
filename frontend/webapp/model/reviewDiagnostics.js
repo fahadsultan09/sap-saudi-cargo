@@ -106,5 +106,63 @@ sap.ui.define([], function () {
         if (!Object.keys(messages).length) add("review", "Some automated checks need attention. Review the issues and invoice details before proceeding.");
         return Object.keys(messages).map(function (key) { return messages[key]; });
     }
-    return {badge: badge, groups: groups, exceptions: exceptions, clientReasons: clientReasons};
+    function responseDetails(v, invoice, agents) {
+        var items = {};
+        function add(key, title, text, action) { items[key] = {title: title, text: text, action: action}; }
+        function value(input) { return typeof input === "string" || typeof input === "number" ? String(input) : ""; }
+        function names(fields) {
+            var labels = {supplier_id: "supplier number", comparable_amount: "invoice amount", po_number: "purchase order number", total_amount: "total amount", read_only_sap_po_context: "purchase order details from SAP", company_code: "company code"};
+            return fields.map(function (field) { return labels[field] || String(field).replace(/_/g, " "); }).join(", ");
+        }
+        var templates = {
+            purchase_order: ["Purchase order could not be confirmed", "The purchase order lookup did not pass.", "Check the purchase order number under Extracted Fields. If it is correct, ask the purchasing team to check the SAP record, then re-run extraction."],
+            supplier: ["Supplier details do not match", "The supplier information on the invoice could not be matched to the SAP record.", "Compare the supplier on the PDF with Supplier info. Correct any reading error, or ask the purchasing team to confirm the correct supplier."],
+            supplier_status: ["Supplier needs clearance in SAP", "The supplier record did not pass the status check.", "Ask the team responsible for supplier records to review the supplier's status in SAP, then re-run the checks."],
+            bank: ["Supplier bank details need confirmation", "The supplier's bank details did not pass the SAP check.", "Ask the team responsible for supplier records to verify the bank details in SAP. Then re-run the checks."],
+            goods_receipt: ["Goods receipt is not confirmed", "The SAP check did not confirm receipt for all purchase order items that require it. This does not prove the goods were not delivered.", "Ask the receiving or purchasing team to check and record any missing goods receipt in SAP. Then re-run the checks."],
+            service_entry: ["Service acceptance is not confirmed", "The SAP check did not confirm acceptance of all required services.", "Ask the responsible team to review and accept the service entry in SAP, then re-run the checks."],
+            gl_account: ["G/L account needs review", "An accounting account on the purchase order did not pass the SAP check.", "Ask Finance to verify that the G/L account exists and is open for posting, then re-run the checks."],
+            cost_center: ["Cost center needs review", "A cost center on the purchase order did not pass the SAP check.", "Ask Finance to verify that the cost center exists and is valid, then re-run the checks."]
+        };
+        ((v.source_verdict || {}).comparisons || []).forEach(function (row) {
+            if (["Error", "Warning"].indexOf(badge(row.result).state) < 0) return;
+            var template = templates[row.check];
+            if (template) {
+                var text = template[1];
+                if (row.check === "bank" && row.result === "NOT_IN_SAP") text = "No bank details were found for this supplier in the SAP reference data used for this check.";
+                if (row.check === "purchase_order" && row.result === "NOT_IN_SAP") text = "Purchase order " + (invoice.po_number || (v.source_verdict || {}).po_number || "on this invoice") + " was not found in the SAP reference data.";
+                add(row.check, template[0], text, template[2]);
+            } else if (["amount", "currency", "company_code", "invoice_date"].indexOf(row.check) >= 0) {
+                var label = {amount: row.label === "Net amount" ? "net amount (before tax)" : "amount", currency: "currency", company_code: "company code", invoice_date: "date"}[row.check];
+                var compared = value(row.invoice) && value(row.sap);
+                var text = compared ? "Invoice " + label + ": " + value(row.invoice) + ". Purchase order " + label + ": " + value(row.sap) + "."
+                    : "The invoice " + label + " could not be confirmed against the purchase order.";
+                if (row.check === "invoice_date" && compared) text = "The invoice is dated " + value(row.invoice) + "; the purchase order was created on " + value(row.sap) + ". Check that the invoice date is valid for this order.";
+                add(row.check, "Check the invoice " + label, text, "Compare these details with the PDF and the purchase order under Info. Correct any reading error; if the SAP record needs changing, ask the purchasing team to update it. Then re-run the checks.");
+            }
+        });
+        if (v.business_duplicate || (v.blocking || []).some(function (code) { return /DUPLICATE/.test(code); })) {
+            add("duplicate", "Possible duplicate invoice", "Another submitted invoice has the same supplier, invoice number and company code.", "Find the earlier invoice in the dashboard using its supplier and invoice number, and compare both documents. Confirm that this invoice has not already been processed before proceeding.");
+        }
+        var match = v.verifier_matching || {};
+        if (Object.keys(match).length && ["PASS", "MATCH", "MATCHED"].indexOf(match.match_status) < 0 && !items.purchase_order) {
+            var missing = match.missing_evidence || [];
+            if (missing.length || !Object.keys(items).length) add("po", "Purchase order comparison is incomplete",
+                missing.length ? "The comparison is missing: " + names(missing) + "." : "The system could not confirm that this invoice matches its purchase order.",
+                "Check the purchase order and invoice details under Info and Extracted Fields. Complete missing invoice details, or ask the purchasing team to confirm the SAP record, then re-run the checks.");
+        }
+        if ((v.missing_fields || []).length) add("fields", "Required details are missing", "Missing details: " + names(v.missing_fields) + ".", "Use Split View to check the PDF, fill in the missing values under Extracted Fields, and save your corrections.");
+        if (typeof v.confidence === "number" && v.confidence >= 0 && v.confidence < .75) add("reading", "Some details may have been read incorrectly", "The system's overall reading score is " + Math.round(v.confidence * 100) + "%.", "Use Split View to compare the extracted details with the PDF. Correct any mistakes and save them.");
+        var lowFields = /low confidence on required fields:\s*([^;]+)/i.exec(v.triage_review_reason || "");
+        if (lowFields && (v.blocking || []).indexOf("TRIAGE_REVIEW_REQUIRED") >= 0) add("reading", "Check details the system could not read clearly", "Please verify: " + names(lowFields[1].split(/\s*,\s*/)) + ".", "Use Split View to compare these values with the PDF. Correct any mistakes under Extracted Fields and save them.");
+        if (v.processor_exception) add("reported", "A reviewer reported an issue", "Review note: " + v.processor_exception, "Resolve the reported issue and re-run the checks before submitting the invoice for approval.");
+        if (invoice.status === "PROCESSING_ERROR") add("processing", "Automatic reading failed", "The system could not finish processing this PDF.", "Re-run Extraction. If it still cannot be read, enter the invoice details from the PDF under Extracted Fields.");
+        if (!Object.keys(items).length) {
+            clientReasons(v, agents, invoice.status).forEach(function (reason, index) {
+                add("review" + index, "Review needed", reason, "Open the relevant agent in Agents to see its findings. Compare the invoice with the PDF and SAP details, resolve the issue, and run the checks again.");
+            });
+        }
+        return Object.keys(items).map(function (key) { return items[key]; });
+    }
+    return {badge: badge, groups: groups, exceptions: exceptions, clientReasons: clientReasons, responseDetails: responseDetails};
 });

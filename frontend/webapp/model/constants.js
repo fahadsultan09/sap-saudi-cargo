@@ -190,7 +190,7 @@ sap.ui.define([], function () {
             },
             {
                 key: "sapSupplier",
-                title: "Verify supplier",
+                title: "Supplier info",
                 target: "info:supplier",
                 service: "SAP data check",
                 description: "Checks the supplier, that it is active, and its bank details in SAP.",
@@ -222,15 +222,26 @@ sap.ui.define([], function () {
                 sourceChecks: ["goods_receipt", "service_entry"]
             },
             {
-                key: "sapAccounts",
-                title: "Accounts",
+                key: "sapGlAccounts",
+                title: "G/L accounts",
                 target: "info:accounts",
                 service: "SAP data check",
-                description: "Checks the PO's GL accounts and cost centers exist and are open.",
+                description: "Checks that the purchase order's G/L accounts exist and are open for posting.",
                 icon: "sap-icon://accounting-document-verification",
                 agent: "SOURCE_CHECK",
                 traceOnly: true,
-                sourceChecks: ["gl_account", "cost_center"]
+                sourceChecks: ["gl_account"]
+            },
+            {
+                key: "sapCostCenters",
+                title: "Cost centers",
+                target: "info:accounts",
+                service: "SAP data check",
+                description: "Checks that the purchase order's cost centers exist and are valid.",
+                icon: "sap-icon://org-chart",
+                agent: "SOURCE_CHECK",
+                traceOnly: true,
+                sourceChecks: ["cost_center"]
             },
             {
                 key: "investigate",
@@ -273,7 +284,8 @@ sap.ui.define([], function () {
             sapSupplier: "Now: Verifying the supplier in SAP…",
             sapFields: "Now: Comparing the invoice fields with the purchase order…",
             sapReceipt: "Now: Checking the goods receipt in SAP…",
-            sapAccounts: "Now: Checking the account assignment in SAP…",
+            sapGlAccounts: "Now: Checking G/L accounts in SAP…",
+            sapCostCenters: "Now: Checking cost centers in SAP…",
             investigate: "Now: Summarising the findings…"
         },
 

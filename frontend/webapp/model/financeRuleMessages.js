@@ -2,6 +2,7 @@ sap.ui.define(["saudicargo/ap/automation/model/constants"], function (C) {
     "use strict";
 
     function fieldLabel(key) {
+        if (key === "po_number") return "purchase order number";
         var field = C.FIELDS.filter(function (item) { return item.key === key; })[0];
         return (field ? field.label.replace(/\s*\(.*\)$/, "") : key.replace(/_/g, " ")).toLowerCase();
     }
@@ -63,5 +64,44 @@ sap.ui.define(["saudicargo/ap/automation/model/constants"], function (C) {
                     : "No confirmed result was recorded for this check.";
     }
 
-    return {observation: observation};
+    function presentation(rule) {
+        var id = String(rule.rule_id || "");
+        var label = fieldLabel(id.split(":")[1] || "field");
+        var name = label.charAt(0).toUpperCase() + label.slice(1);
+        var title = "Additional invoice check";
+        var description = "Checks whether this invoice needs further review.";
+        var requirement = "";
+        if (id.indexOf("REQUIRED_FIELD:") === 0) {
+            title = name + " is included";
+            description = "Looks for the " + label + " on the invoice.";
+            requirement = "This detail is needed before the invoice can proceed.";
+        } else if (id.indexOf("CONDITIONAL_FIELD:") === 0) {
+            title = name + " is available if needed";
+            description = "Looks for a supporting detail that may be needed for this invoice.";
+            requirement = "If it is missing, check whether it applies to this invoice.";
+        } else if (id.indexOf("FIELD_CONFIDENCE:") === 0 || id === "OVERALL_CONFIDENCE") {
+            title = id === "OVERALL_CONFIDENCE" ? "Invoice details were read clearly" : name + " was read clearly";
+            description = id === "OVERALL_CONFIDENCE" ? "Checks how clearly the main invoice details were read overall."
+                : "Checks how clearly the system could read the " + label + ".";
+            var match = /Minimum confidence:\s*([\d.]+)/i.exec(rule.parameter || "");
+            var minimum = match ? score(match[1]) : null;
+            requirement = minimum === null ? "The minimum reading score was not saved for this check."
+                : "A reading score of at least " + percent(minimum) + " is needed.";
+        } else if (id === "LINE_ITEMS_PRESENT") {
+            title = "Invoice items are listed";
+            description = "Checks that the goods or services charged on the invoice were read.";
+            requirement = "At least one invoice item is needed.";
+        } else if (id === "REQUIRED_FIELDS_PRESENT") {
+            title = "All essential invoice details are filled in";
+            description = "Checks the invoice number, supplier, company code, currency and total amount.";
+            requirement = "All these details must be available.";
+        } else if (id === "BUSINESS_DUPLICATE") {
+            title = "Invoice has not already been submitted";
+            description = "Looks for another invoice with the same supplier, invoice number and company code.";
+            requirement = "Any possible match needs a person's review to avoid processing the same invoice twice.";
+        }
+        return {title: title, description: description, parameter: requirement,
+            resultLabel: {PASS: "Passed", FAIL: "Needs attention", WARNING: "Check", UNKNOWN: "Not confirmed", NOT_APPLICABLE: "Not needed"}[rule.outcome] || "Not confirmed"};
+    }
+    return {observation: observation, presentation: presentation};
 });

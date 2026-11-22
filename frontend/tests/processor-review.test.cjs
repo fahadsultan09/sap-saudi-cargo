@@ -59,7 +59,7 @@ test("warning evidence overrides a conflicting ready status and prevents submiss
         assert.equal(result.statusState, "Warning");
         assert.equal(result.canMarkReviewed, false);
         assert.match(result.exceptionText, /Payment blocked/);
-        assert.equal(result.verdict.headline, "Exception detected");
+        assert.equal(result.verdict.headline, "Invoice is not ready for approval");
     }
 });
 test("reviewed processor cases display Awaiting Approval", () => {
@@ -88,6 +88,19 @@ test("finance findings turn confidence and item counts into readable messages", 
         "Overall reading confidence is 61%; the required minimum is 75%. Verify the extracted details against the PDF.");
     assert.equal(ruleMessages.observation({rule_id: "LINE_ITEMS_PRESENT", observed: "3", outcome: "PASS"}), "3 line items were extracted from the invoice.");
     assert.match(ruleMessages.observation({rule_id: "FIELD_CONFIDENCE:currency", observed: "Not recorded", outcome: "UNKNOWN"}), /No reading-confidence score was recorded/);
+});
+
+test("finance checks use everyday labels and the recorded percentage requirement", () => {
+    const required = ruleMessages.presentation({rule_id: "REQUIRED_FIELD:invoice_number", outcome: "FAIL"});
+    assert.equal(required.title, "Invoice number is included");
+    assert.equal(required.resultLabel, "Needs attention");
+    const confidence = ruleMessages.presentation({rule_id: "FIELD_CONFIDENCE:invoice_number", parameter: "Minimum confidence: 0.87", outcome: "PASS"});
+    assert.equal(confidence.title, "Invoice number was read clearly");
+    assert.equal(confidence.parameter, "A reading score of at least 87% is needed.");
+    assert.equal(confidence.resultLabel, "Passed");
+    const unknown = ruleMessages.presentation({rule_id: "INTERNAL_TECHNICAL_RULE", description: "raw provider detail", outcome: "UNKNOWN"});
+    assert.equal(unknown.title, "Additional invoice check");
+    assert(!JSON.stringify(unknown).includes("INTERNAL_TECHNICAL_RULE"));
 });
 
 test("unrecognized finance results do not leak provider responses or JSON", () => {
@@ -135,4 +148,102 @@ test("agent dialogs do not present pending or failed runs as successful findings
         assert.equal(info.findings.length, 0);
         assert(!info.notice.includes("saved result"));
     }
+});
+
+test("purchase order lookup and matching share one visible step", () => {
+    const steps = [
+        {key: "po", agent: "VERIFIER", state: "done", statusLabel: "Done", checks: []},
+        {key: "sapPo", agent: "SOURCE_CHECK", state: "done", statusLabel: "Matches", checks: [{title: "Purchase order found"}]},
+        {key: "sapSupplier", state: "done"}
+    ];
+    const result = store._combinePurchaseOrderSteps(steps, {verifier_matching: {match_status: "PASS"}});
+    assert.equal(result.length, 2);
+    assert.equal(result[0].title, "Purchase order");
+    assert.equal(result[0].state, "done");
+    assert.equal(result[0].checks.length, 1);
+    assert.equal(store.stepTarget("po"), "info:po");
+    assert.equal(steps.length, 3, "Underlying agent steps remain intact");
+});
+
+test("combined purchase order step cannot pass with failed, incomplete or running checks", () => {
+    const make = (match, lookup) => [{key: "po", state: match}, {key: "sapPo", state: lookup}];
+    assert.equal(store._combinePurchaseOrderSteps(make("done", "failed"), {})[0].state, "failed");
+    assert.equal(store._combinePurchaseOrderSteps(make("done", "done"), {verifier_matching: {match_status: "FAIL"}})[0].state, "failed");
+    assert.equal(store._combinePurchaseOrderSteps(make("done", "running"), {})[0].state, "running");
+    assert.equal(store._combinePurchaseOrderSteps(make("done", "done"), {verifier_matching: {match_status: "UNKNOWN"}})[0].state, "waiting");
+    assert.equal(store._combinePurchaseOrderSteps(make("done", "skipped"), {})[0].state, "waiting");
+});
+
+test("accounting steps show independent G/L and cost center results", () => {
+    const instance = Object.create(store);
+    instance._model = {getProperty: () => false};
+    const steps = instance.buildPipelineFromCase({status: "NEEDS_REVIEW", validation: {
+        source_verdict: {comparisons: [
+            {check: "gl_account", result: "MATCH"},
+            {check: "cost_center", result: "MISMATCH", message: "Cost center needs review"}
+        ]}
+    }});
+    assert.equal(steps.find(step => step.key === "sapSupplier").title, "Supplier info");
+    assert.equal(steps.find(step => step.key === "sapGlAccounts").state, "done");
+    assert.equal(steps.find(step => step.key === "sapCostCenters").state, "failed");
+    assert(!steps.some(step => step.key === "sapAccounts"));
+    assert.equal(store.stepTarget("sapGlAccounts"), "info:accounts");
+    assert.equal(store.stepTarget("sapCostCenters"), "info:accounts");
+});
+
+test("response explains recorded mismatches and gives a specific next action", () => {
+    const result = diagnostics.responseDetails({source_verdict: {comparisons: [
+        {check: "amount", label: "Net amount", result: "MISMATCH", invoice: "520,380.00 INR", sap: "500,000.00 INR"},
+        {check: "bank", result: "NOT_IN_SAP"},
+        {check: "goods_receipt", result: "MISMATCH"}
+    ]}}, {po_number: "450000002"}, []);
+    const amount = result.find(item => item.title.includes("net amount"));
+    assert.match(amount.text, /520,380.00 INR/);
+    assert.match(amount.text, /500,000.00 INR/);
+    assert.match(amount.action, /purchasing team/);
+    const bank = result.find(item => item.title.includes("bank"));
+    assert.match(bank.text, /No bank details were found/);
+    assert.match(bank.action, /supplier records/);
+    const receipt = result.find(item => item.title.includes("Goods receipt"));
+    assert.match(receipt.text, /does not prove the goods were not delivered/);
+    assert.match(receipt.action, /receiving or purchasing team/);
+});
+
+test("response does not invent comparison amounts when evidence is absent", () => {
+    const result = diagnostics.responseDetails({source_verdict: {comparisons: [{check: "amount", result: "MISMATCH"}]}}, {}, []);
+    assert.match(result[0].text, /could not be confirmed/);
+    assert(!result[0].text.includes("undefined"));
+    assert(result[0].action.length > 0);
+});
+
+test("line item amounts include currency and preserve zero and missing amounts", () => {
+    const rows = store._processorLineItems({currency: "INR", fields: {line_items: [
+        {amount: 441000}, {amount: 10, currency: "SAR"}, {net_amount: 0, amount: 99}, {}
+    ]}});
+    assert.equal(rows[0].amount, "441,000.00 INR");
+    assert.equal(rows[1].amount, "10.00 SAR");
+    assert.equal(rows[2].amount, "0.00 INR");
+    assert.equal(rows[3].amount, "—");
+});
+
+test("live review shows provisional data without enabling review decisions", () => {
+    const result = map({processor: true, approver: false}, {
+        ai_core: {document_type: "invoice", confidence: .99},
+        missing_fields: ["invoice_number"], confidence: .5,
+        agent_trace: [{agent: "CLASSIFIER", status: "completed"}, {agent: "SCANNER", status: "completed"}],
+        source_checks: [{check: "currency", result: "MATCH", sap: "SAR", invoice: "SAR"}]
+    }, "PROCESSING");
+    assert.equal(result.isProcessing, true);
+    assert.equal(result.canEdit, false);
+    assert.equal(result.canMarkReviewed, false);
+    assert.equal(result.canDecide, false);
+    assert.equal(result.exceptionText, "");
+    assert.equal(result.fields.find(field => field.key === "currency").sap, "SAR");
+    assert.equal(result.verdict.headline, "Checks in progress");
+});
+
+test("live updates do not overwrite a different invoice opened by the user", async () => {
+    const instance = Object.create(store);
+    instance._model = {getProperty: () => "other-case", setProperty: () => assert.fail("Must not update another case")};
+    instance._applyLiveCase({id: "upload-case"});
 });

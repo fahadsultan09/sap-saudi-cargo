@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import secrets
+import json
+from html import escape
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
@@ -25,6 +27,19 @@ SIGN_IN_FAILED_PAGE = (
     "<a href='/auth/login'>Try again</a></p>"
 )
 
+AUTH_RESPONSE_HEADERS = {"Cache-Control": "no-store", "Pragma": "no-cache", "Referrer-Policy": "no-referrer"}
+
+
+def finish_sign_in(target: str) -> HTMLResponse:
+    """Remove the single-use callback from browser history before entering the app."""
+    script_target = json.dumps(target).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    return HTMLResponse(
+        "<!doctype html><meta charset='utf-8'><title>Signing in</title>"
+        f"<script>window.location.replace({script_target});</script>"
+        f"<noscript><a href='{escape(target, quote=True)}'>Continue to AP Console</a></noscript>",
+        headers=AUTH_RESPONSE_HEADERS,
+    )
+
 
 def callback_url() -> str:
     return f"{get_settings().public_url.rstrip('/')}/auth/callback"
@@ -46,23 +61,31 @@ async def login(provider: Provider, sessions: Sessions, returnTo: str = "/") -> 
         return_to=safe_return_to(returnTo),
     )
     sessions.save_login(request)
-    return RedirectResponse(await provider.authorization_url(request, callback_url()), 303)
+    return RedirectResponse(await provider.authorization_url(request, callback_url()), 303, headers=AUTH_RESPONSE_HEADERS)
 
 
 @router.get("/callback", response_model=None)
 async def callback(
-    provider: Provider, sessions: Sessions, state: str = "", code: str = ""
+    http_request: Request, provider: Provider, sessions: Sessions, state: str = "", code: str = ""
 ) -> Response:
     request = sessions.take_login(state)
-    if request is None or not code:
-        return HTMLResponse(SIGN_IN_FAILED_PAGE, status_code=400)
+    if request is None:
+        # Back/reload can revisit an already-consumed callback. Never exchange its code again.
+        # Validate/refresh the current session rather than trusting the presence of a cookie.
+        try:
+            await current_session(http_request)
+        except NotSignedIn:
+            return RedirectResponse("/auth/login", 303, headers=AUTH_RESPONSE_HEADERS)
+        return finish_sign_in("/#/dashboard")
+    if not code:
+        return HTMLResponse(SIGN_IN_FAILED_PAGE, status_code=400, headers=AUTH_RESPONSE_HEADERS)
     try:
         tokens = await provider.exchange_code(code, request, callback_url())
         session = sessions.create(tokens, await provider.principal(tokens))
     except NotSignedIn:
-        return HTMLResponse(SIGN_IN_FAILED_PAGE, status_code=400)
+        return HTMLResponse(SIGN_IN_FAILED_PAGE, status_code=400, headers=AUTH_RESPONSE_HEADERS)
     target = request.return_to if request.return_to.startswith("/") else f"/{request.return_to}"
-    response = RedirectResponse(target, 303)
+    response = finish_sign_in(target)
     settings = get_settings()
     response.set_cookie(
         settings.session_cookie,

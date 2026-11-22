@@ -59,8 +59,15 @@
 					</VBox>
 				</HBox>
 			</VBox>
+                <VBox id="headerLineItems" class="apHeaderLineItems" visible="{apData>/selectedInvoice/processor}">
+                    <Title text="Line Items" level="H4" class="apPageSectionTitle"/>
+                    <Table items="{apData>/selectedInvoice/lineItems}" noDataText="{= ${apData>/selectedInvoice/isProcessing} ? 'Line items will appear here when extraction completes.' : 'No extracted line items available' }" class="apCard">
+                        <columns><Column width="3rem"><Text text="Item"/></Column><Column><Text text="Description"/></Column><Column hAlign="End"><Text text="Quantity"/></Column><Column hAlign="End"><Text text="Amount"/></Column></columns>
+                        <items><ColumnListItem><cells><Text text="{apData>number}"/><Text text="{apData>description}"/><Text text="{apData>quantity}"/><Text text="{apData>amount}"/></cells></ColumnListItem></items>
+                    </Table>
+                </VBox>
             <MessageStrip text="{apData>/selectedInvoice/exceptionText}" type="Warning" showIcon="true"
-                visible="{= !!${apData>/selectedInvoice/exceptionText} }" class="apExceptionBanner"/>
+                visible="{= !${apData>/selectedInvoice/processor} &amp;&amp; !!${apData>/selectedInvoice/exceptionText} }" class="apExceptionBanner"/>
             <OverflowToolbar visible="{apData>/selectedInvoice/processor}" class="apProcessorActions">
                 <Button text="Mark as Reviewed" type="Accept" icon="sap-icon://complete" press="onMarkReviewed"
                     enabled="{= ${apData>/selectedInvoice/canMarkReviewed} &amp;&amp; !${apData>/selectedInvoice/editing} &amp;&amp; !${apData>/processorActionBusy} }"/>
@@ -78,7 +85,6 @@
 						icon="sap-icon://alert" iconColor="{= ${apData>/selectedInvoice/issues}.length ? 'Critical' : 'Default' }"/>
 					<IconTabFilter text="Info" key="info" icon="sap-icon://hint"/>
 					<IconTabFilter text="{= ${apData>/selectedInvoice/processor} ? 'Extracted Fields' : 'Fields' }" key="details" icon="sap-icon://form"/>
-                    <IconTabFilter text="Line Items" key="lineItems" icon="sap-icon://table-view" visible="{apData>/selectedInvoice/processor}"/>
 					<IconTabFilter text="Audit Trail" key="audit" icon="sap-icon://history"/>
 				</items>
 			</IconTabHeader>
@@ -100,11 +106,15 @@
 							<HBox alignItems="Start">
 								<core:Icon src="{apData>/selectedInvoice/verdict/icon}" class="apOutcomeIcon"/>
 								<VBox>
-									<Title text="Verdict · {apData>/selectedInvoice/verdict/headline}" level="H4" class="apOutcomeTitle"/>
+									<Title text="Response · {apData>/selectedInvoice/verdict/headline}" level="H4" class="apOutcomeTitle"/>
 									<VBox items="{apData>/selectedInvoice/verdict/points}" class="apVerdictPoints">
 										<HBox alignItems="Start" renderType="Bare" class="apVerdictPoint">
 											<Text text="•" class="apVerdictBullet"/>
-											<Text text="{apData>text}" class="apVerdictText"/>
+                                            <VBox class="apResponseItem">
+                                                <Text text="{apData>title}" visible="{= !!${apData>title} }" class="apResponseTitle"/>
+                                                <Text text="{apData>text}" class="apVerdictText"/>
+                                                <Text text="{= ${apData>action} ? 'What to do: ' + ${apData>action} : '' }" visible="{= !!${apData>action} }" class="apResponseAction"/>
+                                            </VBox>
 										</HBox>
 									</VBox>
 								</VBox>
@@ -172,7 +182,7 @@
 				</VBox>
 				<VBox id="section-issues" class="apPageSection">
 					<Title text="Issues" level="H4" class="apPageSectionTitle"/>
-					<Text text="Nothing to resolve on this invoice." visible="{= !${apData>/selectedInvoice/issues}.length }"
+					<Text text="{= ${apData>/selectedInvoice/isProcessing} ? 'Checks are still running. Any issues found will appear here.' : 'Nothing to resolve on this invoice.' }" visible="{= !${apData>/selectedInvoice/issues}.length }"
 						class="apInfoEmpty"/>
 					<!-- Issues to resolve: each title opens the tab where it is fixed -->
 					<VBox visible="{= ${apData>/selectedInvoice/issues}.length > 0 }" class="apCard">
@@ -199,7 +209,7 @@
 						illustrationType="sapIllus-NoData" illustrationSize="Spot" title="No SAP data yet"
 						description="{apData>/selectedInvoice/sapInfo/message}"/>
 					<!-- One sub-tab per SAP record: these switch content (unlike the anchor tabs above) -->
-					<IconTabBar id="infoTabs" visible="{= !!${apData>/selectedInvoice/sapInfo/known} }" headerMode="Inline"
+					<IconTabBar id="infoTabs" visible="{= ${apData>/selectedInvoice/isProcessing} || !!${apData>/selectedInvoice/sapInfo/known} }" headerMode="Inline"
 						expandable="false" applyContentPadding="false" selectedKey="{apData>/infoTabKey}" class="apCard apInfoTabs">
 						<items>
 							<IconTabFilter text="Supplier" key="supplier" icon="sap-icon://supplier"
@@ -477,13 +487,6 @@
 						</VBox>
 					</VBox>
 				</VBox>
-                <VBox id="section-lineItems" class="apPageSection" visible="{apData>/selectedInvoice/processor}">
-                    <Title text="Line Items" level="H4" class="apPageSectionTitle"/>
-                    <Table items="{apData>/selectedInvoice/lineItems}" noDataText="No extracted line items available" class="apCard">
-                        <columns><Column width="3rem"><Text text="Item"/></Column><Column><Text text="Description"/></Column><Column hAlign="End"><Text text="Quantity"/></Column><Column hAlign="End"><Text text="Amount"/></Column></columns>
-                        <items><ColumnListItem><cells><Text text="{apData>number}"/><Text text="{apData>description}"/><Text text="{apData>quantity}"/><Text text="{apData>amount}"/></cells></ColumnListItem></items>
-                    </Table>
-                </VBox>
 				<VBox id="section-audit" class="apPageSection">
 					<Title text="Audit trail" level="H4" class="apPageSectionTitle"/>
 					<VBox class="apCard">

@@ -4,8 +4,15 @@ sap.ui.define([], function () {
     // Single place for server calls. The app is served by the gateway, so calls are relative and carry the
     // session cookie; who the user is comes from that session, never from the browser.
 
+    var signingIn = false;
+    window.addEventListener("pageshow", function () {
+        // Back can restore this document from the browser's page cache.
+        signingIn = false;
+    });
     function signIn() {
-        window.location.assign("/auth/login?returnTo=" + encodeURIComponent(window.location.hash || "#/dashboard"));
+        if (signingIn) return;
+        signingIn = true;
+        window.location.replace("/auth/login?returnTo=" + encodeURIComponent(window.location.hash || "#/dashboard"));
     }
 
     // The gateway turns every error into {error: {code, message}} with a message written for business users.

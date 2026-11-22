@@ -334,12 +334,13 @@ sap.ui.define([
                 this.call("GET", sPath),
                 this.call("GET", sPath + "/history")
             ]).then(function (aResults) {
+                if (that._model.getProperty("/selectedCaseId") !== sCaseId) return;
                 that._model.setProperty("/selectedInvoice", that._mapCaseToSelectedInvoice(aResults[0]));
                 that._applyHistory(aResults[1]);
                 that._loadDocument(aResults[0]);
                 that._scheduleCasePoll(aResults[0]);
             }).catch(this._showError).finally(function () {
-                that._model.setProperty("/caseLoading", false);
+                if (that._model.getProperty("/selectedCaseId") === sCaseId) that._model.setProperty("/caseLoading", false);
             });
         },
 
@@ -370,7 +371,8 @@ sap.ui.define([
 
         // Shared mapper for the Home pipeline and the review page's flow strip.
         buildPipelineFromCase: function (oCase) {
-            return this._mapPipelineSteps(oCase || {}, (oCase && oCase.validation) || {});
+            var validation = (oCase && oCase.validation) || {};
+            return this._combinePurchaseOrderSteps(this._mapPipelineSteps(oCase || {}, validation), validation);
         },
 
         // After upload, Home shows the green process theater; poll here so it survives nav away from Upload.
@@ -383,6 +385,11 @@ sap.ui.define([
             this._uploadWatchCaseId = sCaseId;
             this._model.setProperty("/upload/watching", true);
             this._model.setProperty("/upload/caseId", sCaseId);
+            this._model.setProperty("/upload/homeReview", true);
+            this._model.setProperty("/selectedCaseId", sCaseId);
+            this._model.setProperty("/processorSplit", false);
+            clearTimeout(this._casePollTimer);
+            this._applyLiveCase({id: sCaseId, status: "RECEIVED", file_name: this._model.getProperty("/upload/fileName"), fields: {}, validation: {}});
 
             var fnTick = function () {
                 if (that._uploadWatchCaseId !== sCaseId) {
@@ -392,6 +399,7 @@ sap.ui.define([
                     if (that._uploadWatchCaseId !== sCaseId) {
                         return;
                     }
+                    that._applyLiveCase(oCase);
                     var aSteps = that.buildPipelineFromCase(oCase);
                     var oProgress = that.pipelineProgress(aSteps);
                     that._model.setProperty("/uploadSteps", aSteps);
@@ -421,7 +429,19 @@ sap.ui.define([
                 });
             };
 
-            this._uploadWatchTimer = setTimeout(fnTick, C.PIPELINE_POLL_MS);
+            fnTick();
+        },
+
+        _applyLiveCase: function (oCase) {
+            // Watching an upload must not replace another invoice opened in a separate review route.
+            if (this._model.getProperty("/selectedCaseId") !== oCase.id) return;
+            this._model.setProperty("/caseLoading", false);
+            this._model.setProperty("/selectedInvoice", this._mapCaseToSelectedInvoice(oCase));
+            this._loadDocument(oCase);
+            var that = this;
+            this.call("GET", this.casePath(oCase.id) + "/history").then(function (history) {
+                if (that._model.getProperty("/selectedCaseId") === oCase.id) that._applyHistory(history);
+            }).catch(function () {});
         },
 
         stopUploadWatch: function () {
@@ -444,7 +464,7 @@ sap.ui.define([
 
         // Shared by Home and Upload: reset the green pipeline step rail.
         resetUploadSteps: function () {
-            this._model.setProperty("/uploadSteps", C.PIPELINE_STEPS.map(function (oStep) {
+            var steps = C.PIPELINE_STEPS.map(function (oStep) {
                 return {
                     key: oStep.key,
                     title: oStep.title,
@@ -455,7 +475,8 @@ sap.ui.define([
                     state: "pending",
                     statusLabel: C.PIPELINE_STATUS_LABELS.pending
                 };
-            }));
+            });
+            this._model.setProperty("/uploadSteps", this._combinePurchaseOrderSteps(steps, {}));
         },
 
         setUploadStepState: function (sKey, sState) {
@@ -631,9 +652,10 @@ sap.ui.define([
             var oPermissions = this._model.getProperty("/permissions");
             var aExceptions = Diagnostics.exceptions(oValidation);
             var sStatus = oCase.status;
+            var bProcessing = C.PROCESSING_STATUSES.indexOf(sStatus) >= 0;
             if (sStatus === "PROCESSING_ERROR") aExceptions.push(oCase.review_reason || "Automatic processing failed; correct the fields or re-run extraction.");
             var bProcessor = oPermissions.processor && !oPermissions.approver;
-            var bException = aExceptions.length > 0 && ["APPROVED", "POSTED", "REJECTED", "POSTING"].indexOf(sStatus) < 0;
+            var bException = !bProcessing && aExceptions.length > 0 && ["APPROVED", "POSTED", "REJECTED", "POSTING"].indexOf(sStatus) < 0;
             if (bException && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0) sStatus = "NEEDS_REVIEW";
             var aFields = this._mapFields(oCase, oValidation);
             var aPipeline = this._mapPipelineSteps(oCase, oValidation);
@@ -656,7 +678,7 @@ sap.ui.define([
             aAgents.forEach(function (agent) {
                 if (["check", "failed"].indexOf(agent.statusKey) >= 0) aExceptions.push(agent.agent + ": " + agent.result);
             });
-            bException = aExceptions.length > 0 && ["APPROVED", "POSTED", "REJECTED", "POSTING"].indexOf(sStatus) < 0;
+            bException = !bProcessing && aExceptions.length > 0 && ["APPROVED", "POSTED", "REJECTED", "POSTING"].indexOf(sStatus) < 0;
             if (bException && C.DECIDABLE_STATUSES.indexOf(sStatus) >= 0) sStatus = "NEEDS_REVIEW";
             // Keep the agent the user opened while the same case refreshes.
             var aClientReasons = Diagnostics.clientReasons(oValidation, aAgents, oCase.status);
@@ -671,9 +693,10 @@ sap.ui.define([
 
             return {
                 hasCase: true,
+                isProcessing: bProcessing,
                 caseId: oCase.id,
                 id: oCase.invoice_number || oCase.file_name,
-                supplier: oCase.supplier_name || "Unknown supplier",
+                supplier: oCase.supplier_name || (bProcessing ? "Supplier details will appear when the invoice is read" : "Unknown supplier"),
                 processor: bProcessor,
                 canProcess: bProcessor && ["NEEDS_REVIEW", "RETURNED", "PROCESSING_ERROR", "READY_FOR_APPROVAL"].indexOf(oCase.status) >= 0,
                 canMarkReviewed: bProcessor && !bException && !oValidation.processor_review && ["NEEDS_REVIEW", "RETURNED", "READY_FOR_APPROVAL"].indexOf(oCase.status) >= 0,
@@ -688,12 +711,12 @@ sap.ui.define([
                 issues: oIssues.rows,
                 agents: aAgents,
                 agentDetail: this._pickAgent(aAgents, sAgentKey),
-                verdict: bException ? {headline: "Exception detected", icon: "sap-icon://alert", state: "Warning", points: aClientReasons.map(function (text) { return {text: text}; })} : this._mapVerdict(oCase, oValidation, oIssues.rows),
+                verdict: bException ? {headline: "Invoice is not ready for approval", icon: "sap-icon://alert", state: "Warning", points: Diagnostics.responseDetails(oValidation, oCase, aAgents)} : this._mapVerdict(oCase, oValidation, oIssues.rows),
                 supplierSap: this._mapSupplier(oValidation),
                 sapInfo: this._mapSapInfo(oValidation),
                 fieldsTitle: this._fieldsTitle(oValidation),
                 // The flow strip at the top of the review page (#/review; Home shows its own pipeline).
-                pipelineSteps: aPipeline,
+                pipelineSteps: this._combinePurchaseOrderSteps(aPipeline, oValidation),
                 queueWarning: this._queuedTooLong(oCase)
                     ? "Processing has not started after more than " + C.QUEUE_WARNING_MS / 60000
                         + " minutes. The processing service (worker) may be stopped."
@@ -729,13 +752,16 @@ sap.ui.define([
 
         _processorLineItems: function (oCase) {
             return ((oCase.fields || {}).line_items || []).map(function (row, i) {
+                var amount = [row.net_amount, row.total_amount, row.amount].find(function (value) {
+                    return value != null && value !== "";
+                });
                 return {
                     number: row.line_item_number || row.item_number || i + 1,
                     description: row.description || row.material_description || row.item_text || "\u2014",
                     quantity: row.quantity == null ? "\u2014" : row.quantity,
-                    amount: row.net_amount || row.total_amount || row.amount || "\u2014"
+                    amount: this._money(amount, row.currency || oCase.currency || (oCase.fields || {}).currency)
                 };
-            });
+            }, this);
         },
 
         // Maps case status + validation.agent_trace into the full Received → … → Approve timeline.
@@ -896,6 +922,38 @@ sap.ui.define([
             }, this);
         },
 
+        // Combine presentation only: agent status mapping still uses the individual steps above.
+        _combinePurchaseOrderSteps: function (steps, validation) {
+            var match = steps.filter(function (step) { return step.key === "po"; })[0];
+            var lookup = steps.filter(function (step) { return step.key === "sapPo"; })[0];
+            if (!match || !lookup) return steps;
+            var states = [match.state, lookup.state];
+            var verdict = ((validation || {}).verifier_matching || {}).match_status;
+            var mismatch = ["FAIL", "MISMATCH", "FAILED"].indexOf(verdict) >= 0;
+            var unconfirmed = ["UNKNOWN", "ERROR"].indexOf(verdict) >= 0;
+            var state = mismatch || states.indexOf("failed") >= 0 ? "failed"
+                : states.indexOf("running") >= 0 ? "running"
+                    : unconfirmed ? "waiting"
+                        : states.every(function (value) { return value === "done"; }) ? "done"
+                            : states.every(function (value) { return value === "skipped"; }) ? "skipped"
+                                : states.indexOf("pending") >= 0 ? "pending" : "waiting";
+            var label = {failed: "Needs review", running: "Checking purchase order", waiting: "Not fully confirmed",
+                done: "Checked", skipped: "Not run", pending: "Pending"}[state];
+            var combined = Object.assign({}, match, {
+                title: "Purchase order", service: "Lookup and matching", state: state, statusLabel: label,
+                stepIcon: "sap-icon://sales-order", icon: "sap-icon://sales-order",
+                tone: state === "done" ? "success" : state === "failed" ? "error" : state === "running" ? "info" : state === "waiting" ? "warning" : "muted",
+                nowLabel: state === "running" ? "Now: Looking up the purchase order and checking the invoice against it…" : "",
+                description: "Finds the purchase order and compares the invoice with it.",
+                tooltip: "Purchase order · " + label + ". Lookup: " + lookup.statusLabel + ". Invoice match: "
+                    + (mismatch ? "Needs review" : unconfirmed ? "Not confirmed" : match.statusLabel) + ".",
+                checks: (match.checks || []).concat(lookup.checks || [])
+            });
+            return steps.filter(function (step) { return step.key !== "sapPo"; }).map(function (step) {
+                return step.key === "po" ? combined : step;
+            });
+        },
+
         _traceToPipelineState: function (sStatus) {
             var s = String(sStatus || "").toLowerCase();
             if (s === "completed" || s === "skipped" || s === "done") {
@@ -1005,7 +1063,7 @@ sap.ui.define([
                 fnAdd("Amounts & dates", "The amount is not a valid number");
             }
             var oVerdict = oValidation.source_verdict || {};
-            (oVerdict.comparisons || []).forEach(function (oRow) {
+            (oVerdict.comparisons || oValidation.source_checks || []).forEach(function (oRow) {
                 var aIssue = C.SOURCE_ISSUES[oRow.check];
                 if (aIssue && C.SOURCE_DISCREPANCIES.indexOf(oRow.result) >= 0) {
                     fnAdd(aIssue[0], aIssue[1], [
@@ -1098,6 +1156,7 @@ sap.ui.define([
 
         // The review page target of a flow step (see PIPELINE_STEPS).
         stepTarget: function (sStepKey) {
+            if (sStepKey === "po" || sStepKey === "sapPo") return "info:po";
             return (C.PIPELINE_STEPS.filter(function (oStep) {
                 return oStep.key === sStepKey;
             })[0] || {}).target || "overview";
@@ -1289,6 +1348,10 @@ sap.ui.define([
             if (!oSap) {
                 return {
                     known: false,
+                    facts: ["Supplier number", "Name", "Address", "VAT number"].map(function (label) {
+                        return {label: label, value: "Not available yet"};
+                    }),
+                    statuses: [], banks: [], invoiceName: "—", sapName: "—",
                     message: oVerdict.status === "NOT_FOUND"
                         ? "The purchase order was not found in SAP, so its supplier could not be looked up."
                         : "The supplier is looked up in SAP once the invoice has been checked against it."
@@ -1585,7 +1648,7 @@ sap.ui.define([
         // (supplier status, bank, net amount, goods receipt, accounts). Only the invoice fields can be edited.
         _mapFields: function (oCase, oValidation) {
             var aMissing = oValidation.missing_fields || [];
-            var aComparisons = (oValidation.source_verdict || {}).comparisons || [];
+            var aComparisons = (oValidation.source_verdict || {}).comparisons || oValidation.source_checks || [];
             var fnSap = function (oRow) {
                 var oResult = C.SOURCE_RESULTS[oRow.result] || { label: oRow.result, state: "None", icon: "sap-icon://less" };
                 return {
