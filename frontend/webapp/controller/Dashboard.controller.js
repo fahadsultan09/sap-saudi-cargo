@@ -6,7 +6,7 @@ sap.ui.define([
 ], function (BaseController, MessageToast, MessageBox, C) {
     "use strict";
 
-    // Home: every invoice (KPI tiles, search, filters, list), and uploads with their live pipeline and review.
+    // Home / Dashboard: agent journey theater, KPI tiles, search, filters, worklist, and live upload pipeline.
     return BaseController.extend("saudicargo.ap.automation.controller.Dashboard", {
         onInit: function () {
             var oRouter = this.getRouter();
@@ -63,6 +63,29 @@ sap.ui.define([
             // Pressing the active filter again must not switch it off.
             oButton.setPressed(true);
             this.getData().setProperty("/statusFilter", oButton.getBindingContext("apData").getProperty("key"));
+            this.getCaseStore().applyStatusFilter(true);
+        },
+
+        onInvoiceTypeSelect: function (oEvent) {
+            var sKey = oEvent.getParameter("item").getKey();
+            this.getData().setProperty("/invoiceTypeFilter", sKey);
+            this.getCaseStore().applyStatusFilter(true);
+        },
+
+        onJourneyTimeWindowChange: function (oEvent) {
+            var sKey = oEvent.getParameter("item").getKey();
+            MessageToast.show(sKey === "week" ? "Showing metrics for this week" : "Showing all-time metrics");
+        },
+
+        onFilterTowerCleared: function () {
+            MessageToast.show("Showing invoices cleared by Tower");
+            this.getData().setProperty("/statusFilter", "approved");
+            this.getCaseStore().applyStatusFilter(true);
+        },
+
+        onFilterTowerReview: function () {
+            MessageToast.show("Showing invoices requiring review");
+            this.getData().setProperty("/statusFilter", "needs_review");
             this.getCaseStore().applyStatusFilter(true);
         },
 

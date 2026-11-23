@@ -25,6 +25,8 @@ sap.ui.define([
             this._model = new JSONModel({
                 section: "dashboard",
                 processorSplit: false,
+                invoiceTypeFilter: "",
+                journeyTimeWindow: "all",
                 currentUser: {},
                 welcome: {},
                 busy: false,
@@ -187,13 +189,16 @@ sap.ui.define([
         // page; a refresh keeps the current page.
         applyStatusFilter: function (bFirstPage) {
             var sGroup = this._model.getProperty("/statusFilter");
+            var sTypeFilter = (this._model.getProperty("/invoiceTypeFilter") || "").toUpperCase();
             var sQuery = (this._model.getProperty("/searchQuery") || "").trim().toLowerCase();
             var oGroup = C.CASE_GROUPS.filter(function (oItem) {
                 return oItem.key === sGroup;
             })[0];
             this._model.setProperty("/cases", this._model.getProperty("/allCases").filter(function (oRow) {
-                return (!oGroup || oGroup.statuses.indexOf(oRow.statusCode) >= 0)
-                    && (!sQuery || [oRow.id, oRow.supplier, oRow.po].join(" ").toLowerCase().indexOf(sQuery) >= 0);
+                var bTypeMatch = !sTypeFilter || sTypeFilter === "ALL" || (oRow.invoiceType && oRow.invoiceType.toUpperCase() === sTypeFilter);
+                return bTypeMatch
+                    && (!oGroup || oGroup.statuses.indexOf(oRow.statusCode) >= 0)
+                    && (!sQuery || [oRow.id, oRow.supplier, oRow.po, oRow.stationRegion, oRow.invoiceType].join(" ").toLowerCase().indexOf(sQuery) >= 0);
             }));
             this.showPage(bFirstPage ? 0 : this._model.getProperty("/page/index"));
         },
@@ -230,6 +235,30 @@ sap.ui.define([
                     : "Full cycle live — open to watch every step";
                 aDots = this._pipelineDotsFromStatus(oCase.status);
             }
+            var sSupplier = (oCase.supplier_name || "").toLowerCase();
+            var sId = (oCase.invoice_number || oCase.file_name || "").toLowerCase();
+            var bIntercompany = sSupplier.indexOf("mumbai cargo") >= 0 || sSupplier.indexOf("naia infra") >= 0
+                || sId.indexOf("ic") >= 0 || sId.indexOf("wh") >= 0 || sSupplier.indexOf("saudi arabian airlines") >= 0;
+            var sInvoiceType = bIntercompany ? "INTERCOMPANY" : "DIRECT";
+            var sSource = oCase.source === "frontend" ? "Upload" : (bIntercompany ? "Intermediary - Datacair" : "Email");
+            
+            var sStationRegion = "JED - Western";
+            if (sSupplier.indexOf("mumbai") >= 0 || sId.indexOf("bom") >= 0) {
+                sStationRegion = "BOM - Isc";
+            } else if (sSupplier.indexOf("qatar") >= 0 || sSupplier.indexOf("doha") >= 0) {
+                sStationRegion = "DOH - Gulf";
+            } else if (sSupplier.indexOf("rijk") >= 0 || sSupplier.indexOf("frankfurt") >= 0) {
+                sStationRegion = "FRA - Europe";
+            } else if (sSupplier.indexOf("bangladesh") >= 0 || sSupplier.indexOf("civil aviation") >= 0) {
+                sStationRegion = "DAC - Asia";
+            } else if (sSupplier.indexOf("تشخيص") >= 0 || sSupplier.indexOf("riyadh") >= 0) {
+                sStationRegion = "RUH - Central";
+            } else if (sSupplier.indexOf("naia") >= 0) {
+                sStationRegion = "MNL - Fe";
+            } else if (sSupplier.indexOf("investigations") >= 0) {
+                sStationRegion = "JFK - Unassigned";
+            }
+
             return {
                 caseId: oCase.id,
                 id: oCase.invoice_number || oCase.file_name,
@@ -243,7 +272,10 @@ sap.ui.define([
                 pipelineHint: sHint,
                 pipelineDots: aDots,
                 editedBy: oCase.last_edited_by || oCase.created_by,
-                date: this._formatDate(oCase.created_at)
+                date: this._formatDate(oCase.created_at),
+                invoiceType: sInvoiceType,
+                source: sSource,
+                stationRegion: sStationRegion
             };
         },
 

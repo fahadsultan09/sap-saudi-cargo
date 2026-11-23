@@ -6,13 +6,18 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 :root {
-    /* Brand: these defaults are replaced at start-up by the client profile's branding.colors. */
+    /* Brand: Saudia Cargo Navy & Signal Green */
+    --ap-navy: #002244;
+    --ap-navy-mid: #002D5B;
+    --ap-navy-light: #0B457F;
+    --ap-navy-surface: #0E3A68;
     --ap-brand: #0B7A42;
     --ap-brand-dark: #06532C;
-    --ap-brand-deep: color-mix(in srgb, var(--ap-brand-dark) 65%, black);
+    --ap-brand-deep: #002D5B;
     --ap-brand-light: #9FD4B4;
     --ap-brand-soft: #E6F5EC;
-    --ap-brand-glow: color-mix(in srgb, var(--ap-brand) 22%, transparent);
+    --ap-brand-emerald: #10B981;
+    --ap-brand-glow: rgba(11, 122, 66, 0.22);
 
     /* Atmosphere — cool cargo slate, not flat Fiori gray */
     --ap-ink: #0A1620;
