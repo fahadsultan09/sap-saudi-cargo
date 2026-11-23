@@ -2,66 +2,34 @@
     controllerName="saudicargo.ap.automation.controller.App"
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns="sap.m"
-	xmlns:tnt="sap.tnt"
-	xmlns:core="sap.ui.core">
+	xmlns:tnt="sap.tnt">
 	<Shell id="shell" appWidthLimited="false">
 		<App id="app">
 			<pages>
 				<tnt:ToolPage id="toolPage" class="apPage">
 					<tnt:header>
 						<tnt:ToolHeader class="apHeader">
-							<Button icon="sap-icon://menu2" type="Transparent" press="onToggleSideNav"
-								tooltip="Toggle sidebar navigation" class="apMenuButton"/>
-							<HBox alignItems="Center" class="apBrandContainer">
-								<HBox class="apLogoWrapper" alignItems="Center">
-									<Image src="{client>/branding/logo}" height="28px" class="apHeaderLogo"
-										decorative="false" tooltip="Saudia Cargo"/>
+							<HBox alignItems="Center">
+								<HBox class="apBrandMark" alignItems="Center" justifyContent="Center">
+									<Text text="{client>/branding/markText}" class="apBrandMarkLetter"/>
 								</HBox>
-								<VBox class="apHeaderDivider"/>
 								<VBox class="apBrandText">
 									<Title text="{client>/branding/appTitle}" level="H4" class="apBrandTitle"/>
-									<Text text="Saudi Cargo · AP Automation" wrapping="false" class="apBrandSubtitle"/>
+									<Text text="{client>/branding/appSubtitle}" wrapping="false" class="apBrandSubtitle"/>
 								</VBox>
 							</HBox>
 							<ToolbarSpacer/>
-							<HBox alignItems="Center" justifyContent="Center" class="apSearchWrapper">
-								<SearchField id="globalHeaderSearch" value="{apData>/searchQuery}"
-									liveChange="onGlobalSearch" search="onGlobalSearch" width="22rem"
-									placeholder="Search case, vendor, invoice number or PO" class="apHeaderSearchField"/>
-							</HBox>
-							<ToolbarSpacer/>
-							<HBox alignItems="Center" class="apHeaderUserSection">
-								<Button icon="sap-icon://bell" type="Transparent" press="onNotificationPress"
-									tooltip="Notifications" class="apHeaderBellButton"/>
-								<HBox alignItems="Center" class="apRoleBadge sapUiSmallMarginBegin sapUiSmallMarginEnd">
-									<VBox class="apRoleDot"/>
-									<Text text="{apData>/currentUser/roleLabel}" wrapping="false" class="apRoleBadgeText"/>
-								</HBox>
+							<HBox alignItems="Center">
+								<VBox alignItems="End" class="sapUiSmallMarginEnd">
+									<Text text="{apData>/currentUser/name}" wrapping="false" class="apHeaderName"/>
+									<Text text="{apData>/currentUser/roleLabel}" wrapping="false" class="apHeaderRole"/>
+								</VBox>
 								<Avatar initials="{apData>/currentUser/initials}" displaySize="XS"
 									backgroundColor="{apData>/currentUser/avatarColor}" press="onOpenProfileMenu"
-									tooltip="Account menu" ariaHasPopup="Menu" class="apProfileAvatar"/>
+									tooltip="Account" ariaHasPopup="Menu" class="apProfileAvatar"/>
 							</HBox>
 						</tnt:ToolHeader>
 					</tnt:header>
-					<tnt:sideContent>
-						<tnt:SideNavigation id="sideNavigation" selectedKey="{apData>/section}" itemSelect="onSectionSelect" class="apSideNav">
-							<tnt:NavigationList>
-								<tnt:NavigationListItem key="dashboard" text="Dashboard" icon="sap-icon://grid"/>
-								<tnt:NavigationListItem key="upload" text="Intake" icon="sap-icon://inbox"
-									visible="{apData>/permissions/processor}"/>
-								<tnt:NavigationListItem key="invoices" text="Invoices" icon="sap-icon://document-text" expanded="true">
-									<tnt:NavigationListItem key="invoices_all" text="All invoices" icon="sap-icon://table-view"/>
-									<tnt:NavigationListItem key="invoices_direct" text="Direct" icon="sap-icon://feeder-arrow"/>
-									<tnt:NavigationListItem key="invoices_intercompany" text="Intercompany" icon="sap-icon://org-chart"/>
-								</tnt:NavigationListItem>
-								<tnt:NavigationListItem key="credit_notes" text="Credit notes" icon="sap-icon://sales-order-item"/>
-								<tnt:NavigationListItem key="reconciliations" text="Reconciliations (SOON)" icon="sap-icon://compare"/>
-								<tnt:NavigationListItem key="review" text="Need Review" icon="sap-icon://survey"/>
-								<tnt:NavigationListItem key="approvals" text="Approvals" icon="sap-icon://approvals"
-									visible="{apData>/permissions/approver}"/>
-							</tnt:NavigationList>
-						</tnt:SideNavigation>
-					</tnt:sideContent>
 					<tnt:mainContents>
 						<NavContainer id="sections" defaultTransitionName="show"/>
 					</tnt:mainContents>

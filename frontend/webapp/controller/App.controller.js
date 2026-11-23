@@ -6,7 +6,7 @@ sap.ui.define([
 ], function (BaseController, Fragment, MessageToast, api) {
     "use strict";
 
-    // The shell around every screen: Saudia Cargo header, global search, user menu and side navigation.
+    // The shell around every screen: header and user menu (no side nav).
     return BaseController.extend("saudicargo.ap.automation.controller.App", {
         onInit: function () {
             this._casesLoaded = false;
@@ -26,91 +26,6 @@ sap.ui.define([
                 this._casesLoaded = true;
                 this.getCaseStore().loadCases();
             }
-        },
-
-        // ------------------------------------------------------------- side navigation
-
-        onToggleSideNav: function () {
-            var oToolPage = this.byId("toolPage");
-            if (oToolPage) {
-                oToolPage.setSideExpanded(!oToolPage.getSideExpanded());
-            }
-        },
-
-        onSectionSelect: function (oEvent) {
-            var oItem = oEvent.getParameter("item");
-            if (!oItem) {
-                return;
-            }
-            var sKey = oItem.getKey();
-            var oCaseStore = this.getCaseStore();
-
-            if (sKey === "dashboard") {
-                this.getData().setProperty("/invoiceTypeFilter", "");
-                oCaseStore.applyStatusFilter(true);
-                this.navTo("dashboard");
-            } else if (sKey === "upload") {
-                this.navTo("upload");
-            } else if (sKey === "invoices_all") {
-                this.getData().setProperty("/invoiceTypeFilter", "ALL");
-                this.getData().setProperty("/section", "dashboard");
-                oCaseStore.applyStatusFilter(true);
-                this.navTo("dashboard");
-            } else if (sKey === "invoices_direct") {
-                this.getData().setProperty("/invoiceTypeFilter", "DIRECT");
-                this.getData().setProperty("/section", "dashboard");
-                oCaseStore.applyStatusFilter(true);
-                this.navTo("dashboard");
-            } else if (sKey === "invoices_intercompany") {
-                this.getData().setProperty("/invoiceTypeFilter", "INTERCOMPANY");
-                this.getData().setProperty("/section", "dashboard");
-                oCaseStore.applyStatusFilter(true);
-                this.navTo("dashboard");
-            } else if (sKey === "credit_notes") {
-                this.getData().setProperty("/invoiceTypeFilter", "CREDIT_NOTE");
-                this.getData().setProperty("/section", "dashboard");
-                oCaseStore.applyStatusFilter(true);
-                this.navTo("dashboard");
-            } else if (sKey === "reconciliations") {
-                MessageToast.show("Reconciliations module is coming soon.");
-            } else if (sKey === "review") {
-                var sCaseId = this.getData().getProperty("/selectedCaseId");
-                if (sCaseId) {
-                    this.navTo("review", { caseId: sCaseId });
-                } else {
-                    this.getData().setProperty("/statusFilter", "needs_review");
-                    oCaseStore.applyStatusFilter(true);
-                    this.navTo("dashboard");
-                }
-            } else if (sKey === "approvals") {
-                this.navTo("approvals");
-            }
-        },
-
-        // ------------------------------------------------------------- global search
-
-        onGlobalSearch: function (oEvent) {
-            var sQuery = oEvent.getParameter("newValue") !== undefined
-                ? oEvent.getParameter("newValue")
-                : oEvent.getParameter("query");
-            this.getData().setProperty("/searchQuery", sQuery || "");
-            
-            // If on another route, navigate to dashboard to show filtered results
-            var sCurrentRoute = this.getData().getProperty("/section");
-            if (sCurrentRoute !== "dashboard") {
-                this.navTo("dashboard");
-            } else {
-                this.getCaseStore().applyStatusFilter(true);
-            }
-        },
-
-        // ------------------------------------------------------------- notifications
-
-        onNotificationPress: function () {
-            var aApprovals = this.getData().getProperty("/approvals") || [];
-            var aCases = this.getData().getProperty("/allCases") || [];
-            var iNeedsReview = aCases.filter(function (c) { return c.statusCode === "NEEDS_REVIEW"; }).length;
-            MessageToast.show("Notifications: " + iNeedsReview + " invoices need review, " + aApprovals.length + " awaiting approval.");
         },
 
         // ------------------------------------------------------------- user menu

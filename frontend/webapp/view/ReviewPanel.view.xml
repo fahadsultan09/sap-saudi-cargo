@@ -7,22 +7,8 @@
 		 On Home the green pipeline above already shows the flow, so the strip here is hidden there. -->
 	<VBox id="reviewPanelRoot" height="100%" visible="{apData>/selectedInvoice/hasCase}" busy="{apData>/caseLoading}"
 		busyIndicatorDelay="0" class="apReviewShell apReviewShell--docked">
-		<!-- 1. The flow, in its own card with 3 core phases: INTAKE, VALIDATION, MATCHING -->
+		<!-- 1. The flow, in its own card -->
 		<VBox class="apFlowCard">
-			<HBox alignItems="Center" justifyContent="SpaceBetween" class="apFlowPhaseHeaders">
-				<HBox alignItems="Center" class="apFlowPhaseBracket apFlowPhaseBracket--intake">
-					<Text text="INTAKE" class="apFlowPhaseLabel"/>
-					<VBox class="apFlowPhaseLine"/>
-				</HBox>
-				<HBox alignItems="Center" class="apFlowPhaseBracket apFlowPhaseBracket--validation">
-					<Text text="VALIDATION" class="apFlowPhaseLabel"/>
-					<VBox class="apFlowPhaseLine"/>
-				</HBox>
-				<HBox alignItems="Center" class="apFlowPhaseBracket apFlowPhaseBracket--matching">
-					<Text text="MATCHING" class="apFlowPhaseLabel"/>
-					<VBox class="apFlowPhaseLine"/>
-				</HBox>
-			</HBox>
 			<HBox class="apPipeTrack apPanelFlow" renderType="Bare" items="{apData>/selectedInvoice/pipelineSteps}">
 				<VBox class="apPipeTrackStep" alignItems="Center" tooltip="{apData>tooltip}">
 					<customData>
@@ -191,115 +177,6 @@
 									</VBox>
 								</HBox>
 							</VBox>
-						</VBox>
-					</VBox>
-
-					<!-- Invoice Journey Timeline matching Saudia Cargo reference (frames 31 and 33) -->
-					<VBox class="apCard apJourneyTimelineCard sapUiMediumMarginTop">
-						<HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
-							<HBox alignItems="Center">
-								<core:Icon src="sap-icon://journey-arrive" size="1.1rem" class="sapUiTinyMarginEnd apBrandIcon"/>
-								<Title text="Invoice Journey" level="H5" class="apSectionTitle"/>
-							</HBox>
-							<HBox alignItems="Center">
-								<VBox class="apRoleDot sapUiTinyMarginEnd"/>
-								<Text text="End-to-end agent orchestration" class="apMutedText"/>
-							</HBox>
-						</HBox>
-						<VBox class="apJourneyTimelineList">
-							<!-- Step 1: Tower Ingestion & Classification -->
-							<HBox class="apJourneyTimelineRow">
-								<VBox class="apJourneyTimelineIconCol" alignItems="Center">
-									<VBox class="apJourneyStepIcon apJourneyStepIcon--done">
-										<core:Icon src="sap-icon://accept" size="0.75rem"/>
-									</VBox>
-									<VBox class="apJourneyStepLine"/>
-								</VBox>
-								<VBox class="apJourneyStepContent sapUiSmallMarginBottom">
-									<HBox alignItems="Center">
-										<Text text="TOWER — Classification" class="apJourneyAgentName"/>
-										<Text text="• Processed" class="apJourneyStatusDone sapUiTinyMarginBegin"/>
-									</HBox>
-									<VBox class="apJourneyFacts sapUiTinyMarginTop">
-										<HBox class="apJourneyFactRow">
-											<Text text="INGESTION" class="apJourneyFactKey"/>
-											<Text text="Ingested from Email (ap-fuel@saudiacargo.com)" class="apJourneyFactVal"/>
-										</HBox>
-										<HBox class="apJourneyFactRow">
-											<Text text="CLASSIFICATION" class="apJourneyFactKey"/>
-											<Text text="{= 'Classified as ' + (${apData>/selectedInvoice/overview/documentType} || 'Invoice') }" class="apJourneyFactVal"/>
-										</HBox>
-										<HBox class="apJourneyFactRow">
-											<Text text="BUYER" class="apJourneyFactKey"/>
-											<Text text="Intended for SAUDI ARABIAN AIRLINES" class="apJourneyFactVal"/>
-										</HBox>
-										<HBox class="apJourneyFactRow">
-											<Text text="IS LOCAL" class="apJourneyFactKey"/>
-											<Text text="Classified as International invoice, ZATCA does not apply" class="apJourneyFactVal"/>
-										</HBox>
-										<HBox class="apJourneyFactRow">
-											<Text text="SEEN BEFORE" class="apJourneyFactKey"/>
-											<Text text="Lookup performed against intake ledger: not seen before, qualified for processing" class="apJourneyFactVal"/>
-										</HBox>
-										<HBox class="apJourneyFactRow">
-											<Text text="VENDOR" class="apJourneyFactKey"/>
-											<Text text="{= ${apData>/selectedInvoice/supplier} + ' is determined as the vendor' }" class="apJourneyFactVal"/>
-										</HBox>
-									</VBox>
-								</VBox>
-							</HBox>
-
-							<!-- Step 2: Lens Extraction -->
-							<HBox class="apJourneyTimelineRow">
-								<VBox class="apJourneyTimelineIconCol" alignItems="Center">
-									<VBox class="apJourneyStepIcon apJourneyStepIcon--done">
-										<core:Icon src="sap-icon://accept" size="0.75rem"/>
-									</VBox>
-									<VBox class="apJourneyStepLine"/>
-								</VBox>
-								<VBox class="apJourneyStepContent sapUiSmallMarginBottom">
-									<HBox alignItems="Center">
-										<Text text="LENS — Extraction &amp; OCR" class="apJourneyAgentName"/>
-										<Text text="• Extracted" class="apJourneyStatusDone sapUiTinyMarginBegin"/>
-									</HBox>
-									<VBox class="apJourneyFacts sapUiTinyMarginTop">
-										<HBox class="apJourneyFactRow">
-											<Text text="CONFIDENCE" class="apJourneyFactKey"/>
-											<Text text="{= ${apData>/selectedInvoice/overview/confidence} + '% reading confidence score' }" class="apJourneyFactVal"/>
-										</HBox>
-										<HBox class="apJourneyFactRow">
-											<Text text="LINE ITEMS" class="apJourneyFactKey"/>
-											<Text text="{= ${apData>/selectedInvoice/lineItems}.length + ' line items extracted from invoice document' }" class="apJourneyFactVal"/>
-										</HBox>
-									</VBox>
-								</VBox>
-							</HBox>
-
-							<!-- Step 3: Vector & Finance Rules -->
-							<HBox class="apJourneyTimelineRow">
-								<VBox class="apJourneyTimelineIconCol" alignItems="Center">
-									<VBox class="{= 'apJourneyStepIcon ' + (${apData>/selectedInvoice/issues}.length ? 'apJourneyStepIcon--warning' : 'apJourneyStepIcon--done') }">
-										<core:Icon src="{= ${apData>/selectedInvoice/issues}.length ? 'sap-icon://alert' : 'sap-icon://accept' }" size="0.75rem"/>
-									</VBox>
-								</VBox>
-								<VBox class="apJourneyStepContent">
-									<HBox alignItems="Center">
-										<Text text="VECTOR — Matching &amp; Verification" class="apJourneyAgentName"/>
-										<Text text="{= ${apData>/selectedInvoice/issues}.length ? '• Needs Human Review' : '• Checked' }"
-											class="{= ${apData>/selectedInvoice/issues}.length ? 'apJourneyStatusWarning' : 'apJourneyStatusDone' } sapUiTinyMarginBegin"/>
-									</HBox>
-									<VBox class="apJourneyFacts sapUiTinyMarginTop">
-										<HBox class="apJourneyFactRow">
-											<Text text="PO MATCHING" class="apJourneyFactKey"/>
-											<Text text="{= ${apData>/selectedInvoice/poStatus} || 'Purchase order validation executed against SAP ERP' }" class="apJourneyFactVal"/>
-										</HBox>
-										<HBox class="apJourneyFactRow">
-											<Text text="STATUS" class="apJourneyFactKey"/>
-											<Text text="{apData>/selectedInvoice/status}" class="apJourneyFactVal"/>
-										</HBox>
-									</VBox>
-								</VBox>
-							</HBox>
 						</VBox>
 					</VBox>
 				</VBox>

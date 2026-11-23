@@ -11,10 +11,10 @@
 			<HBox id="homeDropZone" class="apWelcome sapUiMediumMarginBottom" alignItems="Center"
 				justifyContent="SpaceBetween" wrap="Wrap" visible="{= !${apData>/upload/watching} }">
 				<VBox>
-					<Text text="Saudia Cargo · AP Automation Platform" class="apWelcomeBrand"/>
-					<Title text="{apData>/welcome/greeting}" level="H2" class="apWelcomeTitle"/>
+					<Text text="AP Console · AP Automation" class="apWelcomeBrand"/>
+					<Title text="{apData>/welcome/greeting}" level="H2"/>
 					<Text text="{= ${apData>/busy} ? 'Receiving ' + ${apData>/upload/fileName} + '…' : ${apData>/welcome/subtitle} }"
-						class="sapUiTinyMarginTop apWelcomeSubtitle"/>
+						class="sapUiTinyMarginTop"/>
 				</VBox>
 				<HBox class="sapUiSmallMarginTopBottom" wrap="Wrap" alignItems="Center">
 					<Button text="Upload invoice" icon="sap-icon://upload" press="onGoUpload"
@@ -27,7 +27,6 @@
 						press="onGoQueue" visible="{apData>/permissions/approver}" class="apGhostButton"/>
 				</HBox>
 			</HBox>
-
 			<!-- Green process theater: stays until Review or Dismiss — not auto-hidden when agents finish -->
 			<VBox visible="{apData>/upload/watching}" class="apPipeHero apPipeHero--home apPipeHero--compact sapUiSmallMarginBottom">
 				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apPipeHeroHeader">
@@ -73,7 +72,6 @@
 					displayValue="{apData>/upload/progressPercent}% complete"
 					state="Information" showValue="true"/>
 			</VBox>
-
 			<!-- The shared review cards are visible while processing and fill with saved observations. -->
 			<VBox id="homeReviewAnchor"
 				visible="{= ${apData>/upload/homeReview} &amp;&amp; ${apData>/selectedInvoice/hasCase} &amp;&amp; ${apData>/selectedInvoice/caseId} === ${apData>/upload/caseId} }"
@@ -81,244 +79,63 @@
 				<mvc:XMLView id="homeReviewPanel" viewName="saudicargo.ap.automation.view.ReviewPanel"
 					class="apReviewShell--home"/>
 			</VBox>
-
-			<!-- Invoice Journey Section (Agent Orchestration theater matching Saudia Cargo reference) -->
-			<VBox visible="{= !${apData>/upload/watching} }" class="apJourneyContainer sapUiMediumMarginBottom">
-				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apJourneyHeader">
-					<VBox>
-						<Title text="Invoice journey" level="H3" class="apJourneyTitle"/>
-						<Text text="Click an agent to open or close it · click a tile to drill down" class="apJourneySubtitle"/>
-					</VBox>
-					<HBox alignItems="Center" class="apJourneyActions">
-						<SegmentedButton selectedKey="{apData>/journeyTimeWindow}" select="onJourneyTimeWindowChange" class="apTimeSegmentedButton">
-							<items>
-								<SegmentedButtonItem key="all" text="All time"/>
-								<SegmentedButtonItem key="week" text="This week"/>
-							</items>
-						</SegmentedButton>
-					</HBox>
-				</HBox>
-
-				<!-- Agent 1: TOWER - Classification -->
-				<VBox class="apAgentCard apAgentCard--tower sapUiSmallMarginTop">
-					<HBox alignItems="Center" justifyContent="SpaceBetween" class="apAgentCardHeader">
-						<HBox alignItems="Center">
-							<VBox class="apAgentBadge apAgentBadge--tower" alignItems="Center" justifyContent="Center">
-								<Text text="T" class="apAgentBadgeLetter"/>
-							</VBox>
-							<VBox class="sapUiSmallMarginBegin">
-								<HBox alignItems="Center">
-									<Title text="TOWER — Classification" level="H4" class="apAgentTitle"/>
-									<core:Icon src="sap-icon://navigation-down-arrow" size="0.75rem" class="sapUiTinyMarginBegin apMutedIcon"/>
-								</HBox>
-								<Text text="212 emails ingested · Tower reads every email that reaches the AP mailbox" class="apAgentDescription"/>
-							</VBox>
-						</HBox>
-					</HBox>
-
-					<!-- Segmented progress bar representing email classification breakdown -->
-					<VBox class="apEmailBreakdown sapUiSmallMarginTop">
-						<HBox class="apSegmentBar" renderType="Bare">
-							<VBox class="apSegment apSegment--invoice" width="5%"/>
-							<VBox class="apSegment apSegment--credit" width="1%"/>
-							<VBox class="apSegment apSegment--other" width="85%"/>
-							<VBox class="apSegment apSegment--unsorted" width="9%"/>
-						</HBox>
-						<HBox alignItems="Center" wrap="Wrap" class="apSegmentLegend sapUiTinyMarginTop">
-							<HBox alignItems="Center" class="sapUiSmallMarginEnd">
-								<VBox class="apLegendDot apLegendDot--invoice sapUiTinyMarginEnd"/>
-								<Text text="Invoice emails 11" class="apLegendText"/>
-							</HBox>
-							<HBox alignItems="Center" class="sapUiSmallMarginEnd">
-								<VBox class="apLegendDot apLegendDot--credit sapUiTinyMarginEnd"/>
-								<Text text="Credit note emails 1" class="apLegendText"/>
-							</HBox>
-							<HBox alignItems="Center" class="sapUiSmallMarginEnd">
-								<VBox class="apLegendDot apLegendDot--other sapUiTinyMarginEnd"/>
-								<Text text="Other emails 180" class="apLegendText"/>
-							</HBox>
-							<HBox alignItems="Center">
-								<VBox class="apLegendDot apLegendDot--unsorted sapUiTinyMarginEnd"/>
-								<Text text="Not sorted yet 20" class="apLegendText"/>
-							</HBox>
-						</HBox>
-					</VBox>
-
-					<!-- Tower Action Tiles -->
-					<HBox wrap="Wrap" class="apAgentTiles sapUiSmallMarginTop">
-						<VBox class="apAgentTile apAgentTile--stat sapUiSmallMarginEnd">
-							<Text text="INVOICES" class="apAgentTileLabel"/>
-							<Text text="12" class="apAgentTileNumber"/>
-							<Text text="from 11 emails" class="apAgentTileSub"/>
-						</VBox>
-						<VBox class="apAgentTile apAgentTile--success apAgentTile--clickable sapUiSmallMarginEnd">
-							<HBox alignItems="Center">
-								<core:Icon src="sap-icon://accept" size="1.1rem" class="sapUiTinyMarginEnd"/>
-								<VBox>
-									<Link text="6" press="onFilterTowerCleared" class="apAgentTileValue"/>
-									<Link text="Cleared by Tower" press="onFilterTowerCleared" class="apAgentTileSubBold"/>
-									<Text text="45% hands-free" class="apAgentTileSubLight"/>
-								</VBox>
-							</HBox>
-						</VBox>
-						<VBox class="apAgentTile apAgentTile--warning apAgentTile--clickable sapUiSmallMarginEnd">
-							<HBox alignItems="Center">
-								<core:Icon src="sap-icon://alert" size="1.1rem" class="sapUiTinyMarginEnd"/>
-								<VBox>
-									<Link text="6" press="onFilterTowerReview" class="apAgentTileValue"/>
-									<Link text="Need your review" press="onFilterTowerReview" class="apAgentTileSubBold"/>
-								</VBox>
-							</HBox>
-						</VBox>
-						<VBox class="apAgentTile apAgentTile--stat sapUiSmallMarginEnd">
-							<Text text="CREDIT NOTES" class="apAgentTileLabel"/>
-							<Text text="2" class="apAgentTileNumber"/>
-							<Text text="Received this week" class="apAgentTileSub"/>
-						</VBox>
-						<VBox class="apAgentTile apAgentTile--stat">
-							<Text text="OTHER EMAILS" class="apAgentTileLabel"/>
-							<Text text="180" class="apAgentTileNumber"/>
-							<Text text="Follow ups, statements, supporting docs" class="apAgentTileSub"/>
-						</VBox>
-					</HBox>
-				</VBox>
-
-				<!-- Agent 2: LENS - Extraction & validation -->
-				<VBox class="apAgentCard apAgentCard--lens sapUiSmallMarginTop">
-					<HBox alignItems="Center" justifyContent="SpaceBetween" class="apAgentCardHeader">
-						<HBox alignItems="Center">
-							<VBox class="apAgentBadge apAgentBadge--lens" alignItems="Center" justifyContent="Center">
-								<Text text="L" class="apAgentBadgeLetter"/>
-							</VBox>
-							<VBox class="sapUiSmallMarginBegin">
-								<Title text="LENS — Extraction &amp; validation" level="H4" class="apAgentTitle"/>
-								<Text text="{= ${apData>/allCases}.length } invoices processed · Extraction of VAT, line items and master data" class="apAgentDescription"/>
-							</VBox>
-						</HBox>
-						<HBox alignItems="Center">
-							<Text text="4 need your review · received this week" class="apTag--warning"/>
-							<core:Icon src="sap-icon://navigation-right-arrow" size="0.75rem" class="sapUiSmallMarginBegin apMutedIcon"/>
-						</HBox>
-					</HBox>
-				</VBox>
-
-				<!-- Agent 3: VECTOR - Approval, PO, matching & SES -->
-				<VBox class="apAgentCard apAgentCard--vector sapUiSmallMarginTop">
-					<HBox alignItems="Center" justifyContent="SpaceBetween" class="apAgentCardHeader">
-						<HBox alignItems="Center">
-							<VBox class="apAgentBadge apAgentBadge--vector" alignItems="Center" justifyContent="Center">
-								<Text text="V" class="apAgentBadgeLetter"/>
-							</VBox>
-							<VBox class="sapUiSmallMarginBegin">
-								<Title text="VECTOR — Approval, PO, matching &amp; SES" level="H4" class="apAgentTitle"/>
-								<Text text="2 invoices handed over by Lens · Routed to approvers, matched to PO and SES" class="apAgentDescription"/>
-							</VBox>
-						</HBox>
-						<core:Icon src="sap-icon://navigation-down-arrow" size="0.75rem" class="apMutedIcon"/>
-					</HBox>
-
-					<!-- Vector Action Tiles -->
-					<HBox wrap="Wrap" class="apAgentTiles sapUiSmallMarginTop">
-						<VBox class="apAgentTile apAgentTile--stat sapUiSmallMarginEnd">
-							<Text text="INVOICES" class="apAgentTileLabel"/>
-							<Text text="2" class="apAgentTileNumber"/>
-						</VBox>
-						<VBox class="apAgentTile apAgentTile--success sapUiSmallMarginEnd">
-							<HBox alignItems="Center">
-								<core:Icon src="sap-icon://accept" size="1.1rem" class="sapUiTinyMarginEnd"/>
-								<VBox>
-									<Text text="0" class="apAgentTileValue"/>
-									<Text text="Cleared by Vector" class="apAgentTileSubBold"/>
-								</VBox>
-							</HBox>
-						</VBox>
-						<VBox class="apAgentTile apAgentTile--warning sapUiSmallMarginEnd">
-							<HBox alignItems="Center">
-								<core:Icon src="sap-icon://inspect" size="1.1rem" class="sapUiTinyMarginEnd"/>
-								<VBox>
-									<Text text="0" class="apAgentTileValue"/>
-									<Text text="Need your review" class="apAgentTileSubBold"/>
-								</VBox>
-							</HBox>
-						</VBox>
-						<VBox class="apAgentTile apAgentTile--waiting">
-							<HBox alignItems="Center">
-								<core:Icon src="sap-icon://pending" size="1.1rem" class="sapUiTinyMarginEnd"/>
-								<VBox>
-									<Text text="2" class="apAgentTileValue"/>
-									<Text text="WAITING ON OTHERS" class="apAgentTileSubBold"/>
-									<Text text="2 with Excellence Managers · 0 with departments" class="apAgentTileSubLight"/>
-								</VBox>
-							</HBox>
-						</VBox>
-					</HBox>
-				</VBox>
-			</VBox>
-
-			<!-- Every invoice: Worklist with KPI strip and enhanced filter table -->
-			<VBox visible="{= !${apData>/upload/watching} }" class="apWorklistSection">
-				<!-- KPI Strip -->
+			<!-- Every invoice: KPI tiles (each one a filter), search, status filters and the list. While an invoice
+				 is uploaded and reviewed above, the board steps aside. -->
+			<VBox visible="{= !${apData>/upload/watching} }">
 				<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.KpiStrip" type="XML"/>
-
-				<!-- Worklist Case Board -->
-				<VBox class="apCaseBoard sapUiSmallMarginTop">
+				<VBox class="apCaseBoard">
 					<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apCaseBoardHeader">
-						<VBox>
-							<Title text="{= ${apData>/invoiceTypeFilter} === 'INTERCOMPANY' ? 'Intercompany Invoices' : (${apData>/invoiceTypeFilter} === 'DIRECT' ? 'Direct Invoices' : 'All Invoices') }"
-								level="H3" class="apSectionTitle"/>
-							<Text text="{apData>/page/range}" class="apSectionSubtitle"/>
-						</VBox>
-						<HBox alignItems="Center" wrap="Wrap" class="apWorklistControls">
-							<!-- Search field -->
+						<Title text="Cases" level="H3" class="apSectionTitle"/>
+						<HBox alignItems="Center" wrap="Wrap">
 							<SearchField value="{apData>/searchQuery}" liveChange="onSearch" search="onSearch" width="16rem"
-								placeholder="Search invoice, vendor or PO" class="sapUiTinyMarginEnd"/>
-
-							<!-- Quick Invoice Type Filter Buttons -->
-							<SegmentedButton selectedKey="{apData>/invoiceTypeFilter}" select="onInvoiceTypeSelect" class="apTypeSegmentedButton sapUiTinyMarginEnd">
-								<items>
-									<SegmentedButtonItem key="" text="All"/>
-									<SegmentedButtonItem key="DIRECT" text="Direct"/>
-									<SegmentedButtonItem key="INTERCOMPANY" text="Intercompany"/>
-								</items>
-							</SegmentedButton>
-
-							<!-- Status Filter Pills -->
-							<HBox items="{path: 'apData>/filterOptions', templateShareable: false}" wrap="Wrap" class="apFilter sapUiTinyMarginEnd">
+								placeholder="Invoice, supplier or PO" class="sapUiTinyMarginEnd"/>
+							<HBox items="{apData>/filterOptions}" wrap="Wrap" class="apFilter sapUiTinyMarginEnd">
 								<ToggleButton text="{apData>text}" pressed="{= ${apData>key} === ${apData>/statusFilter} }"
 									press="onStatusFilterPress" class="apFilterPill"/>
 							</HBox>
-
-							<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh invoices" press="onRefreshCases"
-								class="apRefreshButton"/>
+							<Button icon="sap-icon://refresh" type="Transparent" tooltip="Refresh" press="onRefreshCases"/>
 						</HBox>
 					</HBox>
-
 					<MessageStrip text="{apData>/queueWarning}" type="Warning" showIcon="true"
 						visible="{= !!${apData>/queueWarning} }" class="sapUiSmallMarginBottom"/>
-
-					<!-- Enhanced Worklist Table matching reference columns -->
-					<Table items="{apData>/pagedCases}" fixedLayout="false" class="apTable apWorklistTable sapUiSmallMarginTop">
+					<VBox visible="{= !!${apData>/pipelineBanner} }" class="apPipelineBanner sapUiSmallMarginBottom">
+						<HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
+							<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
+							<core:Icon src="sap-icon://process" size="0.875rem" class="apReasonIcon sapUiTinyMarginEnd"/>
+							<Text text="{apData>/pipelineBanner}" wrapping="true"/>
+						</HBox>
+						<HBox class="apPipeMini" alignItems="Center" items="{apData>/pipelineBannerDots}">
+							<HBox alignItems="Center" class="apPipeMiniItem">
+								<customData>
+									<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
+								</customData>
+								<VBox class="apPipeMiniDot"/>
+								<Text text="{apData>short}" class="apPipeMiniLabel"/>
+								<VBox class="apPipeMiniConnector"/>
+							</HBox>
+						</HBox>
+					</VBox>
+					<Table items="{apData>/pagedCases}" fixedLayout="false" class="apTable">
 						<noData>
 							<IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
-								title="No cases match your filter" description="Upload an invoice or choose another filter option."/>
+								title="No cases here yet" description="{= ${apData>/permissions/processor} ? 'Upload an invoice to start, or change the status filter.' : 'No invoices match this status filter yet.' }"/>
 						</noData>
 						<columns>
-							<Column width="11rem"><Text text="INVOICE" class="apColHeader"/></Column>
-							<Column minScreenWidth="Tablet" demandPopin="true"><Text text="VENDOR" class="apColHeader"/></Column>
-							<Column minScreenWidth="Desktop" demandPopin="true" width="8rem"><Text text="TYPE" class="apColHeader"/></Column>
-							<Column hAlign="End" width="9rem"><Text text="AMOUNT" class="apColHeader"/></Column>
-							<Column minScreenWidth="Tablet" demandPopin="true" width="7rem"><Text text="SOURCE" class="apColHeader"/></Column>
-							<Column minScreenWidth="Desktop" demandPopin="true" width="10rem"><Text text="STATION / REGION" class="apColHeader"/></Column>
-							<Column hAlign="Center" width="9rem"><Text text="STATUS" class="apColHeader"/></Column>
+							<Column><Text text="Invoice" wrapping="false"/></Column>
+							<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Supplier" wrapping="false"/></Column>
+							<Column hAlign="End" width="8rem"><Text text="Amount" wrapping="false"/></Column>
+							<Column hAlign="Center" width="9rem"><Text text="Status" wrapping="false"/></Column>
+							<Column minScreenWidth="Tablet" demandPopin="true" importance="Low">
+								<Text text="Created ({apData>/timeZoneLabel})" wrapping="false"/>
+							</Column>
 						</columns>
 						<items>
-							<ColumnListItem type="Navigation" press="onCasePress" class="apWorklistRow">
+							<ColumnListItem type="Navigation" press="onCasePress">
 								<cells>
-									<!-- Invoice ID + Mini Pipeline if processing -->
 									<VBox>
-										<ObjectIdentifier title="{apData>id}" class="apInvoiceIdentifier"/>
+										<ObjectIdentifier title="{apData>id}"/>
 										<HBox visible="{= !!${apData>processing} }" class="apPipeMini apPipeMini--row sapUiTinyMarginTop"
-											alignItems="Center" items="{path: 'apData>pipelineDots', templateShareable: false}">
+											alignItems="Center" items="{apData>pipelineDots}">
 											<HBox alignItems="Center" class="apPipeMiniItem">
 												<customData>
 													<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
@@ -330,47 +147,28 @@
 										<Text text="{apData>pipelineHint}" class="apPipelineHint"
 											visible="{= !!${apData>pipelineHint} }"/>
 									</VBox>
-
-									<!-- Vendor Name -->
-									<Text text="{apData>supplier}" class="apVendorText" wrapping="true"/>
-
-									<!-- Type (DIRECT / INTERCOMPANY) -->
-									<HBox alignItems="Center">
-										<HBox class="{= 'apTypeBadge apTypeBadge--' + (${apData>invoiceType} || 'DIRECT') }">
-											<Text text="{= ${apData>invoiceType} || 'DIRECT' }" class="apTypeBadgeText"/>
-										</HBox>
-									</HBox>
-
-									<!-- Amount (Currency + Amount) -->
-									<Text text="{apData>amount}" class="apAmountText" wrapping="false"/>
-
-									<!-- Source (Email / Upload / Datacair) -->
-									<HBox alignItems="Center">
-										<core:Icon src="{= ${apData>source} === 'Upload' ? 'sap-icon://upload' : 'sap-icon://email' }"
-											size="0.85rem" class="sapUiTinyMarginEnd apMutedIcon"/>
-										<Text text="{= ${apData>source} || 'Email' }" class="apSourceText"/>
-									</HBox>
-
-									<!-- Station / Region -->
-									<Text text="{= ${apData>stationRegion} || 'JED - Western' }" class="apRegionText"/>
-
-									<!-- Status Pill -->
+									<Text text="{apData>supplier}"/>
+									<Text text="{apData>amount}" wrapping="false" class="apAmount"/>
 									<ObjectStatus text="{apData>status}" state="{apData>state}" inverted="true"
-										class="{= 'apStatusPill apStatusPill--' + ${apData>statusCode} }"/>
+										icon="{= ${apData>processing} ? 'sap-icon://synchronize' : '' }">
+										<customData>
+											<core:CustomData key="processing" value="{= String(${apData>processing}) }" writeToDom="true"/>
+										</customData>
+									</ObjectStatus>
+									<Text text="{apData>date} "/>
 								</cells>
 							</ColumnListItem>
 						</items>
 					</Table>
-
-					<!-- Table Pagination Bar -->
-					<HBox alignItems="Center" justifyContent="SpaceBetween" class="apPaginationBar sapUiSmallMarginTop">
-						<Text text="{apData>/page/range}" class="apMutedText"/>
+					<HBox visible="{= ${apData>/cases}.length > 0 }" alignItems="Center" justifyContent="SpaceBetween"
+						class="apPager">
+						<Text text="{apData>/page/range}" class="apTimelineMeta"/>
 						<HBox alignItems="Center">
-							<Button icon="sap-icon://navigation-left-arrow" type="Transparent" press="onPreviousPage"
-								tooltip="Previous page" enabled="{= ${apData>/page/index} > 0 }" class="sapUiTinyMarginEnd"/>
-							<Text text="{apData>/page/text}" class="sapUiSmallMarginBeginEnd apPageIndicator"/>
-							<Button icon="sap-icon://navigation-right-arrow" type="Transparent" press="onNextPage"
-								tooltip="Next page" enabled="{= ${apData>/page/index} &lt; (${apData>/page/count} - 1) }" class="sapUiTinyMarginBegin"/>
+							<Button icon="sap-icon://navigation-left-arrow" type="Transparent" tooltip="Previous page"
+								press="onPreviousPage" enabled="{= ${apData>/page/index} > 0 }"/>
+							<Text text="{apData>/page/text}" class="apPagerText"/>
+							<Button icon="sap-icon://navigation-right-arrow" type="Transparent" tooltip="Next page"
+								press="onNextPage" enabled="{= ${apData>/page/index} &lt; ${apData>/page/count} - 1 }"/>
 						</HBox>
 					</HBox>
 				</VBox>
