@@ -32,6 +32,7 @@ def process_with_progress(client: APCoreClient, case_id: str, pdf_path: Path, fi
     so the review screen moves live. Returns the agents' final result."""
     agent_trace: list[dict] = []
     source_checks: list[dict] = []
+    snapshot: dict = {}
     with pdf_path.open("rb") as pdf, httpx.stream(
         "POST",
         f"{AGENTIC_AI_URL}/internal/v1/process-document",
@@ -50,10 +51,14 @@ def process_with_progress(client: APCoreClient, case_id: str, pdf_path: Path, fi
                 raise RuntimeError(event["detail"])
             if event["type"] == "step":
                 agent_trace.append(event["step"])
-            else:
+            elif event["type"] == "check":
                 source_checks.append(event["check"])
+            elif event["type"] == "data":
+                snapshot = {"fields": event.get("fields") or {}, "validation": event.get("validation") or {}}
+            else:
+                continue
             try:
-                client.submit_progress(case_id, agent_trace=agent_trace, source_checks=source_checks)
+                client.submit_progress(case_id, agent_trace=agent_trace, source_checks=source_checks, **snapshot)
             except httpx.HTTPError:
                 # Progress is only for display; processing goes on without it.
                 logger.warning("Could not report progress for case %s", case_id)
@@ -107,7 +112,7 @@ def process_once() -> bool:
                 case_id,
                 fields=fields,
                 validation=result.get("validation") or {},
-                idempotency_key=f"extract:{case_id}",
+                idempotency_key=f"extract:{case_id}:{work_id}",
             )
 
             client.complete_work(

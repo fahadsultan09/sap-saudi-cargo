@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 
-class PrismInvestigationAgent:
-    """PRISM builds an evidence-grounded discrepancy investigation plan.
+class ReconcilerInvestigationAgent:
+    """RECONCILER builds an evidence-grounded discrepancy investigation plan.
 
     It does not invent SAP facts, resolve UNKNOWN as PASS, authorize invoices,
     or execute external effects. The output is a recommendation only.
     """
-    name = "PRISM"
+    name = "RECONCILER"
 
     def run(self, *, rule_results: list[dict[str, Any]] | None = None,
             sap_observations: list[dict[str, Any]] | None = None,

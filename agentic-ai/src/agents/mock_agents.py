@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any
 
 
-class MockTowerAgent:
+class MockClassifierAgent:
     """Offline simulation only. It does not inspect document contents or use AI."""
-    name = "TOWER"
+    name = "CLASSIFIER"
 
     def run(self, file_path: str | Path, file_name: str) -> dict[str, Any]:
         name = Path(file_name).stem.lower().replace("-", "_").replace(" ", "_")
@@ -25,9 +25,9 @@ class MockTowerAgent:
                 "ai_parse_status": "mock", "mode": "mock"}
 
 
-class MockLensAgent:
+class MockScannerAgent:
     """Offline simulation only. Returns no fabricated invoice field values."""
-    name = "LENS"
+    name = "SCANNER"
     EXTRACTABLE = {"invoice", "credit_note"}
 
     def run(self, file_path: str | Path, classification: dict[str, Any]) -> dict[str, Any]:

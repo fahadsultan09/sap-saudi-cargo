@@ -38,6 +38,30 @@ def test_every_check_differs_for_a_no_match_invoice(agent):
     assert len(verdict["discrepancies"]) == 10
 
 
+def test_verdict_carries_the_supplier_master_data_with_masked_accounts(agent):
+    supplier = agent.run(
+        invoice("4500012388", "Al Noor Ground Handling Services", "SAR", "1053000", "2026-10-03")
+    )["supplier"]
+    assert supplier["supplier_id"] == "3000001002"
+    assert supplier["name"] == "Al Noor Ground Handling Services"
+    assert supplier["city"] == "Riyadh" and supplier["country"] == "SA"
+    assert supplier["posting_block"] is False
+    assert supplier["bank_accounts"]
+    assert all(bank["account"].startswith("···") for bank in supplier["bank_accounts"])
+
+
+def test_verdict_carries_the_sap_records_for_the_po(agent):
+    records = agent.run(
+        invoice("4500012388", "Al Noor Ground Handling Services", "SAR", "1053000", "2026-10-03")
+    )["sap_records"]
+    assert records["purchase_order"]["po_number"] == "4500012388"
+    assert len(records["purchase_order"]["lines"]) == 3
+    assert all(line["received"] for line in records["purchase_order"]["lines"])
+    assert records["goods_receipts"]
+    assert [account["account"] for account in records["gl_accounts"]] == ["400000"]
+    assert not records["gl_accounts"][0]["problem"]
+
+
 def test_unknown_or_missing_po_is_not_found(agent):
     assert agent.run(invoice("", "Any Supplier", "SAR", "100", "2026-10-01"))["status"] == "NOT_FOUND"
     assert agent.run(invoice("9999999999", "Any Supplier", "SAR", "100", "2026-10-01"))["status"] == "NOT_FOUND"

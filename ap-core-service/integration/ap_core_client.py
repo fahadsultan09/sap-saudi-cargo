@@ -29,8 +29,11 @@ class APCoreClient:
         r=self.client.post(f"/internal/v1/cases/{case_id}/extraction-result", json={"fields":fields,"validation":validation or {},"idempotency_key":idempotency_key,"correlation_id":correlation_id})
         r.raise_for_status(); return r.json()
 
-    def submit_progress(self, case_id: str, *, agent_trace: list[dict[str, Any]], source_checks: list[dict[str, Any]]) -> dict[str, Any]:
-        r=self.client.post(f"/internal/v1/cases/{case_id}/progress", json={"agent_trace":agent_trace,"source_checks":source_checks})
+    def submit_progress(self, case_id: str, *, agent_trace: list[dict[str, Any]], source_checks: list[dict[str, Any]], fields: dict[str, Any] | None = None, validation: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = {"agent_trace": agent_trace, "source_checks": source_checks}
+        if fields is not None: payload["fields"] = fields
+        if validation is not None: payload["validation"] = validation
+        r=self.client.post(f"/internal/v1/cases/{case_id}/progress", json=payload)
         r.raise_for_status(); return r.json()
 
     def complete_work(self, work_item_id: str, *, worker_id: str, outcome: str, idempotency_key: str, result: dict[str, Any] | None = None, error: str | None = None) -> dict[str, Any]:

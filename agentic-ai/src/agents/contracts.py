@@ -17,7 +17,7 @@ AgentStatus = Literal["completed", "skipped", "failed"]
 
 
 class ClassificationDecision(BaseModel):
-    """Validated TOWER result. It is evidence, not an authorization decision."""
+    """Validated CLASSIFIER result. It is evidence, not an authorization decision."""
 
     model_config = ConfigDict(extra="allow")
     document_type: DocumentKind

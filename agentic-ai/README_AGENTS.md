@@ -3,16 +3,16 @@
 ## Implemented agent components
 
 - `EMAIL_INTAKE`: existing Microsoft Graph fetch/enrichment component (`src/email_intake`). Live Graph operation requires credentials.
-- `TOWER`: classification adapter (`src/agents/tower.py`). SAP AI Core is used in SAP mode; mock mode is heuristic-only.
-- `LENS`: SAP Document AI extraction coordinator (`src/agents/lens.py`).
-- `VECTOR`: PO matching recommendation (`src/agents/vector.py`). Takes invoice fields plus a supplied SAP observation or an injected read-only SAP reader. Missing SAP evidence returns `UNKNOWN`.
-- `PRISM`: evidence-grounded discrepancy investigation (`src/agents/prism.py`). Uses supplied rule results, observations and missing-field data; outputs follow-up recommendations only.
+- `CLASSIFIER`: classification adapter (`src/agents/classifier.py`). SAP AI Core is used in SAP mode; mock mode is heuristic-only.
+- `SCANNER`: SAP Document AI extraction coordinator (`src/agents/scanner.py`).
+- `VERIFIER`: PO matching recommendation (`src/agents/verifier.py`). Takes invoice fields plus a supplied SAP observation or an injected read-only SAP reader. Missing SAP evidence returns `UNKNOWN`.
+- `RECONCILER`: evidence-grounded discrepancy investigation (`src/agents/reconciler.py`). Uses supplied rule results, observations and missing-field data; outputs follow-up recommendations only.
 - `PLUMB`: payment advice reconciliation candidate matching (`src/agents/plumb.py`). Uses invoice reference, currency and `Decimal` amount comparisons. Does not mark invoices paid.
 - `FINANCE_RULES`: deterministic triage component, not an AI agent.
 
 ## Extended orchestrator
 
-The existing `APAgentOrchestrator` still runs the base upload flow TOWER -> LENS -> FINANCE_RULES by default. To invoke additional agents, pass `extended_context`:
+The existing `APAgentOrchestrator` still runs the base upload flow CLASSIFIER -> SCANNER -> FINANCE_RULES by default. To invoke additional agents, pass `extended_context`:
 
 ```python
 result = orchestrator.run(
@@ -33,8 +33,8 @@ Do not fabricate `sap_observation` in production. Populate it from a real read-o
 
 ## Important boundaries / remaining integration
 
-- VECTOR has a read-only adapter protocol but no live S/4HANA PO/GR adapter is included.
-- PRISM is evidence-grounded and deterministic in this implementation; it does not call a separate LLM provider.
+- VERIFIER has a read-only adapter protocol but no live S/4HANA PO/GR adapter is included.
+- RECONCILER is evidence-grounded and deterministic in this implementation; it does not call a separate LLM provider.
 - PLUMB requires payment-advice items and posted/open invoice records supplied by a trusted integration. It does not connect to a Treasury mailbox or SAP itself.
 - AP Core integration is not automatically activated by this ZIP. Agentic AI still needs to send results to AP Core and AP Core must persist judgements and determine the next state.
 - No agent approves invoices, sets canonical AP Core case state, or posts to SAP.

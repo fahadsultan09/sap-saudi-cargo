@@ -17,8 +17,6 @@ sap.ui.define([], function () {
         QUEUE_WARNING_MS: 2 * 60 * 1000,
         // Upload without a case id: how long the local step animation runs before the dashboard opens.
         UPLOAD_WATCH_MIN_MS: 4200,
-        // How long the finished pipeline stays on Upload before Clear Desk opens.
-        UPLOAD_DONE_PAUSE_MS: 1500,
 
         // AP Core stores times in UTC; they are shown in the time zone of the client profile's countryCode.
         COUNTRY_TIME_ZONES: {
@@ -93,13 +91,48 @@ sap.ui.define([], function () {
             { key: "company_code", label: "Company Code" }
         ],
 
-        CHECK_LABELS: { vendor: "Vendor", po: "Purchase order", tax: "Tax", duplicate: "Duplicate" },
+        // Fields section: the groups its tiles are shown in, and which group each invoice field or SAP check
+        // belongs to.
+        FIELD_GROUPS: [
+            { key: "invoice", title: "Invoice", icon: "sap-icon://document-text" },
+            { key: "supplier", title: "Supplier", icon: "sap-icon://supplier" },
+            { key: "po", title: "Purchase order", icon: "sap-icon://sales-order" },
+            { key: "receipts", title: "Goods receipt & accounts", icon: "sap-icon://shipping-status" }
+        ],
+        FIELD_GROUP_OF: {
+            invoice_number: "invoice",
+            invoice_date: "invoice",
+            currency: "invoice",
+            total_amount: "invoice",
+            amount: "invoice",
+            supplier_name: "supplier",
+            supplier_id: "supplier",
+            supplier_status: "supplier",
+            bank: "supplier",
+            po_number: "po",
+            company_code: "po",
+            goods_receipt: "receipts",
+            service_entry: "receipts",
+            gl_account: "receipts",
+            cost_center: "receipts"
+        },
+
+        // SAP data checks that compare an invoice field, shown on that field's row (check → field key).
+        FIELD_CHECKS: {
+            purchase_order: "po_number",
+            supplier: "supplier_name",
+            invoice_date: "invoice_date",
+            currency: "currency",
+            company_code: "company_code"
+        },
 
         // Full invoice pipeline shown on Upload + Review. agent matches validation.agent_trace[].agent.
         PIPELINE_STEPS: [
             {
                 key: "receive",
                 title: "Received",
+                // A click on the step goes to its outcome on the review page.
+                target: "audit",
                 service: "",
                 description: "Your file lands in AP Console and gets a case.",
                 icon: "sap-icon://upload-to-cloud",
@@ -108,23 +141,26 @@ sap.ui.define([], function () {
             {
                 key: "classify",
                 title: "Classify",
-                service: "TOWER · AI Core",
+                target: "agents:CLASSIFIER",
+                service: "AI classification",
                 description: "Confirms it is an invoice or credit note.",
                 icon: "sap-icon://inspect",
-                agent: "TOWER"
+                agent: "CLASSIFIER"
             },
             {
                 key: "extract",
                 title: "Extract",
-                service: "LENS · Document AI",
+                target: "agents:SCANNER",
+                service: "AI extraction",
                 description: "Reads supplier, amounts, PO, dates and line items.",
                 icon: "sap-icon://create-form",
-                agent: "LENS"
+                agent: "SCANNER"
             },
             {
                 key: "finance",
                 title: "Finance rules",
-                service: "Deterministic checks",
+                target: "agents:FINANCE_RULES",
+                service: "Rules",
                 description: "AP Core checks required fields and duplicates.",
                 icon: "sap-icon://lab",
                 agent: "FINANCE_RULES"
@@ -133,16 +169,18 @@ sap.ui.define([], function () {
             {
                 key: "po",
                 title: "PO match",
-                service: "VECTOR",
+                target: "agents:VERIFIER",
+                service: "Purchase order",
                 description: "Compares the invoice with its purchase order in SAP.",
                 icon: "sap-icon://compare",
-                agent: "VECTOR",
+                agent: "VERIFIER",
                 traceOnly: true
             },
             // The SAP data check (agent SOURCE_CHECK) as its own steps; sourceChecks are the checks each covers.
             {
                 key: "sapPo",
-                title: "Fetch purchase order",
+                title: "Fetch PO",
+                target: "info:po",
                 service: "SAP data check",
                 description: "Finds the invoice's purchase order in SAP.",
                 icon: "sap-icon://sales-order",
@@ -152,7 +190,8 @@ sap.ui.define([], function () {
             },
             {
                 key: "sapSupplier",
-                title: "Verify supplier",
+                title: "Supplier info",
+                target: "info:supplier",
                 service: "SAP data check",
                 description: "Checks the supplier, that it is active, and its bank details in SAP.",
                 icon: "sap-icon://supplier",
@@ -162,7 +201,8 @@ sap.ui.define([], function () {
             },
             {
                 key: "sapFields",
-                title: "Compare invoice fields",
+                title: "Compare fields",
+                target: "details:differences",
                 service: "SAP data check",
                 description: "Compares currency, company code, amount and date with the purchase order.",
                 icon: "sap-icon://compare",
@@ -172,7 +212,8 @@ sap.ui.define([], function () {
             },
             {
                 key: "sapReceipt",
-                title: "Check goods receipt",
+                title: "Goods receipt",
+                target: "info:receipts",
                 service: "SAP data check",
                 description: "Checks the goods or services were received in SAP.",
                 icon: "sap-icon://shipping-status",
@@ -181,35 +222,49 @@ sap.ui.define([], function () {
                 sourceChecks: ["goods_receipt", "service_entry"]
             },
             {
-                key: "sapAccounts",
-                title: "Check account assignment",
+                key: "sapGlAccounts",
+                title: "G/L accounts",
+                target: "info:accounts",
                 service: "SAP data check",
-                description: "Checks the PO's GL accounts and cost centers exist and are open.",
+                description: "Checks that the purchase order's G/L accounts exist and are open for posting.",
                 icon: "sap-icon://accounting-document-verification",
                 agent: "SOURCE_CHECK",
                 traceOnly: true,
-                sourceChecks: ["gl_account", "cost_center"]
+                sourceChecks: ["gl_account"]
+            },
+            {
+                key: "sapCostCenters",
+                title: "Cost centers",
+                target: "info:accounts",
+                service: "SAP data check",
+                description: "Checks that the purchase order's cost centers exist and are valid.",
+                icon: "sap-icon://org-chart",
+                agent: "SOURCE_CHECK",
+                traceOnly: true,
+                sourceChecks: ["cost_center"]
             },
             {
                 key: "investigate",
                 title: "Investigation",
-                service: "PRISM",
+                target: "agents:RECONCILER",
+                service: "Summary",
                 description: "Explains open findings and recommends what to check next.",
                 icon: "sap-icon://search",
-                agent: "PRISM",
+                agent: "RECONCILER",
                 traceOnly: true
             },
             {
                 key: "decide",
-                title: "Needs review / Approve",
-                service: "Clear Desk · Dock Decide",
-                description: "Check fields on Clear Desk, then approve, return or reject on the dock.",
+                title: "Review & approve",
+                target: "overview",
+                service: "You and the approver",
+                description: "A person checks the invoice, then an approver approves, returns or rejects it.",
                 icon: "sap-icon://approvals",
                 agent: null
             }
         ],
         // Order the agents run in (validation.agent_trace[].agent).
-        AGENT_ORDER: ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM"],
+        AGENT_ORDER: ["CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER"],
         PIPELINE_STATUS_LABELS: {
             pending: "Pending",
             running: "Working…",
@@ -221,29 +276,17 @@ sap.ui.define([], function () {
         // Live status line while a step is active (Upload rail + Review processing banner).
         PIPELINE_NOW_LABELS: {
             receive: "Queued: waiting for the processing worker to pick up the invoice…",
-            classify: "Now: Classifying document (TOWER · AI Core)…",
-            extract: "Now: Extracting invoice fields (LENS · Document AI)…",
-            finance: "Now: Running finance rules (required fields, duplicates)…",
-            po: "Now: Matching the purchase order (VECTOR)…",
+            classify: "Now: Recognising the document type…",
+            extract: "Now: Reading the invoice details…",
+            finance: "Now: Running the basic invoice checks…",
+            po: "Now: Looking up the purchase order…",
             sapPo: "Now: Fetching the purchase order from SAP…",
             sapSupplier: "Now: Verifying the supplier in SAP…",
             sapFields: "Now: Comparing the invoice fields with the purchase order…",
             sapReceipt: "Now: Checking the goods receipt in SAP…",
-            sapAccounts: "Now: Checking the account assignment in SAP…",
-            investigate: "Now: Investigating findings (PRISM)…",
-            decide: "Now: Handing off to Clear Desk / Dock Decide…"
-        },
-
-        // Plain-language text and icon for the agents' review reason codes (validation.review_decision).
-        REVIEW_REASONS: {
-            MANUAL_MODE_ENABLED: ["sap-icon://employee", "Every invoice is currently checked by a person before approval."],
-            UNSUPPORTED_DOCUMENT_TYPE: ["sap-icon://document", "The document may not be an invoice or a credit note."],
-            INVALID_CONFIDENCE: ["sap-icon://question-mark", "The agents could not tell what type of document this is."],
-            LOW_CONFIDENCE: ["sap-icon://question-mark", "The agents are not sure what type of document this is."],
-            MISSING_REQUIRED_FIELDS: ["sap-icon://edit", "Some required invoice details are missing."],
-            LOW_CRITICAL_FIELD_CONFIDENCE: ["sap-icon://inspect", "Key details such as the amount or invoice number should be checked against the PDF."],
-            VALIDATION_FAILED: ["sap-icon://lab", "The finance checks did not pass."],
-            DUPLICATE_CHECK_FAILED: ["sap-icon://duplicate", "This invoice may already have been submitted."]
+            sapGlAccounts: "Now: Checking G/L accounts in SAP…",
+            sapCostCenters: "Now: Checking cost centers in SAP…",
+            investigate: "Now: Summarising the findings…"
         },
 
         // Timeline colour and icon per audit event type; anything else is shown as information.
@@ -259,6 +302,9 @@ sap.ui.define([], function () {
 
         // Readable audit-trail titles per AP Core event type.
         EVENT_TITLES: {
+            PROCESSOR_REVIEWED: "Reviewed by processor",
+            PROCESSOR_EXCEPTION_REPORTED: "Exception reported",
+            EXTRACTION_REQUEUED: "New extraction requested",
             CASE_REGISTERED: "Invoice uploaded",
             DUPLICATE_UPLOAD_DETECTED: "Same file uploaded again",
             WORK_ITEM_LEASED: "Agent processing started",
@@ -273,29 +319,6 @@ sap.ui.define([], function () {
             APPROVAL_REJECTED: "Rejected"
         },
 
-        // Plain-language text for AP Core's blocking flags (validation.blocking); others show as is.
-        BLOCKING_TEXTS: {
-            REQUIRED_FIELDS_MISSING: "Some required invoice details are missing.",
-            POTENTIAL_BUSINESS_DUPLICATE: "An invoice with the same number, supplier and company code already exists.",
-            AMOUNT_INVALID: "The total amount is not a valid number.",
-            AMOUNT_NOT_FINITE: "The total amount is not a valid number.",
-            PO_MATCH_FAILED: "The invoice does not match its purchase order in SAP.",
-            TRIAGE_REVIEW_REQUIRED: "The agents' finance rules flagged this invoice for review.",
-            EXTRACTION_NOT_COMPLETED: "The agents could not read all invoice details.",
-            SOURCE_DATA_MISMATCH: "The invoice differs from the SAP data; see the SAP data check.",
-            SOURCE_DATA_NOT_FOUND: "The invoice's PO could not be found in the SAP data.",
-            SOURCE_DATA_INCOMPLETE: "The invoice could not be fully checked against the SAP data.",
-            SOURCE_DATA_CHECK_FAILED: "The SAP data check could not run."
-        },
-
-        // SOURCE_CHECK verdict (validation.source_verdict): label and MessageStrip type per status.
-        SOURCE_VERDICTS: {
-            MATCH: { label: "Matches SAP", strip: "Success", state: "Success" },
-            MISMATCH: { label: "Differs from SAP", strip: "Error", state: "Error" },
-            NOT_FOUND: { label: "Not found in SAP", strip: "Warning", state: "Warning" },
-            INCOMPLETE: { label: "Partly checked", strip: "Warning", state: "Warning" },
-            ERROR: { label: "Check failed", strip: "Error", state: "Error" }
-        },
         // The SAP data check broken into steps: what each check does, and whether it fetches data
         // ("Found") or compares a value ("Matches").
         SOURCE_CHECK_STEPS: {
@@ -318,44 +341,136 @@ sap.ui.define([], function () {
 
         // One row of the verdict's comparison table: result label and colour.
         SOURCE_RESULTS: {
-            MATCH: { label: "Matches", state: "Success" },
-            MISMATCH: { label: "Differs", state: "Error" },
-            NOT_IN_SAP: { label: "Not in SAP", state: "Error" },
-            NOT_ON_INVOICE: { label: "Not on invoice", state: "None" },
-            NOT_COMPARABLE: { label: "Not comparable", state: "None" }
+            MATCH: { label: "Matches", state: "Success", icon: "sap-icon://accept" },
+            MISMATCH: { label: "Differs", state: "Error", icon: "sap-icon://decline" },
+            NOT_IN_SAP: { label: "Not in SAP", state: "Error", icon: "sap-icon://decline" },
+            NOT_ON_INVOICE: { label: "Not on invoice", state: "None", icon: "sap-icon://less" },
+            NOT_COMPARABLE: { label: "Not comparable", state: "None", icon: "sap-icon://less" }
         },
 
-        // VECTOR's PO match: status label and plain-language reasons (validation.matching).
-        PO_MATCH_LABELS: { PASS: "Matches the PO", FAIL: "Does not match the PO", UNKNOWN: "Could not be checked" },
+        // Document types the agents recognise: label and icon.
+        DOCUMENT_TYPES: {
+            invoice: ["Invoice", "sap-icon://document-text"],
+            credit_note: ["Credit note", "sap-icon://credit-card"],
+            statement_of_account: ["Statement of account", "sap-icon://customer-financial-fact-sheet"],
+            purchase_order_list: ["Purchase order", "sap-icon://sales-order"],
+            supporting_document: ["Supporting document", "sap-icon://attachment"],
+            payment_advice: ["Payment advice", "sap-icon://payment-approval"]
+        },
+
+        // Issues to resolve, in this order of areas.
+        ISSUE_AREAS: ["Invoice details", "Purchase order", "Supplier", "Amounts & dates", "Goods receipt", "Accounting"],
+        // Where an issue of each area is resolved: "info:<sub-tab>" for SAP records, otherwise Fields.
+        ISSUE_SECTIONS: {
+            Supplier: "info:supplier",
+            "Purchase order": "info:po",
+            "Goods receipt": "info:receipts",
+            Accounting: "info:accounts"
+        },
+        // SAP purchasing document types (EKKO-BSART) in words.
+        PO_TYPES: {
+            NB: "Standard purchase order",
+            FO: "Framework order",
+            UB: "Stock transport order"
+        },
+        // Per SAP check: [area, short title, what the values are called in the detail line].
+        SOURCE_ISSUES: {
+            purchase_order: ["Purchase order", "Purchase order not found", "PO"],
+            supplier: ["Supplier", "Supplier mismatch", "supplier"],
+            supplier_status: ["Supplier", "Supplier blocked in SAP", "status"],
+            bank: ["Supplier", "No bank account in SAP", "bank account"],
+            company_code: ["Amounts & dates", "Company code mismatch", "company code"],
+            currency: ["Amounts & dates", "Currency mismatch", "currency"],
+            amount: ["Amounts & dates", "Amount mismatch", "amount"],
+            invoice_date: ["Amounts & dates", "Date mismatch", "date"],
+            goods_receipt: ["Goods receipt", "Goods not received", "goods receipt"],
+            service_entry: ["Goods receipt", "Service entry not accepted", "service entry"],
+            gl_account: ["Accounting", "GL account not valid", "GL account"],
+            cost_center: ["Accounting", "Cost center not valid", "cost center"]
+        },
+
+        // Overview tab: the verdict's headline, icon and colour per case status.
+        VERDICT_HEADLINES: {
+            RECEIVED: ["Checks in progress", "sap-icon://pending", "Information"],
+            PROCESSING: ["Checks in progress", "sap-icon://process", "Information"],
+            PROCESSING_ERROR: ["Could not be read automatically", "sap-icon://error", "Error"],
+            NEEDS_REVIEW: ["Not ready for approval", "sap-icon://alert", "Warning"],
+            RETURNED: ["Returned for corrections", "sap-icon://undo", "Warning"],
+            READY_FOR_APPROVAL: ["Ready for approval", "sap-icon://approvals", "Success"],
+            PENDING_APPROVAL: ["Ready for approval", "sap-icon://approvals", "Success"],
+            APPROVED: ["Approved", "sap-icon://accept", "Success"],
+            POSTING: ["Approved", "sap-icon://accept", "Success"],
+            POSTED: ["Posted to SAP", "sap-icon://accept", "Success"],
+            REJECTED: ["Rejected", "sap-icon://decline", "Error"]
+        },
+        // SAP data checks whose problems lie in SAP itself, not on the invoice.
+        SAP_SIDE_CHECKS: ["purchase_order", "supplier_status", "bank", "goods_receipt", "service_entry", "gl_account",
+            "cost_center"],
+
+        // Reading confidence bands: below CONFIDENCE_REVIEW the agents send the invoice to review
+        // (MIN_CONFIDENCE_THRESHOLD in agentic-ai), from CONFIDENCE_HIGH it is shown as high.
+        CONFIDENCE_REVIEW: 0.75,
+        CONFIDENCE_HIGH: 0.85,
+
+        // Agent stepper on the Overview tab: what each agent does.
+        AGENT_TASKS: {
+            CLASSIFIER: "Recognises the type of document",
+            SCANNER: "Reads the invoice details",
+            FINANCE_RULES: "Checks required details and duplicates",
+            VERIFIER: "Matches the invoice with its purchase order",
+            SOURCE_CHECK: "Compares the invoice with the SAP data",
+            RECONCILER: "Reviews all findings and recommends a next step"
+        },
+        // Agent status: [label, state, result text when the agent has no result yet, icon].
+        AGENT_STATUSES: {
+            pending: ["Pending", "None", "Waiting to start.", "sap-icon://pending"],
+            running: ["Working…", "Information", "Working on it…", "sap-icon://synchronize"],
+            passed: ["Passed", "Success", "", "sap-icon://sys-enter-2"],
+            check: ["Check", "Warning", "", "sap-icon://alert"],
+            failed: ["Failed", "Error", "This agent could not complete.", "sap-icon://error"],
+            skipped: ["Not run", "None", "Not needed for this invoice.", "sap-icon://less"]
+        },
+        // The agent's icon on the stepper (the same as its step on Steps).
+        AGENT_ICONS: {
+            CLASSIFIER: "sap-icon://inspect",
+            SCANNER: "sap-icon://create-form",
+            FINANCE_RULES: "sap-icon://lab",
+            VERIFIER: "sap-icon://compare",
+            SOURCE_CHECK: "sap-icon://accounting-document-verification",
+            RECONCILER: "sap-icon://search"
+        },
+        // Why the purchase order match failed, in plain words.
         PO_MATCH_REASONS: {
-            PO_NUMBER_MISSING: "No PO number was found on the invoice.",
-            SAP_PO_CONTEXT_UNAVAILABLE: "This PO number was not found in the SAP purchase order data.",
-            SUPPLIER_MISMATCH: "The supplier on the invoice is not the supplier on the PO.",
-            COMPANY_CODE_MISMATCH: "The company code differs from the PO's company code.",
-            CURRENCY_MISMATCH: "The currency differs from the PO's currency.",
-            INVOICE_EXCEEDS_PO_AVAILABLE_AMOUNT: "The invoice total is more than the amount left on the PO.",
-            VECTOR_EXECUTION_FAILED: "PO matching could not run."
+            SUPPLIER_MISMATCH: "supplier",
+            COMPANY_CODE_MISMATCH: "company code",
+            CURRENCY_MISMATCH: "currency",
+            INVOICE_EXCEEDS_PO_AVAILABLE_AMOUNT: "amount above the open purchase order value",
+            PO_NUMBER_MISSING: "no purchase order number on the invoice",
+            SAP_PO_CONTEXT_UNAVAILABLE: "purchase order data not available"
+        },
+        // Details the purchase order match could not compare, in plain words.
+        PO_MATCH_EVIDENCE: {
+            supplier_id: "supplier",
+            company_code: "company code",
+            currency: "currency",
+            comparable_amount: "amount"
+        },
+        // What the final review (RECONCILER) found, in plain words.
+        RECONCILER_FINDINGS: {
+            TRIAGE_REVIEW_REQUIRED: "details read with low confidence",
+            REQUIRED_FIELDS_MISSING: "required details missing",
+            VERIFIER_PO_MATCH: "the invoice doesn't match its purchase order",
+            SAP_DATA_CHECK: "differences with the SAP data"
         },
 
-        // PRISM's investigation: status label and follow-up actions (validation.investigation).
-        INVESTIGATION_LABELS: {
-            CLEAR: "No issues found",
-            NEEDS_INVESTIGATION: "Needs investigation",
-            INSUFFICIENT_EVIDENCE: "Not enough evidence",
-            ERROR: "Could not run"
+        // What a finished pipeline step did, in plain words (instead of the agents' own output).
+        STEP_DONE_TEXTS: {
+            classify: "Document type recognised.",
+            extract: "Invoice details read.",
+            finance: "Basic invoice checks completed.",
+            po: "Purchase order looked up.",
+            investigate: "Findings summarised for review."
         },
-        // Readable names for the rule codes PRISM investigates.
-        INVESTIGATION_TOPICS: {
-            TRIAGE_REVIEW_REQUIRED: "finance rules",
-            REQUIRED_FIELDS_MISSING: "required fields",
-            VECTOR_PO_MATCH: "PO match",
-            SAP_DATA_CHECK: "SAP data check"
-        },
-        FOLLOW_UP_TEXTS: {
-            obtain_missing_evidence: "Get the missing evidence for: {0}",
-            review_discrepancy: "Review the discrepancy: {0}",
-            fetch_read_only_sap_observations: "Check the supplier, PO and goods receipt in SAP",
-            request_human_field_review: "Check this field against the PDF: {0}"
-        }
+
     };
 });

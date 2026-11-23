@@ -44,7 +44,8 @@ async def process_document(
     finally:
         await file.close()
 
-    # Built per request, with the context that also runs VECTOR (PO match), SOURCE_CHECK and PRISM.
+    # Built per request, with the context that also runs VERIFIER (PO match), SOURCE_CHECK and
+    # RECONCILER.
     orchestrator, extended_context = build_agent_run()
     if stream:
         return StreamingResponse(
@@ -138,6 +139,7 @@ def _response(result: Any) -> dict[str, Any]:
         "net_amount": invoice.get("net_amount") or None,
         "tax_amount": invoice.get("tax_amount") or None,
         "line_items": converted.get("line_items", []),
+        "field_locations": converted.get("field_locations", {}),
         "document_type": result.classification.get("document_type"),
     }
 

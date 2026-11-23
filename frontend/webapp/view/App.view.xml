@@ -9,8 +9,6 @@
 				<tnt:ToolPage id="toolPage" class="apPage">
 					<tnt:header>
 						<tnt:ToolHeader class="apHeader">
-							<Button icon="sap-icon://menu2" type="Transparent" press="onToggleSideNav"
-								tooltip="Show or hide the menu" class="apMenuButton"/>
 							<HBox alignItems="Center">
 								<HBox class="apBrandMark" alignItems="Center" justifyContent="Center">
 									<Text text="{client>/branding/markText}" class="apBrandMarkLetter"/>
@@ -32,19 +30,6 @@
 							</HBox>
 						</tnt:ToolHeader>
 					</tnt:header>
-					<tnt:sideContent>
-						<tnt:SideNavigation selectedKey="{apData>/section}" itemSelect="onSectionSelect" class="apSideNav">
-							<tnt:NavigationList>
-								<tnt:NavigationListItem key="dashboard" text="Dashboard" icon="sap-icon://bbyd-dashboard"/>
-								<tnt:NavigationListItem key="upload" text="Upload" icon="sap-icon://upload-to-cloud"
-									visible="{apData>/permissions/processor}"/>
-								<tnt:NavigationListItem key="review" text="Clear Desk" icon="sap-icon://inspect"/>
-								<tnt:NavigationListItem key="approvals" text="Approvals" icon="sap-icon://approvals"
-									visible="{apData>/permissions/approver}"/>
-								<tnt:NavigationListItem key="audit" text="Audit Trail" icon="sap-icon://history"/>
-							</tnt:NavigationList>
-						</tnt:SideNavigation>
-					</tnt:sideContent>
 					<tnt:mainContents>
 						<NavContainer id="sections" defaultTransitionName="show"/>
 					</tnt:mainContents>

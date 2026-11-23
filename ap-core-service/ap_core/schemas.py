@@ -28,6 +28,8 @@ class ProgressUpdate(BaseModel):
     """Live agent progress while a case is processing: the finished steps and SAP data checks so far."""
     agent_trace: list[dict[str, Any]] = Field(default_factory=list)
     source_checks: list[dict[str, Any]] = Field(default_factory=list)
+    fields: dict[str, Any] | None = None
+    validation: dict[str, Any] | None = None
 
 class LeaseRequest(BaseModel):
     worker_id: str = Field(min_length=1, max_length=200)

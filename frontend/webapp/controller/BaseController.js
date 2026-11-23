@@ -27,6 +27,11 @@ sap.ui.define([
             this.getRouter().navTo(sRoute, oParameters);
         },
 
+        // The "Back to dashboard" line at the top of each screen.
+        onNavBack: function () {
+            this.navTo("dashboard");
+        },
+
         onCasePress: function (oEvent) {
             this.navTo("review", { caseId: oEvent.getSource().getBindingContext("apData").getObject().caseId });
         },

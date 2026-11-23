@@ -141,3 +141,6 @@ ai_core_cred.json
 
 # Document configuration (if contains sensitive data)
 document_types.json
+
+# Generated locally by the PDF viewer prepare script
+frontend/webapp/vendor/pdfjs/

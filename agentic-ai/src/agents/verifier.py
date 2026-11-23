@@ -18,13 +18,13 @@ class SAPReadOnlyPort(Protocol):
     def get_purchase_order_context(self, po_number: str, supplier_id: str | None = None) -> dict[str, Any] | None: ...
 
 
-class VectorMatchingAgent:
-    """VECTOR recommends PO/GR matching from supplied or read-only SAP evidence.
+class VerifierMatchingAgent:
+    """VERIFIER recommends PO/GR matching from supplied or read-only SAP evidence.
 
     It never approves, changes AP Core case state, or writes to SAP. Missing SAP
     evidence is UNKNOWN (never PASS). Monetary comparisons use Decimal.
     """
-    name = "VECTOR"
+    name = "VERIFIER"
 
     def __init__(self, sap_reader: SAPReadOnlyPort | None = None):
         self.sap_reader = sap_reader

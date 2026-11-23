@@ -122,10 +122,10 @@ def test_agents_route_describes_minimum_architecture():
         response = client.get("/api/v1/agents", headers=headers("admin-1", "ADMIN"))
         assert response.status_code == 200
         data = response.json()
-        assert data["execution_order"] == ["EMAIL_INTAKE", "TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM", "PLUMB"]
+        assert data["execution_order"] == ["EMAIL_INTAKE", "CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER", "PLUMB"]
         statuses = {agent["name"]: agent["status"] for agent in data["agents"]}
-        assert statuses["VECTOR"] == "implemented_requires_sap_context"
-        assert statuses["PRISM"] == "implemented_requires_evidence"
+        assert statuses["VERIFIER"] == "implemented_requires_sap_context"
+        assert statuses["RECONCILER"] == "implemented_requires_evidence"
         assert statuses["PLUMB"] == "implemented_requires_payment_data"
 
 
@@ -215,7 +215,7 @@ def test_business_duplicate_uses_supplier_invoice_and_company_identity():
 def test_process_document_runs_po_matching_against_sap_excel_data(monkeypatch):
     import agents.mock_agents as mock_agents
 
-    class LensWithPurchaseOrder(mock_agents.MockLensAgent):
+    class ScannerWithPurchaseOrder(mock_agents.MockScannerAgent):
         def run(self, file_path, classification):
             result = super().run(file_path, classification)
             # PO 4500000002 exists in the EKKO export with supplier 1000001001 (company MAH1, INR).
@@ -225,7 +225,7 @@ def test_process_document_runs_po_matching_against_sap_excel_data(monkeypatch):
             }
             return result
 
-    monkeypatch.setattr(mock_agents, "MockLensAgent", LensWithPurchaseOrder)
+    monkeypatch.setattr(mock_agents, "MockScannerAgent", ScannerWithPurchaseOrder)
     with TestClient(app) as client:
         before = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
         response = client.post(
@@ -236,7 +236,9 @@ def test_process_document_runs_po_matching_against_sap_excel_data(monkeypatch):
         assert response.status_code == 200, response.text
         validation = response.json()["validation"]
         agents_run = [step["agent"] for step in validation["agent_trace"]]
-        assert agents_run == ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM"]
+        assert agents_run == [
+            "CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER"
+        ]
         assert validation["source_verdict"]["status"] == "MISMATCH"
         assert validation["checks"]["po"] == "FAIL"
         assert "SUPPLIER_MISMATCH" in validation["matching"]["reason_codes"]
@@ -251,7 +253,7 @@ def test_process_document_streams_each_step_then_the_same_result(monkeypatch):
 
     import agents.mock_agents as mock_agents
 
-    class LensWithPurchaseOrder(mock_agents.MockLensAgent):
+    class ScannerWithPurchaseOrder(mock_agents.MockScannerAgent):
         def run(self, file_path, classification):
             result = super().run(file_path, classification)
             result["converted"]["invoice_source"] = {
@@ -261,7 +263,7 @@ def test_process_document_streams_each_step_then_the_same_result(monkeypatch):
             }
             return result
 
-    monkeypatch.setattr(mock_agents, "MockLensAgent", LensWithPurchaseOrder)
+    monkeypatch.setattr(mock_agents, "MockScannerAgent", ScannerWithPurchaseOrder)
     pdf = ("invoice.pdf", b"%PDF-1.4\n% mock\n%%EOF", "application/pdf")
     with TestClient(app) as client:
         streamed = client.post("/internal/v1/process-document",
@@ -271,7 +273,9 @@ def test_process_document_streams_each_step_then_the_same_result(monkeypatch):
     events = [json.loads(line) for line in streamed.text.splitlines() if line]
 
     steps = [event["step"]["agent"] for event in events if event["type"] == "step"]
-    assert steps == ["TOWER", "LENS", "FINANCE_RULES", "VECTOR", "SOURCE_CHECK", "PRISM"]
+    assert steps == [
+        "CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER"
+    ]
     checks = [event["check"]["check"] for event in events if event["type"] == "check"]
     assert checks[0] == "purchase_order" and "amount" in checks
     # Each SAP data check is reported before the SOURCE_CHECK step finishes.

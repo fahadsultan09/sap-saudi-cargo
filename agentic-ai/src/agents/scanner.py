@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any
 
 
-class LensExtractionAgent:
-    """LENS: delegates invoice field extraction to SAP Document AI (DOX)."""
-    name = "LENS"
+class ScannerExtractionAgent:
+    """SCANNER: delegates invoice field extraction to SAP Document AI (DOX)."""
+    name = "SCANNER"
     EXTRACTABLE = {"invoice", "credit_note"}
 
     def __init__(self, client: Any | None = None):
@@ -17,7 +17,7 @@ class LensExtractionAgent:
         if kind not in self.EXTRACTABLE:
             return {
                 "status": "skipped",
-                "reason": f"TOWER classified document as {kind}; LENS only processes invoices and credit notes.",
+                "reason": f"CLASSIFIER classified document as {kind}; SCANNER only processes invoices and credit notes.",
                 "raw_job": {},
                 "converted": {"classification_extraction": [], "detailed_extraction": [], "line_items": []},
             }

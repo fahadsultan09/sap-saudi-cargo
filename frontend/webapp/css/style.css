@@ -2,6 +2,24 @@
    AP Console v2 — Runway layout & components
    ========================================================================== */
 
+/* A mouse or touch click leaves no focus ring; keyboard focus (:focus-visible, e.g. Tab) still shows one.
+   The theme draws it as a border on the control's inner ::before, or as an outline. */
+.sapMBtn:focus:not(:focus-visible) > .sapMFocusable::before,
+.sapMSegBBtn:focus:not(:focus-visible)::before,
+.sapMLIB:focus:not(:focus-visible)::before,
+.sapMLIB:focus:not(:focus-visible)::after {
+    /* The theme's own focus rules are more specific (html.sap-desktop …). */
+    border-color: transparent !important;
+}
+
+.sapMLnk:focus:not(:focus-visible),
+.sapMLIB:focus:not(:focus-visible),
+.sapMSegBBtn:focus:not(:focus-visible),
+.sapMITBFilter:focus:not(:focus-visible),
+.sapMITBFilter:focus:not(:focus-visible) .sapMITBFilterWrapper {
+    outline: none !important;
+}
+
 html, body, .sapUiBody {
     font-family: var(--ap-font-body);
 }
@@ -21,19 +39,6 @@ html, body, .sapUiBody {
     background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFA 100%);
     border-bottom: 1px solid var(--ap-border);
     box-shadow: 0 1px 0 rgba(11, 122, 66, 0.35), 0 8px 24px rgba(10, 22, 32, 0.04);
-}
-
-.apMenuButton .sapMBtnInner {
-    background: transparent;
-    border-color: transparent;
-}
-
-.apMenuButton:hover .sapMBtnInner {
-    background: var(--ap-brand-soft);
-}
-
-.apHeader.sapTntToolHeader .apMenuButton.sapMBtn .sapMBtnInner.sapMBtnTransparent .sapMBtnIcon {
-    color: var(--ap-brand-dark);
 }
 
 .apBrandMark {
@@ -123,30 +128,6 @@ html, body, .sapUiBody {
 .apProfileActions { padding: 0.5rem; }
 
 /* --------------------------------------------------------------------------
-   Side nav
-   -------------------------------------------------------------------------- */
-
-.apSideNav.sapTntSideNavigation {
-    background: linear-gradient(180deg, #FFFFFF 0%, #F5F8F9 100%);
-    border-right: 1px solid var(--ap-border);
-}
-
-.apSideNav .sapTntNLI.sapTntNLISelected,
-.apSideNav .sapTntNLI.sapTntNLISelected > a {
-    background: var(--ap-brand-soft);
-}
-
-.apSideNav .sapTntNLI.sapTntNLISelected {
-    box-shadow: inset 3px 0 0 var(--ap-brand);
-}
-
-.apSideNav .sapTntNLI.sapTntNLISelected .sapTntNLIIcon,
-.apSideNav .sapTntNLI.sapTntNLISelected .sapTntNLIText {
-    color: var(--ap-brand-dark);
-    font-weight: 600;
-}
-
-/* --------------------------------------------------------------------------
    Welcome / dashboard hero
    -------------------------------------------------------------------------- */
 
@@ -233,6 +214,24 @@ html, body, .sapUiBody {
 .apKpi:hover {
     transform: translateY(-2px);
     box-shadow: var(--ap-shadow-lift);
+}
+
+.apKpiRow .sapMListUl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.apKpiRow .apKpi.sapMLIB {
+    height: auto;
+    border: 1px solid var(--ap-border);
+    background: var(--ap-surface);
+    cursor: pointer;
+}
+
+.apKpiRow .apKpi.sapMLIB[data-active="true"] {
+    border-color: var(--ap-brand);
+    box-shadow: 0 0 0 2px var(--ap-brand-soft), var(--ap-shadow);
 }
 
 .apKpiLabel.sapMText {
@@ -400,8 +399,9 @@ html, body, .sapUiBody {
    Upload — runway intake
    -------------------------------------------------------------------------- */
 
-.apUploadWrap {
-    max-width: 72rem;
+/* Centred on the page (the large margin class would otherwise pin it to the left) */
+.apUploadWrap.sapUiLargeMargin {
+    max-width: 84rem;
     margin-left: auto;
     margin-right: auto;
 }
@@ -445,6 +445,17 @@ html, body, .sapUiBody {
     transition: border-color var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease),
         transform var(--ap-fast) var(--ap-ease);
     overflow: hidden;
+}
+
+/* Home: the file picker behind the banner's "Upload invoice" button stays hidden */
+.apHiddenUploader {
+    display: none;
+}
+
+/* Home: a PDF dragged over the banner */
+.apWelcome.apWelcome--dragover {
+    outline: 2px dashed rgba(255, 255, 255, 0.85);
+    outline-offset: -8px;
 }
 
 .apHeroDrop--dragover {
@@ -597,6 +608,15 @@ html, body, .sapUiBody {
 .apStep[data-state="running"] .apStepTitle { color: var(--ap-live); }
 .apStep[data-state="done"] .apStepTitle { color: var(--ap-brand-dark); }
 
+/* A step waiting on a person (review or approval): a calm yellow outline instead of the live spinner */
+.apStep[data-state="waiting"] .apStepDot {
+    border-color: var(--ap-warning);
+    background: var(--ap-warning-soft);
+    color: var(--ap-warning);
+}
+.apStep[data-state="waiting"] .apStepTitle { color: var(--ap-warning); }
+.apStep[data-state="waiting"] .apStepStatus .sapMObjStatusText { color: var(--ap-warning); }
+
 /* Vertical connector between step dots */
 .apPipeRailList .apStep:not(:last-child)::after {
     content: "";
@@ -622,8 +642,12 @@ html, body, .sapUiBody {
     box-shadow: var(--ap-shadow-lift);
 }
 
-.apPipeHeroKicker.sapMText,
-.apPipeLiveTitle.sapMTitle {
+/* Home (Dashboard) process theater after upload — same green rail, full width under welcome */
+.apPipeHero--home {
+    width: 100%;
+}
+
+.apPipeHeroKicker.sapMText {
     color: rgba(255, 255, 255, 0.85) !important;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -643,33 +667,60 @@ html, body, .sapUiBody {
     font-weight: 600;
 }
 
-.apPipeTrack {
-    gap: 0.35rem;
+/* All twelve steps on one line; on smaller screens an even grid of six, four or two per row */
+.apPipeTrack.sapMFlexBox {
+    --ap-dot: 2.35rem;
+    --ap-col-gap: 0.35rem;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1.1rem var(--ap-col-gap);
     margin-top: 1.1rem;
     position: relative;
 }
 
 .apPipeTrackStep {
-    flex: 1 1 5.5rem;
     position: relative;
-    min-width: 5rem;
+    min-width: 0;
     padding: 0 0.25rem;
 }
 
 .apPipeTrackDot {
     position: relative;
-    width: 2.35rem;
-    height: 2.35rem;
+    z-index: 1;
+    width: var(--ap-dot);
+    height: var(--ap-dot);
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.35);
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
 
-.apPipeTrackLabel.sapMText {
+.apPipeTrackLabel.sapMText,
+.apPipeTrackLabel.sapMLnk {
     color: #fff;
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+/* Flow steps are links to their outcome on the review page */
+.apPipeTrackLabel.sapMLnk:not(.sapMLnkDsbl):hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.apPipeTrackLabel.sapMLnkDsbl {
+    color: #fff;
+    opacity: 1;
+}
+
+/* One line per step name, steps centred in the tile */
+.apPipeTrack.sapMFlexBox {
+    align-items: center;
+}
+
+.apPipeTrackStep .apPipeTrackLabel {
+    white-space: nowrap;
 }
 
 .apPipeTrackService.sapMText {
@@ -677,8 +728,32 @@ html, body, .sapUiBody {
     font-size: 0.65rem;
 }
 
-.apPipeTrackConnector {
-    display: none;
+/* A line from each step's dot back to the previous one; it turns green once the step is done, fades in
+   towards the step being worked on, and turns red at a failed step. Only when all steps share one row. */
+@media (min-width: 1281px) {
+    .apPipeTrackStep + .apPipeTrackStep::before {
+        content: "";
+        position: absolute;
+        top: calc(var(--ap-dot) / 2 - 1px);
+        left: calc(-50% - var(--ap-col-gap) + var(--ap-dot) / 2 + 0.3rem);
+        width: calc(100% + var(--ap-col-gap) - var(--ap-dot) - 0.6rem);
+        height: 2px;
+        border-radius: 1px;
+        background: rgba(255, 255, 255, 0.2);
+        transition: background var(--ap-base) var(--ap-ease-out);
+    }
+
+    .apPipeTrackStep + .apPipeTrackStep[data-state="done"]::before {
+        background: var(--ap-brand-light);
+    }
+
+    .apPipeTrackStep + .apPipeTrackStep[data-state="running"]::before {
+        background: linear-gradient(90deg, var(--ap-brand-light), rgba(255, 255, 255, 0.2));
+    }
+
+    .apPipeTrackStep + .apPipeTrackStep[data-state="failed"]::before {
+        background: var(--ap-error);
+    }
 }
 
 .apPipeNow {
@@ -693,37 +768,28 @@ html, body, .sapUiBody {
     font-size: 0.875rem;
 }
 
-.apPipeHero--review {
-    background:
-        linear-gradient(145deg, rgba(10, 22, 32, 0.04), rgba(14, 143, 138, 0.08)),
-        var(--ap-surface);
-    color: var(--ap-ink);
-    border: 1px solid var(--ap-border);
-    box-shadow: var(--ap-shadow);
-}
-
-.apPipeHero--review .apPipeLiveTitle.sapMTitle,
-.apPipeHero--review .apPipeNowText.sapMText,
-.apPipeHero--review .apStepTitle.sapMText {
-    color: var(--ap-ink) !important;
-    text-transform: none;
-    letter-spacing: -0.01em;
-}
-
-.apPipeHero--review .apPipeLiveTitle.sapMTitle {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.72rem !important;
-    color: var(--ap-live) !important;
-}
-
 .apPipeProgress {
     margin-top: 0.35rem;
 }
 
+.apPipeHero .apPipeProgress .sapMPIText {
+    color: #fff;
+    text-shadow: none;
+}
+
 /* --------------------------------------------------------------------------
-   Review — Clear Desk + Dock Decide
+   Review — invoice details and decisions
    -------------------------------------------------------------------------- */
+
+/* "Back to dashboard": a light line above the page content, with room before the first card */
+.apBackBar.sapMTB {
+    height: auto;
+    padding: 0.5rem 0.75rem 0;
+    margin-bottom: 0.6rem;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
 
 .apBackLink.sapMBtn .sapMBtnInner {
     font-weight: 600;
@@ -735,14 +801,34 @@ html, body, .sapUiBody {
     gap: 0;
 }
 
-.apReviewSplit {
-    gap: 0.85rem;
-    min-height: 0;
-    padding: 0 0.75rem;
+/* Processor extension: existing review cards remain the data pane. Other roles retain full width. */
+.apProcessorWorkspace { width: 100%; gap: 0.75rem; align-items: flex-start; }
+.apProcessorData { width: 100%; flex: 1 1 auto; min-width: 0; }
+.apProcessorPdf { min-width: 0; background: var(--ap-surface); border: 1px solid var(--ap-border); border-radius: var(--ap-radius); overflow: hidden; }
+.apProcessorDocFrame { width: 100%; height: calc(100vh - 225px); min-height: 480px; border: 0; display: block; }
+.apPdfHint { font-size: 0.75rem; color: var(--ap-text-muted); margin-bottom: 0.5rem; }
+.apExceptionBanner { margin: 0.5rem 0.75rem; }
+.apProcessorActions { position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--ap-border); background: var(--ap-surface); padding: 0.4rem; }
+.apProcessorActions .sapMBtnAccept .sapMBtnInner { background: #176448; border-color: #176448; color: #fff; }
+@media (min-width: 1280px) {
+    .apProcessorWorkspace[data-split="true"] > .apProcessorData { width: 54%; flex: 1 1 54%; margin-right: 0; }
+    .apProcessorWorkspace[data-split="true"] > .apProcessorPdf { width: 46%; flex: 1 1 46%; position: sticky; top: 0.5rem; margin-right: 0.75rem; }
+    .apProcessorWorkspace[data-split="true"] .apReviewHeader > .sapMFlexBox { gap: 0.5rem; }
+    .apProcessorWorkspace[data-split="true"] .apFieldGroups { grid-template-columns: 1fr; }
+}
+@media (max-width: 1279px) {
+    .apProcessorWorkspace[data-split="true"] { flex-direction: column; }
+    .apProcessorWorkspace[data-split="true"] > .apProcessorData,
+    .apProcessorWorkspace[data-split="true"] > .apProcessorPdf { width: calc(100% - 1.5rem); margin: 0 0.75rem; }
 }
 
-.apPdfPane,
+.apHomeReview .apSectionTitle.sapMTitle {
+    font-family: var(--ap-font-display);
+    letter-spacing: -0.02em;
+}
+
 .apReviewMain {
+    margin: 0 0.75rem;
     border-radius: var(--ap-radius);
     background: var(--ap-surface);
     border: 1px solid var(--ap-border);
@@ -751,50 +837,313 @@ html, body, .sapUiBody {
     min-height: 0;
 }
 
-.apPdfPaneHeader,
 .apReviewHeader {
     padding: 0.7rem 0.9rem;
     border-bottom: 1px solid var(--ap-border);
     background: var(--ap-surface-2);
 }
 
-.apPdfPaneHeader .sapMText {
+/* Home pipeline once an invoice is uploaded: compact, so the invoice below stays in view */
+.apPipeHero--compact {
+    padding: 0.85rem 1.1rem 1rem;
+}
+
+.apPipeHero--compact .apPipeTrack.sapMFlexBox {
+    margin-top: 0.6rem;
+}
+
+.apPipeHero--compact .apPipeTrack.sapMFlexBox {
+    --ap-dot: 1.85rem;
+}
+
+.apPipeHero--compact .apPipeNow {
+    padding: 0.35rem 0.6rem;
+}
+
+/* One row of steps; each step's state shows in its icon, so the service and status lines are left out */
+.apPipeHero--compact .apPipeTrack.sapMFlexBox {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.apPipeHero--compact .apPipeTrackService,
+.apPipeHero--compact .apStepStatus {
+    display: none;
+}
+
+.apPipeHero--compact .apPipeTrackLabel.sapMText {
+    font-size: 0.68rem;
+    line-height: 1.25;
+}
+
+@media (max-width: 900px) {
+    .apPipeHero--compact .apPipeTrack.sapMFlexBox { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* Step status under each step on the dark pipeline: light text (UI5's default is dark with a white glow) */
+.apPipeHero .apStepStatus .sapMObjStatusText {
+    color: rgba(255, 255, 255, 0.7);
+    text-shadow: none;
+}
+
+/* Review panel (Home and #/review): as tall as its content, so the page has a single scrollbar */
+.apReviewShell--home .sapMFlexItem,
+.apReviewShell--route .sapMFlexItem {
+    flex-basis: auto !important;
+}
+
+.apReviewShell--home .apReviewBody.sapMScrollCont,
+.apReviewShell--route .apReviewBody.sapMScrollCont {
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* The flow strip at the top of the review page: a compact, dark version of the Home pipeline.
+   Home shows its own pipeline right above the panel, so the strip is hidden there. */
+.apPanelFlow.sapMFlexBox {
+    --ap-dot: 1.6rem;
+    margin: 0;
+    padding: 0.85rem 0.75rem;
+    background: linear-gradient(160deg, rgba(10, 22, 32, 0.97), rgba(6, 83, 44, 0.9));
+}
+
+.apPanelFlow .apPipeTrackLabel.sapMText {
+    font-size: 0.65rem;
+    font-weight: 600;
+}
+
+.apReviewShell--home .apFlowCard {
+    display: none;
+}
+
+/* The flow strip as its own card above the invoice card */
+.apFlowCard {
+    margin: 0 0.75rem 0.75rem;
+    border-radius: var(--ap-radius);
+    overflow: hidden;
+    box-shadow: var(--ap-shadow);
+}
+
+/* Back to the top: a round arrow at the right edge of the screen, shown once the page is scrolled down */
+.apToTop.sapMBtn {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.5rem);
+    transition: opacity var(--ap-base) var(--ap-ease-out), transform var(--ap-base) var(--ap-ease-out);
+}
+
+.apToTop.apToTop--shown {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+}
+
+.apToTop .sapMBtnInner {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    background: var(--ap-brand);
+    border-color: var(--ap-brand);
+    box-shadow: var(--ap-shadow-lift);
+}
+
+.apToTop .sapMBtnInner .sapMBtnIcon {
+    color: #fff;
+    line-height: 2.75rem;
+}
+
+/* Info section: SAP's records in sub-tabs (these switch content, unlike the anchor tabs) */
+.apInfoTabs.apCard {
+    padding: 0;
+    overflow: hidden;
+}
+
+.apInfoPane {
+    gap: 0.75rem;
+    padding: 1rem 1.1rem;
+}
+
+.apInfoSubtitle.sapMText {
     font-weight: 700;
-    font-size: 0.75rem;
+    color: var(--ap-ink);
+}
+
+.apInfoCompare {
+    gap: 0.4rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--ap-border);
+}
+
+/* Fields: one card per group, field tiles in a grid; a tile that differs from SAP is outlined in red */
+.apFieldGroups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 0.75rem;
+}
+
+@media (max-width: 1024px) {
+    .apFieldGroups { grid-template-columns: minmax(0, 1fr); }
+}
+
+.apFieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-surface);
+}
+
+.apFieldGroupHead {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.apFieldGroupIcon.sapUiIcon {
+    color: var(--ap-brand-dark);
+}
+
+.apFieldTiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.6rem;
+}
+
+.apFieldTile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-bg);
+}
+
+.apFieldTile[data-differs="true"] {
+    border-color: var(--ap-error);
+    background: var(--ap-error-soft);
+}
+
+.apFieldTileHead {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.apFieldTileRow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+/* Fields: "All fields" / "Only differences (n)" fit their labels */
+.apFieldsActions .sapMSegB {
+    width: auto !important;
+}
+
+.apFieldsActions .sapMSegBBtn {
+    width: auto !important;
+    padding: 0 0.75rem;
+}
+
+.apInfoEmpty.sapMText {
+    color: var(--ap-muted);
+}
+
+.apAgentPoint[data-tone="high"] .apAgentPointValue.sapMText { color: var(--ap-success); }
+.apAgentPoint[data-tone="low"] .apAgentPointValue.sapMText { color: var(--ap-error); }
+
+
+/* Review page: the tabs are anchors over one continuous page of sections. The tab bar stays in view while
+   the page scrolls (on Home it sticks under the app header; on #/review it sits above the panel's own scroll). */
+.apAnchorBar {
+    background: var(--ap-surface);
+    border-bottom: 1px solid var(--ap-border);
+}
+
+/* UI5 wraps each item of the panel in its own div, and sticky only works inside the parent, so the
+   wrapper around the tab bar is what sticks. */
+.apReviewMain > .sapMFlexItem:has(> .apAnchorBar) {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.apReviewShell--home .apReviewMain,
+.apReviewShell--route .apReviewMain {
+    overflow: visible;
+}
+
+.apPageSection {
+    gap: 0.6rem;
+    padding: 1rem 0.9rem 0.25rem;
+    scroll-margin-top: 3.5rem;
+}
+
+.apPageSection + .apPageSection {
+    border-top: 1px dashed var(--ap-border);
+}
+
+.apPageSectionTitle.sapMTitle {
+    font-family: var(--ap-font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ap-muted);
 }
 
-.apPdfPaneBody {
-    position: relative;
-    background: #1a2229;
+/* Supplier tab: SAP status badges, and the invoice/SAP supplier side by side */
+.apSupplierStatuses {
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
-/* Both previews fill the dark pane: PDFs in the frame's viewer, PNG/JPEG scaled to fit. UI5's item wrappers
-   are positioned and have no height, so they must not become the previews' containing block. */
-.apPdfPaneBody > .sapMFlexItem {
-    position: static;
+.apAgentPoints.apSupplierCompare.sapMFlexBox {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.apPdfFrame,
-.apDocImage {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: #1a2229;
+/* Issue titles are links to the tab where the issue is fixed */
+.apIssueBody .apIssueTitle.sapMLnk {
+    font-weight: 600;
 }
 
-.apDocImage {
-    object-fit: contain;
+/* Invoice total, purchase order, invoice date and reading confidence under the header's title */
+.apHeaderFacts {
+    margin-top: 0.65rem;
 }
 
-.apPdfEmpty {
-    position: absolute;
-    inset: 0;
+.apHeaderFacts .apFact {
     background: var(--ap-surface);
+    border: 1px solid var(--ap-border);
+}
+
+/* View PDF window: the PDF viewer (or a PNG/JPEG scaled to fit) fills it edge to edge. The dialog's content is
+   85vh high (contentHeight in ReviewPanel.controller.js); a percentage height does not resolve inside it. */
+.apDocDialog .sapMDialogScrollCont {
+    padding: 0;
+    height: 100%;
+    background: #1a2229;
+}
+
+.apDocFrame,
+.apDocDialog .sapMImg {
+    display: block;
+    width: 100%;
+    height: 85vh;
+    border: 0;
+}
+
+.sapMDialog.sapMDialogStretched .apDocFrame {
+    height: calc(100vh - 6rem);
+}
+
+.apDocDialog .sapMImg {
+    object-fit: contain;
 }
 
 .apReviewHeader .sapMTitle {
@@ -830,30 +1179,420 @@ html, body, .sapUiBody {
     padding: 0.85rem 1rem 1.25rem;
 }
 
-.apReasonCard {
-    padding: 0.85rem 1rem;
-    border-radius: var(--ap-radius-sm);
-    background: var(--ap-warning-soft);
-    border: 1px solid rgba(184, 106, 18, 0.25);
+/* --------------------------------------------------------------------------
+   Agent Results: overview, issues, SAP comparison, processing steps
+   -------------------------------------------------------------------------- */
+
+.apResults {
+    gap: 0.85rem;
 }
 
-.apReasonTitle.sapMTitle {
+.apCard {
+    padding: 1rem 1.1rem;
+    border-radius: var(--ap-radius);
+    background: var(--ap-surface);
+    border: 1px solid var(--ap-border);
+    box-shadow: var(--ap-shadow);
+}
+
+/* Outcome banner: the left edge and icon take the colour of the case's state */
+.apOutcome {
+    --ap-outcome: var(--ap-info);
+    --ap-outcome-soft: #E8F1FB;
+    border-left: 5px solid var(--ap-outcome);
+    gap: 0.9rem;
+}
+
+.apOutcome[data-state="Success"] { --ap-outcome: var(--ap-success); --ap-outcome-soft: var(--ap-brand-soft); }
+.apOutcome[data-state="Warning"] { --ap-outcome: var(--ap-warning); --ap-outcome-soft: var(--ap-warning-soft); }
+.apOutcome[data-state="Error"] { --ap-outcome: var(--ap-error); --ap-outcome-soft: var(--ap-error-soft); }
+
+.apOutcomeIcon.sapUiIcon {
+    width: 2.4rem;
+    height: 2.4rem;
+    margin-right: 0.8rem;
+    border-radius: 50%;
+    background: var(--ap-outcome-soft);
+    color: var(--ap-outcome);
+    font-size: 1.15rem;
+    line-height: 2.4rem;
+}
+
+.apOutcomeTitle.sapMTitle {
     font-family: var(--ap-font-display);
-    color: var(--ap-warning);
-    margin-bottom: 0.4rem;
+    color: var(--ap-ink);
 }
 
-.apReasonItem {
+.apOutcomeText.sapMText {
+    color: var(--ap-muted);
+}
+
+/* Document type as a prominent pill */
+.apDocType {
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    background: var(--ap-ink);
+    color: #fff;
+    font-weight: 700;
+}
+
+.apDocType .sapMText,
+.apDocType .sapUiIcon {
+    color: #fff;
+}
+
+.apFacts {
+    gap: 0.6rem;
+}
+
+.apFact {
+    flex: 1 1 9rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-bg);
+}
+
+.apFactLabel.sapMText {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ap-muted);
+}
+
+.apFactValue.sapMText {
+    margin-top: 0.15rem;
+    font-weight: 600;
+    color: var(--ap-ink);
+}
+
+/* Agent Results table: the agent's name with what it does below */
+.apAgentName.sapMText {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ap-ink);
+}
+
+.apAgentTask.sapMText {
+    font-size: 0.75rem;
+    color: var(--ap-muted);
+}
+
+.apAgentResult.sapMText {
+    font-weight: 600;
+    color: var(--ap-ink);
+}
+
+.apAgentDetails {
+    margin-top: 0.25rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-bg);
+}
+
+.apAgentDetail.sapMText {
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--ap-muted);
+}
+
+.apAgentPoints.sapMFlexBox {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem 1.25rem;
+}
+
+@media (max-width: 1024px) {
+    .apAgentPoints.sapMFlexBox { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.apAgentPoint {
+    min-width: 0;
+}
+
+.apAgentPointLabel.sapMText {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ap-muted);
+}
+
+.apAgentPointValue.sapMText {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ap-ink);
+}
+
+/* Fields section: title with the filter and the Edit / Save corrections buttons */
+.apFieldsHeader {
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+
+.apFieldsHeader .apSectionTitle.sapMTitle {
+    margin: 0;
+}
+
+.apFieldName.sapMText {
+    font-weight: 600;
+    color: var(--ap-ink);
+}
+
+/* Grid tables: a border around every cell */
+.apGridTable .sapMListTbl {
+    border: 1px solid var(--ap-border);
+    border-collapse: collapse;
+}
+
+.apGridTable .sapMListTblCell,
+.apGridTable .sapMListTblHeaderCell {
+    border: 1px solid var(--ap-border);
+    text-align: left;
+}
+
+.apGridTable .sapMListTblHeaderCell {
+    background: var(--ap-bg);
+    font-weight: 700;
+}
+
+/* Fields tab: tight rows so the whole table fits on screen without scrolling */
+.apGridTable--compact .sapMListTblCell,
+.apGridTable--compact .sapMListTblHeaderCell {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+
+.apGridTable--compact .sapMListTblRow,
+.apGridTable--compact .sapMListTblHeader {
+    height: auto;
+}
+
+.apGridTable--compact .sapMText,
+.apGridTable--compact .sapMObjStatusText {
+    font-size: 0.8125rem;
+}
+
+/* Agent stepper: one chevron per agent, coloured by its status; the selected one is underlined.
+   The list's background shows through a 2px gap between the chevrons as the dividing line. */
+.apStepper.sapMList .sapMListUl {
+    display: flex;
+    padding: 1px;
+    border-radius: var(--ap-radius-sm);
+    background: var(--ap-border-strong);
+    overflow: hidden;
+}
+
+.apStepper .apStepperItem.sapMLIB {
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto;
+    margin-left: -12px;
+    padding: 0.3rem 0.9rem 0.3rem 1.35rem;
+    border: 0;
+    background: var(--ap-surface);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+    cursor: pointer;
+}
+
+.apStepper .apStepperItem.sapMLIB:first-child {
+    margin-left: 0;
+    padding-left: 0.8rem;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}
+
+.apStepper .apStepperItem.sapMLIB:last-child {
+    padding-right: 0.8rem;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 14px 50%);
+}
+
+.apStepper .apStepperItem[data-status="passed"] { background: var(--ap-brand-soft); }
+.apStepper .apStepperItem[data-status="failed"] { background: var(--ap-error-soft); }
+.apStepper .apStepperItem[data-status="running"] { background: #E8F1FB; }
+.apStepper .apStepperItem.sapMLIB[data-selected="true"] {
+    background: var(--ap-bg);
+    box-shadow: inset 0 -3px 0 var(--ap-ink);
+}
+
+.apStepper .apStepperItem.sapMLIB:hover {
+    filter: brightness(0.97);
+}
+
+.apStepperBody {
+    width: 100%;
+}
+
+/* Smaller status pills on the stepper */
+.apStepper .sapMObjStatus {
+    margin-top: 0.2rem;
+}
+
+.apStepper .sapMObjStatusInverted {
+    padding: 0 0.4rem;
+    min-height: 1.1rem;
+}
+
+.apStepper .sapMObjStatusText,
+.apStepper .sapMObjStatusIcon .sapUiIcon {
+    font-size: 0.68rem;
+}
+
+.apStepperName.sapMText {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ap-ink);
+}
+
+.apStepperIcon.sapUiIcon {
+    font-size: 0.9rem;
+    color: var(--ap-ink);
+}
+
+/* The selected agent's details, below the stepper */
+.apAgentPanel {
+    margin-top: 0.85rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius-sm);
+    gap: 0.5rem;
+}
+
+.apAgentPanelHeader {
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--ap-border);
+}
+
+.apAgentPanelIcon.sapUiIcon {
+    margin-right: 0.7rem;
+    font-size: 1.5rem;
+    color: var(--ap-ink);
+}
+
+.apAgentHeadline {
+    gap: 0.75rem;
+}
+
+/* "Check comparison": a highlighted action that opens the Fields tab */
+.apCheckComparison.sapMBtn {
+    margin: 0;
+}
+
+.apCheckComparison .sapMBtnInner {
+    border-radius: 999px;
+    border-color: var(--ap-brand);
+    background: var(--ap-brand-soft);
+    color: var(--ap-brand-dark);
+    font-weight: 700;
+}
+
+.apCheckComparison .sapMBtnInner .sapMBtnIcon {
+    color: var(--ap-brand-dark);
+}
+
+.apCheckComparison:hover .sapMBtnInner {
+    background: var(--ap-brand);
+    color: #fff;
+}
+
+.apCheckComparison:hover .sapMBtnInner .sapMBtnIcon {
+    color: #fff;
+}
+
+/* The comparison table glows briefly when opened from "Check comparison" */
+.apHighlight {
+    animation: apHighlightGlow 1.6s var(--ap-ease-out);
+}
+
+@keyframes apHighlightGlow {
+    0%, 35% { box-shadow: 0 0 0 3px var(--ap-brand), var(--ap-shadow); }
+    100% { box-shadow: var(--ap-shadow); }
+}
+
+/* Summary verdict: a few pointers under the headline */
+.apVerdictPoints {
+    margin-top: 0.35rem;
+}
+
+.apVerdictPoint {
+    gap: 0.5rem;
+    padding: 0.1rem 0;
+}
+
+.apVerdictBullet.sapMText {
+    color: var(--ap-outcome);
+    font-weight: 700;
+}
+
+.apVerdictText.sapMText {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ap-ink);
+}
+
+/* Reading confidence tile: green when high, yellow when average, red when low */
+.apFact[data-tone="high"] { background: var(--ap-brand-soft); }
+.apFact[data-tone="high"] .apFactValue.sapMText { color: var(--ap-success); }
+.apFact[data-tone="average"] { background: var(--ap-warning-soft); }
+.apFact[data-tone="average"] .apFactValue.sapMText { color: var(--ap-warning); }
+.apFact[data-tone="low"] { background: var(--ap-error-soft); }
+.apFact[data-tone="low"] .apFactValue.sapMText { color: var(--ap-error); }
+
+/* Issues to resolve: title with the values below it, a fixed area column and a divider between areas.
+   Two columns on wide screens, so the whole list fits without scrolling. */
+.apIssueList {
+    margin-top: 0.3rem;
+    column-count: 2;
+    column-gap: 2rem;
+}
+
+@media (max-width: 1100px) {
+    .apIssueList { column-count: 1; }
+}
+
+.apIssue {
     gap: 0.5rem;
     padding: 0.25rem 0;
+    break-inside: avoid;
 }
 
-.apReasonIcon.sapUiIcon {
+.apIssue[data-first="true"]:not(:first-child) {
+    border-top: 1px solid var(--ap-border);
+    padding-top: 0.4rem;
+}
+
+.apIssueArea.sapMText {
+    flex: 0 0 7.5rem;
+    padding-top: 0.1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ap-faint);
+}
+
+.apIssueIcon.sapUiIcon {
+    flex: none;
+    margin-top: 0.15rem;
     color: var(--ap-warning);
 }
 
-.apChips {
-    gap: 0.4rem;
+.apIssueBody {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.apIssueTitle.sapMText {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ap-ink);
+}
+
+.apIssueDetail.sapMText {
+    font-size: 0.8rem;
+    color: var(--ap-muted);
 }
 
 .apDecisionBar {
@@ -958,14 +1697,169 @@ html, body, .sapUiBody {
 @media (max-width: 900px) {
     .apUploadTitle.sapMTitle { font-size: 1.5rem !important; }
     .apWelcome .sapMTitle { font-size: 1.3rem !important; }
-    .apReviewSplit { flex-direction: column !important; }
-    .apPdfPane { min-height: 45vh !important; }
     .apDecisionBar { justify-content: stretch; }
     .apDecisionBarLabel { width: 100%; margin-bottom: 0.35rem; }
+}
+
+@media (max-width: 1280px) {
+    .apPipeTrack.sapMFlexBox { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1024px) {
+    .apPipeTrack.sapMFlexBox { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 600px) {
     .apBrandSubtitle { display: none; }
     .apKpi { min-width: 100%; }
-    .apPipeTrackStep { flex-basis: 45%; }
+    .apPipeTrack.sapMFlexBox { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Split review adapts to its data pane, including UI5's optional flex-item wrappers. */
+.apProcessorWorkspace[data-split="true"] .apProcessorData {
+    container-name: processor-data;
+    container-type: inline-size;
+    min-width: 0;
+}
+@media (min-width: 1280px) {
+    .apProcessorWorkspace[data-split="true"] {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        width: calc(100% - 1.5rem);
+        margin: 0 0.75rem;
+        align-items: start;
+    }
+    .apProcessorWorkspace[data-split="true"] > .sapMFlexItem {
+        width: auto !important;
+        min-width: 0;
+        max-width: 100%;
+    }
+    .apProcessorWorkspace[data-split="true"] .apProcessorData,
+    .apProcessorWorkspace[data-split="true"] .apProcessorPdf {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+    .apProcessorWorkspace[data-split="true"] > .sapMFlexItem:has(> .apProcessorPdf) {
+        position: sticky;
+        top: 0.5rem;
+    }
+}
+@container processor-data (max-width: 800px) {
+    .apReviewHeader, .apPageSection, .apInfoPane { padding: 0.65rem; }
+    .sapMFlexItem { min-width: 0; max-width: 100%; }
+    .sapMText, .sapMLnk, .sapMLabel, .sapMObjStatusText, .sapMInputBaseInner {
+        font-size: clamp(0.75rem, 1.8cqi, 0.875rem);
+        overflow-wrap: anywhere;
+    }
+    .sapMTitle { font-size: clamp(1rem, 2.7cqi, 1.25rem); white-space: normal; overflow-wrap: anywhere; }
+    .sapMTextNoWrap, .apStepperName.sapMText { white-space: normal; overflow-wrap: anywhere; }
+    .sapMBtnContent, .sapMSegBBtn .sapMSegBBtnInner, .sapMITBText { font-size: 0.75rem; }
+    .apReviewHeader > .sapMFlexBox, .apAgentPanelHeader, .apFieldTileHead, .apFieldsActions { flex-wrap: wrap; gap: 0.4rem; }
+    .apHeaderFacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 0.4rem; }
+    .apFact { min-width: 0; padding: 0.4rem; }
+    .apFactLabel.sapMText, .apAgentPointLabel.sapMText { font-size: 0.68rem; letter-spacing: 0.02em; }
+    .apFieldGroups { grid-template-columns: minmax(0, 1fr); }
+    .apFieldTiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); }
+    .apAgentPoints.sapMFlexBox { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+    .apStepper.sapMList .sapMListUl { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 2px; }
+    .apStepper .apStepperItem.sapMLIB,
+    .apStepper .apStepperItem.sapMLIB:first-child,
+    .apStepper .apStepperItem.sapMLIB:last-child { margin: 0; padding: 0.4rem; clip-path: none; }
+    .apStepperBody > .sapMFlexBox { flex-wrap: wrap; justify-content: center; }
+    .apFieldsHeader { flex-direction: column; align-items: stretch; }
+    .apFieldsActions .sapMSegB { max-width: 100%; }
+    .apFieldsActions .sapMSegBBtn { padding: 0 0.35rem; }
+    .sapMListTblCnt { max-width: 100%; overflow-x: auto; }
+    .sapMListTblCell { padding-left: 0.4rem; padding-right: 0.4rem; }
+    .apExceptionBanner { margin: 0.4rem; }
+    .apExceptionBanner .sapMMsgStripMessage { overflow-wrap: anywhere; line-height: 1.45; }
+    .apIssue { flex-wrap: wrap; gap: 0.35rem; }
+    .apIssueBody { flex: 1 1 12rem; min-width: 0; }
+}
+@container processor-data (max-width: 480px) {
+    .apAgentPoints.sapMFlexBox, .apFieldTiles { grid-template-columns: minmax(0, 1fr); }
+    .apReviewHeader > .sapMFlexBox { flex-direction: column; align-items: stretch; }
+}
+
+/* Review flow has a variable number of steps. Keep one connected track and scroll on narrow screens. */
+.apReviewShell .apFlowCard {
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: linear-gradient(160deg, rgba(10, 22, 32, 0.97), rgba(6, 83, 44, 0.9));
+    scrollbar-width: thin;
+    scrollbar-color: var(--ap-brand-light) transparent;
+}
+.apReviewShell .apPanelFlow.sapMFlexBox {
+    --ap-dot: 2rem;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(6.5rem, 1fr);
+    align-items: start;
+    background: transparent;
+    gap: 0 var(--ap-col-gap);
+    min-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+.apPanelFlow .apPipeTrackStep { justify-content: flex-start; }
+.apPanelFlow .apPipeTrackDot .sapUiIcon { color: #fff; line-height: 1; }
+/* Keep labels and the info button in normal layout; neither can overlap the other. */
+.apPanelFlow .apFlowStepLabelRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    width: 100%;
+    min-height: 2.75rem;
+    margin-top: 0.3rem;
+    box-sizing: border-box;
+}
+.apPanelFlow .apPipeTrackLabel.sapMLnk {
+    min-width: 0;
+    flex: 0 1 auto;
+    white-space: normal;
+    overflow-wrap: normal;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    text-align: center;
+}
+.apPanelFlow .apFlowInfo.sapMBtn {
+    position: static;
+    transform: none;
+    flex: 0 0 1.5rem;
+    height: 1.75rem;
+    padding: 0;
+}
+.apPanelFlow .apFlowInfo .sapMBtnInner { min-width: 1.5rem; height: 1.75rem; padding: 0; }
+.apPanelFlow .apFlowInfo .sapMBtnIcon { color: rgba(255, 255, 255, 0.9); line-height: 1.65rem; font-size: 0.85rem; width: 1.5rem; }
+/* The track never wraps, so connectors remain valid at every viewport width. */
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--ap-dot) / 2 - 1px);
+    left: calc(-50% - var(--ap-col-gap) + var(--ap-dot) / 2 + 0.3rem);
+    width: calc(100% + var(--ap-col-gap) - var(--ap-dot) - 0.6rem);
+    height: 2px;
+    background: rgba(255, 255, 255, 0.2);
+}
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="done"]::before { background: var(--ap-brand-light); }
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="running"]::before { background: linear-gradient(90deg, var(--ap-brand-light), rgba(255,255,255,.2)); }
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="failed"]::before { background: var(--ap-error); }
+
+.apAgentInfoStatus { gap: 0.35rem; flex: 0 0 auto; }
+
+/* Invoice lines sit beneath the header facts, before the review actions and tabs. */
+.apHeaderLineItems {
+    padding: 0.65rem 0.9rem;
+    gap: 0.4rem;
+    max-height: 18rem;
+    overflow: auto;
+    border-bottom: 1px solid var(--ap-border);
+}
+.apHeaderLineItems .sapMTitle { font-size: 0.875rem; }
+
+/* Response findings separate the observed problem from the next action. */
+.apResponseItem { min-width: 0; gap: 0.2rem; padding-bottom: 0.65rem; }
+.apResponseTitle.sapMText { font-weight: 700; color: var(--ap-ink); }
+.apResponseAction.sapMText { color: var(--ap-muted); line-height: 1.5; }

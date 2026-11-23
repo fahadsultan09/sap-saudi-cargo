@@ -16,8 +16,8 @@
 1. **Receive** — API or Microsoft Graph notification creates a receipt and durable work item transactionally.
 2. **Acquire** — intake worker leases work, reads the source, and uses a stable source/message + attachment hash claim.
 3. **Secure** — validate MIME/signature/size, malware scan, compute SHA-256, retain original in quarantine, and create a secured processing copy.
-4. **Classify** — TOWER may recommend document type and routing; AP Core applies deterministic routing policy.
-5. **Extract** — SAP Document AI is the primary extractor; LENS may coordinate/recommend. Preserve raw extraction, field confidence, source, and version.
+4. **Classify** — CLASSIFIER may recommend document type and routing; AP Core applies deterministic routing policy.
+5. **Extract** — SAP Document AI is the primary extractor; SCANNER may coordinate/recommend. Preserve raw extraction, field confidence, source, and version.
 6. **Observe SAP** — read-only adapter fetches supplier, PO, GR/SES, company-code and relevant accounting facts. Persist source, fetch time and hash.
 7. **Decide** — AP Core runs duplicate, compliance, matching, tolerance, tax, currency and account rules. Each result is explicit and auditable.
 8. **Review** — AP Core creates a durable human work item. BPA receives IDs and coordinates the task. Human response is committed to AP Core.
@@ -60,11 +60,11 @@ This tranche does **not** mean the target architecture is complete. The followin
 ## Agent implementations in the current codebase
 
 - **Email Intake** (`src/email_intake`): Microsoft Graph fetch/enrichment component. Live operation requires Graph credentials; it does not classify messages.
-- **TOWER** (`src/agents/tower.py`): classification adapter backed by SAP AI Core in SAP mode; mock mode is explicitly heuristic-only.
-- **LENS** (`src/agents/lens.py`): extraction coordinator backed by SAP Document AI in SAP mode.
-- **VECTOR** (`src/agents/vector.py`): read-only PO matching recommendation. It accepts an SAP observation or an injected read-only SAP port. If trusted evidence is missing, result is UNKNOWN. No SAP write capability is provided.
-- **PRISM** (`src/agents/prism.py`): evidence-grounded discrepancy investigation and follow-up recommendations based only on supplied rule results, extraction gaps and SAP observations.
+- **CLASSIFIER** (`src/agents/classifier.py`): classification adapter backed by SAP AI Core in SAP mode; mock mode is explicitly heuristic-only.
+- **SCANNER** (`src/agents/scanner.py`): extraction coordinator backed by SAP Document AI in SAP mode.
+- **VERIFIER** (`src/agents/verifier.py`): read-only PO matching recommendation. It accepts an SAP observation or an injected read-only SAP port. If trusted evidence is missing, result is UNKNOWN. No SAP write capability is provided.
+- **RECONCILER** (`src/agents/reconciler.py`): evidence-grounded discrepancy investigation and follow-up recommendations based only on supplied rule results, extraction gaps and SAP observations.
 - **PLUMB** (`src/agents/plumb.py`): payment advice reconciliation candidate matching using invoice reference, currency and Decimal amounts. It does not mark cases paid.
 - **FINANCE_RULES** (`src/agents/rules.py`): deterministic component, not an AI agent.
 
-VECTOR, PRISM and PLUMB are now implemented as callable agent modules and exposed by the agent registry. VECTOR/PRISM/PLUMB are conditionally invoked by `APAgentOrchestrator.run(..., extended_context=...)` when the corresponding input data is supplied. Their adapters are not yet connected to live SAP purchasing data, BPA, or payment advice mailboxes; production integration and AP Core persistence remain separate work. The existing upload endpoint still runs the original TOWER → LENS → FINANCE_RULES path unless an extended context is explicitly supplied.
+VERIFIER, RECONCILER and PLUMB are now implemented as callable agent modules and exposed by the agent registry. VERIFIER/RECONCILER/PLUMB are conditionally invoked by `APAgentOrchestrator.run(..., extended_context=...)` when the corresponding input data is supplied. Their adapters are not yet connected to live SAP purchasing data, BPA, or payment advice mailboxes; production integration and AP Core persistence remain separate work. The existing upload endpoint still runs the original CLASSIFIER → SCANNER → FINANCE_RULES path unless an extended context is explicitly supplied.

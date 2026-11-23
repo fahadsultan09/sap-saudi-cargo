@@ -38,7 +38,7 @@ def test_each_step_is_reported_before_the_result(tmp_path, monkeypatch):
     pdf = tmp_path / "invoice.pdf"
     pdf.write_bytes(b"%PDF-1.4")
     use_stream(monkeypatch, [
-        {"type": "step", "step": {"agent": "TOWER"}},
+        {"type": "step", "step": {"agent": "CLASSIFIER"}},
         {"type": "check", "check": {"check": "purchase_order"}},
         {"type": "step", "step": {"agent": "SOURCE_CHECK"}},
         {"type": "result", "fields": {"invoice_number": "INV-1"}, "validation": {}},
@@ -55,3 +55,21 @@ def test_an_agent_error_fails_the_attempt(tmp_path, monkeypatch):
     use_stream(monkeypatch, [{"type": "error", "detail": "Document processing failed: RuntimeError"}])
     with pytest.raises(RuntimeError, match="Document processing failed"):
         worker.process_with_progress(FakeAPCore(), "case-1", pdf, "invoice.pdf")
+
+
+def test_live_extracted_fields_are_forwarded_before_final_result(tmp_path, monkeypatch):
+    pdf = tmp_path / "invoice.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    use_stream(monkeypatch, [
+        {"type": "data", "fields": {"supplier_name": "Example Supplier"}, "validation": {"ai_core": {"document_type": "invoice"}}},
+        {"type": "check", "check": {"check": "purchase_order"}},
+        {"type": "result", "fields": {"invoice_number": "FINAL-1"}},
+    ])
+    class Client:
+        def __init__(self): self.updates = []
+        def submit_progress(self, case_id, **payload): self.updates.append(payload)
+    client = Client()
+    worker.process_with_progress(client, "case-1", pdf, "invoice.pdf")
+    assert client.updates[0]["fields"]["supplier_name"] == "Example Supplier"
+    assert client.updates[1]["fields"]["supplier_name"] == "Example Supplier"
+    assert len(client.updates[1]["source_checks"]) == 1
