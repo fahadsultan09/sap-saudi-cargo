@@ -236,6 +236,26 @@ export default function Review({ userId, onUserChange, showToast }) {
           </div>
         </div>
 
+        {/* Live Processing Banner (shown while agents are actively executing or newly uploaded) */}
+        {(perms.isProcessing || row?.status === "RECEIVED" || row?.status === "EXTRACTING") && (
+          <div className="ref-live-processing-banner">
+            <div className="ref-live-processing-row">
+              <div className="ref-live-processing-left">
+                <div className="ref-live-processing-spinner"></div>
+                <div className="ref-live-processing-text">
+                  <strong>Agents Active:</strong> TOWER & LENS are extracting document fields and VECTOR is verifying SAP PO matching...
+                </div>
+              </div>
+              <span className="ref-case-agent-pill working">
+                <i></i>Live Runway
+              </span>
+            </div>
+            <div className="ref-live-progress-track">
+              <div className="ref-live-progress-fill"></div>
+            </div>
+          </div>
+        )}
+
         {/* 3. Horizontal 13-Step Stepper */}
         <div className="ref-journey-stepper" style={{ "--n": 13 }}>
           <div className="ref-stepper-groups" aria-hidden="true">
