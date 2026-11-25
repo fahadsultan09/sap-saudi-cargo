@@ -196,19 +196,77 @@ html, body, .sapUiBody {
     margin-bottom: 0.35rem;
 }
 
+.apLightButton.sapMBtn {
+    border-radius: 999px !important;
+    outline: none !important;
+}
+
 .apLightButton.sapMBtn .sapMBtnInner {
     background: #FFFFFF !important;
-    border-color: #FFFFFF !important;
+    border: 1px solid #FFFFFF !important;
     color: #06532C !important;
     font-size: 0.875rem !important;
     font-weight: 600 !important;
     border-radius: 999px !important;
     padding: 0 1.25rem !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    outline: none !important;
 }
 
 .apLightButton.sapMBtn .sapMBtnIcon {
     color: #0B7A42 !important;
+}
+
+/* Completely suppress default UI5 Horizon pseudo-element rectangular focus/hover borders */
+html.sap-desktop .apLightButton.sapMBtn:hover > .sapMBtnInner::before,
+html.sap-desktop .apLightButton.sapMBtn .sapMBtnHoverable:hover::before,
+html.sap-desktop .apLightButton.sapMBtn:focus > .sapMBtnInner::before,
+html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
+.apLightButton.sapMBtn::before,
+.apLightButton.sapMBtn::after,
+.apLightButton.sapMBtn .sapMBtnInner::before,
+.apLightButton.sapMBtn .sapMBtnInner::after,
+.apLightButton.sapMBtn .sapMFocusable::before,
+.apLightButton.sapMBtn .sapMFocusable::after {
+    display: none !important;
+    border: none !important;
+    outline: none !important;
+    content: none !important;
+    box-shadow: none !important;
+}
+
+/* Clean hover & active pill states */
+.apLightButton.sapMBtn:hover .sapMBtnInner,
+.apLightButton.sapMBtn .sapMBtnHoverable:hover,
+.apLightButton.sapMBtn .sapMBtnInner:hover {
+    background: #F8FAFC !important;
+    border-color: #FFFFFF !important;
+    color: #044322 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18) !important;
+    transform: translateY(-1px);
+    outline: none !important;
+}
+
+.apLightButton.sapMBtn:hover .sapMBtnIcon,
+.apLightButton.sapMBtn .sapMBtnHoverable:hover .sapMBtnIcon {
+    color: #06532C !important;
+}
+
+.apLightButton.sapMBtn:active .sapMBtnInner,
+.apLightButton.sapMBtn .sapMBtnActive {
+    background: #F1F5F9 !important;
+    border-color: #FFFFFF !important;
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+    outline: none !important;
+}
+
+.apLightButton.sapMBtn:focus,
+.apLightButton.sapMBtn:focus-visible,
+.apLightButton.sapMBtn:focus .sapMBtnInner,
+.apLightButton.sapMBtn:focus-visible .sapMBtnInner {
+    outline: none !important;
 }
 
 .apGhostButton.sapMBtn .sapMBtnInner {
@@ -223,6 +281,19 @@ html, body, .sapUiBody {
 .apGhostButton.sapMBtn .sapMBtnInner .sapMBtnContent,
 .apGhostButton.sapMBtn .sapMBtnIcon {
     color: #fff;
+}
+
+.apGhostButton.sapMBtn::before,
+.apGhostButton.sapMBtn::after,
+.apGhostButton.sapMBtn .sapMBtnInner::before,
+.apGhostButton.sapMBtn .sapMBtnInner::after,
+.apGhostButton.sapMBtn .sapMFocusable::before,
+.apGhostButton.sapMBtn .sapMFocusable::after {
+    display: none !important;
+    border: none !important;
+    outline: none !important;
+    content: none !important;
+    box-shadow: none !important;
 }
 
 /* --------------------------------------------------------------------------
