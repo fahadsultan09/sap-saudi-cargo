@@ -59,7 +59,7 @@
 						</HBox>
 					</VBox>
 					<HBox alignItems="Center" wrap="Wrap">
-                        <Button text="{= ${apData>/processorSplit} ? 'Full Data View' : 'Split View' }" icon="sap-icon://screen-split-two"
+                        <Button text="{= ${apData>/processorSplit} ? 'Hide Document' : 'View Document' }" icon="{= ${apData>/processorSplit} ? 'sap-icon://full-screen' : 'sap-icon://document' }"
                             press="onToggleSplit" visible="{apData>/selectedInvoice/processor}" class="sapUiTinyMarginEnd"/>
                     </HBox>
 				</HBox>
