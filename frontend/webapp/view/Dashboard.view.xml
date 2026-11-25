@@ -81,7 +81,7 @@
 			</VBox>
 			<!-- Every invoice: KPI tiles (each one a filter), search, status filters and the list. While an invoice
 				 is uploaded and reviewed above, the board steps aside. -->
-			<!-- Email Ingestion Breakdown Progress Bar (Horizontal Line) -->
+			<!-- Email Ingestion Breakdown Progress Bar (Horizontal Line) - commented out until live API endpoint is connected
 			<VBox visible="{= !${apData>/upload/watching} }" class="apCard apEmailBreakdownCard sapUiMediumMarginBottom">
 				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="sapUiTinyMarginBottom">
 					<HBox alignItems="Center">
@@ -91,30 +91,31 @@
 					<Text text="212 emails ingested this period" class="apMutedText"/>
 				</HBox>
 				<HBox class="apSegmentBar" renderType="Bare">
-					<VBox class="apSegment apSegment--invoice" width="5%"/>
-					<VBox class="apSegment apSegment--credit" width="1%"/>
-					<VBox class="apSegment apSegment--other" width="85%"/>
-					<VBox class="apSegment apSegment--unsorted" width="9%"/>
+					<VBox class="apSegment apSegment-invoice" width="5%"/>
+					<VBox class="apSegment apSegment-credit" width="1%"/>
+					<VBox class="apSegment apSegment-other" width="85%"/>
+					<VBox class="apSegment apSegment-unsorted" width="9%"/>
 				</HBox>
 				<HBox alignItems="Center" wrap="Wrap" class="apSegmentLegend sapUiTinyMarginTop">
 					<HBox alignItems="Center" class="sapUiSmallMarginEnd">
-						<VBox class="apLegendDot apLegendDot--invoice sapUiTinyMarginEnd"/>
+						<VBox class="apLegendDot apLegendDot-invoice sapUiTinyMarginEnd"/>
 						<Text text="Invoice emails: 11" class="apLegendText"/>
 					</HBox>
 					<HBox alignItems="Center" class="sapUiSmallMarginEnd">
-						<VBox class="apLegendDot apLegendDot--credit sapUiTinyMarginEnd"/>
+						<VBox class="apLegendDot apLegendDot-credit sapUiTinyMarginEnd"/>
 						<Text text="Credit notes: 1" class="apLegendText"/>
 					</HBox>
 					<HBox alignItems="Center" class="sapUiSmallMarginEnd">
-						<VBox class="apLegendDot apLegendDot--other sapUiTinyMarginEnd"/>
+						<VBox class="apLegendDot apLegendDot-other sapUiTinyMarginEnd"/>
 						<Text text="Other emails: 180" class="apLegendText"/>
 					</HBox>
 					<HBox alignItems="Center">
-						<VBox class="apLegendDot apLegendDot--unsorted sapUiTinyMarginEnd"/>
+						<VBox class="apLegendDot apLegendDot-unsorted sapUiTinyMarginEnd"/>
 						<Text text="Not sorted yet: 20" class="apLegendText"/>
 					</HBox>
 				</HBox>
 			</VBox>
+			-->
 
 			<VBox visible="{= !${apData>/upload/watching} }">
 				<core:Fragment fragmentName="saudicargo.ap.automation.view.fragments.KpiStrip" type="XML"/>
