@@ -148,30 +148,48 @@
 							<Text text="Select an agent to inspect findings &amp; evidence" class="apMutedText"/>
 						</HBox>
 						<HBox alignItems="Stretch" class="apAgentsSplitLayout sapUiSmallMarginTop" wrap="Wrap">
-							<!-- Left: Vertical list of interactive Agent cards -->
-							<VBox class="apAgentsVerticalList" width="24rem">
+							<!-- Left: Vertical Pipeline of interactive Agent stages -->
+							<VBox class="apAgentsVerticalList" width="27rem">
+								<HBox alignItems="Center" justifyContent="SpaceBetween" class="apPipelineRailHeader sapUiTinyMarginBottom">
+									<HBox alignItems="Center">
+										<core:Icon src="sap-icon://process" size="0.85rem" class="sapUiTinyMarginEnd apBrandIcon"/>
+										<Text text="AGENT PIPELINE" class="apPipelineRailTitle"/>
+									</HBox>
+									<Text text="6 Sequential Stages" class="apPipelineRailSubtitle"/>
+								</HBox>
 								<List items="{apData>/selectedInvoice/agents}" showSeparators="None" itemPress="onSelectAgent"
-									class="apAgentVList">
-									<CustomListItem type="Active" press="onSelectAgent" class="apAgentVItem">
+									class="apAgentVList apAgentPipelineList">
+									<CustomListItem type="Active" press="onSelectAgent" class="apAgentVItem apPipeStepItem">
 										<customData>
 											<core:CustomData key="status" value="{apData>statusKey}" writeToDom="true"/>
 											<core:CustomData key="selected" value="{= ${apData>selected} ? 'true' : 'false' }" writeToDom="true"/>
 										</customData>
-										<HBox alignItems="Center" justifyContent="SpaceBetween" class="apAgentVRow">
-											<HBox alignItems="Center" class="apAgentVLead">
-												<VBox class="apAgentVIconBox" alignItems="Center" justifyContent="Center">
-													<core:Icon src="{apData>icon}" size="1.05rem" class="apAgentVIcon"/>
+										<HBox alignItems="Center" class="apPipeStepWrapper">
+											<!-- Continuous Pipeline Node Column -->
+											<VBox class="apPipeTrackCol" alignItems="Center" justifyContent="Center">
+												<VBox class="apPipeTrackLineTop"/>
+												<VBox class="apPipeNode" alignItems="Center" justifyContent="Center">
+													<core:Icon src="{apData>icon}" size="0.95rem" class="apPipeNodeIcon"/>
 												</VBox>
-												<VBox class="sapUiSmallMarginBegin">
-													<Text text="{apData>agent}" wrapping="false" class="apAgentVName"/>
-													<Text text="{apData>task}" wrapping="false" class="apAgentVTask"/>
-												</VBox>
-											</HBox>
-											<HBox alignItems="Center" class="apAgentVStatusWrap">
-												<ObjectStatus text="{apData>status}" icon="{apData>statusIcon}" state="{apData>state}"
-													inverted="true" class="apAgentVStatus"/>
-												<core:Icon src="sap-icon://slim-arrow-right" class="apAgentVArrow" visible="{apData>selected}"/>
-											</HBox>
+												<VBox class="apPipeTrackLineBottom"/>
+											</VBox>
+											<!-- Horizontal Bridge Connector -->
+											<VBox class="apPipeBridge"/>
+											<!-- Step Card -->
+											<VBox class="apPipeCard">
+												<HBox alignItems="Center" justifyContent="SpaceBetween" class="apPipeStepTop">
+													<HBox alignItems="Center">
+														<Text text="" class="apPipeStepNum"/>
+														<Text text="{apData>agent}" wrapping="false" class="apAgentVName"/>
+													</HBox>
+													<ObjectStatus text="{apData>status}" icon="{apData>statusIcon}" state="{apData>state}"
+														inverted="true" class="apAgentVStatus"/>
+												</HBox>
+												<HBox alignItems="Center" justifyContent="SpaceBetween" class="apPipeStepBottom">
+													<Text text="{apData>task}" class="apAgentVTask"/>
+													<core:Icon src="sap-icon://slim-arrow-right" class="apAgentVArrow" visible="{apData>selected}"/>
+												</HBox>
+											</VBox>
 										</HBox>
 									</CustomListItem>
 								</List>

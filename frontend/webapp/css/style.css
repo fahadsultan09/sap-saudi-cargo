@@ -1639,7 +1639,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     align-items: stretch;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1024px) {
     .apAgentsSplitLayout {
         flex-direction: column !important;
     }
@@ -1648,82 +1648,232 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     }
 }
 
-/* Left: Vertical Agent List */
+/* Left: Vertical Pipeline Rail */
 .apAgentsVerticalList {
     background: #F8FAFC;
     border: 1px solid var(--ap-border);
-    border-radius: 14px;
-    padding: 0.65rem;
+    border-radius: 16px;
+    padding: 1rem 0.85rem;
     flex-shrink: 0;
 }
 
-.apAgentVList.sapMList .sapMListUl {
+.apPipelineRailHeader {
+    padding: 0 0.4rem 0.65rem 0.4rem;
+    border-bottom: 1px solid #E2E8F0;
+    margin-bottom: 0.85rem;
+}
+
+.apPipelineRailTitle.sapMText {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: #334155 !important;
+}
+
+.apPipelineRailSubtitle.sapMText {
+    font-size: 0.75rem !important;
+    color: #64748B !important;
+    font-weight: 500 !important;
+}
+
+/* The Pipeline List with Counter Reset */
+.apAgentPipelineList.sapMList .sapMListUl {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0;
     background: transparent;
     border: none;
     padding: 0;
+    counter-reset: pipeline-step;
 }
 
-.apAgentVItem.sapMLIB {
-    border-radius: 12px !important;
-    border: 1px solid #E2E8F0 !important;
-    background: #FFFFFF !important;
-    padding: 0.85rem 0.95rem !important;
+/* Each Pipeline Step item (transparent row holding node + bridge + card) */
+.apPipeStepItem.sapMLIB {
+    counter-increment: pipeline-step;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 0.65rem 0 !important;
     height: auto !important;
     cursor: pointer !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    position: relative;
+    box-shadow: none !important;
 }
 
-.apAgentVItem.sapMLIB:hover {
-    background: #F0FDF4 !important;
-    border-color: #86EFAC !important;
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(11, 122, 66, 0.08) !important;
-}
-
-/* Active / Selected Agent in vertical list */
-.apAgentVItem.sapMLIB[data-selected="true"] {
-    background: #FFFFFF !important;
-    border-color: var(--ap-brand) !important;
-    border-left: 4px solid var(--ap-brand) !important;
-    box-shadow: 0 4px 14px rgba(11, 122, 66, 0.14) !important;
-}
-
-.apAgentVRow {
+.apPipeStepWrapper {
     width: 100%;
+    align-items: center;
 }
 
-.apAgentVLead {
-    min-width: 0;
+/* Continuous Vertical Pipeline Track Column */
+.apPipeTrackCol {
+    width: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    align-self: stretch;
 }
 
-.apAgentVIconBox {
+.apPipeTrackLineTop {
+    width: 2px;
+    flex: 1 1 0;
+    background: #CBD5E1;
+    min-height: 0.65rem;
+    transition: background 0.2s ease;
+}
+
+.apPipeTrackLineBottom {
+    width: 2px;
+    flex: 1 1 0;
+    background: #CBD5E1;
+    min-height: 0.65rem;
+    transition: background 0.2s ease;
+}
+
+/* Hide top line on first step, hide bottom line on last step */
+.apPipeStepItem:first-child .apPipeTrackLineTop {
+    visibility: hidden;
+}
+
+.apPipeStepItem:last-child .apPipeTrackLineBottom {
+    visibility: hidden;
+}
+
+/* When step is passed, color the pipeline line emerald */
+.apPipeStepItem[data-status="passed"] .apPipeTrackLineTop,
+.apPipeStepItem[data-status="passed"] .apPipeTrackLineBottom {
+    background: #10B981;
+}
+
+/* Pipeline Node */
+.apPipeNode {
     width: 2.35rem;
     height: 2.35rem;
-    border-radius: 10px;
-    background: #F1F5F9;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 2px solid #CBD5E1;
+    flex-shrink: 0;
+    z-index: 2;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.apPipeNodeIcon.sapUiIcon {
+    color: #64748B;
+    transition: color 0.2s ease;
+}
+
+/* Status variants for Node */
+.apPipeStepItem[data-status="passed"] .apPipeNode {
+    border-color: #10B981;
+    background: #ECFDF5;
+}
+.apPipeStepItem[data-status="passed"] .apPipeNodeIcon.sapUiIcon {
+    color: #059669;
+}
+
+.apPipeStepItem[data-status="check"] .apPipeNode {
+    border-color: #F59E0B;
+    background: #FFFBEB;
+}
+.apPipeStepItem[data-status="check"] .apPipeNodeIcon.sapUiIcon {
+    color: #D97706;
+}
+
+.apPipeStepItem[data-status="failed"] .apPipeNode {
+    border-color: #EF4444;
+    background: #FEF2F2;
+}
+.apPipeStepItem[data-status="failed"] .apPipeNodeIcon.sapUiIcon {
+    color: #DC2626;
+}
+
+/* Active / Selected Node State */
+.apPipeStepItem[data-selected="true"] .apPipeNode {
+    border-color: var(--ap-brand) !important;
+    background: var(--ap-brand) !important;
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px rgba(11, 122, 66, 0.22), 0 4px 10px rgba(11, 122, 66, 0.25) !important;
+}
+
+.apPipeStepItem[data-selected="true"] .apPipeNodeIcon.sapUiIcon {
+    color: #FFFFFF !important;
+}
+
+/* Horizontal Bridge Connector between Node and Card */
+.apPipeBridge {
+    width: 0.65rem;
+    height: 2px;
+    background: #CBD5E1;
     flex-shrink: 0;
     transition: background 0.2s ease;
 }
 
-.apAgentVItem[data-selected="true"] .apAgentVIconBox {
-    background: var(--ap-brand-soft);
+.apPipeStepItem[data-selected="true"] .apPipeBridge {
+    background: var(--ap-brand);
+    height: 2px;
 }
 
-.apAgentVIcon.sapUiIcon {
-    color: #475569;
+/* The Step Card */
+.apPipeCard {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 0.8rem 0.95rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.apAgentVItem[data-selected="true"] .apAgentVIcon.sapUiIcon {
+.apPipeStepItem:hover .apPipeCard {
+    border-color: #86EFAC;
+    background: #F0FDF4;
+    transform: translateX(3px);
+    box-shadow: 0 4px 12px rgba(11, 122, 66, 0.08);
+}
+
+.apPipeStepItem:hover .apPipeBridge {
+    background: #86EFAC;
+}
+
+/* Active / Selected Card */
+.apPipeStepItem[data-selected="true"] .apPipeCard {
+    background: #FFFFFF !important;
+    border-color: var(--ap-brand) !important;
+    border-left: 4px solid var(--ap-brand) !important;
+    box-shadow: 0 4px 16px rgba(11, 122, 66, 0.12) !important;
+}
+
+/* Step Number Tag */
+.apPipeStepNum.sapMText::before {
+    content: "STAGE 0" counter(pipeline-step) " · ";
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94A3B8;
+}
+
+.apPipeStepItem[data-selected="true"] .apPipeStepNum.sapMText::before {
     color: var(--ap-brand);
+}
+
+.apPipeStepTop {
+    width: 100%;
+}
+
+.apPipeStepBottom {
+    width: 100%;
+    margin-top: 0.15rem;
 }
 
 .apAgentVName.sapMText {
     font-family: var(--ap-font-display);
-    font-size: 0.95rem;
+    font-size: 0.925rem;
     font-weight: 700;
     color: #0F172A;
     letter-spacing: -0.01em;
@@ -1732,21 +1882,15 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apAgentVTask.sapMText {
     font-size: 0.78rem;
     color: #64748B;
-    max-width: 13rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.apAgentVStatusWrap {
-    flex-shrink: 0;
-    gap: 0.25rem;
+    line-height: 1.35;
+    margin-top: 0.2rem;
+    max-width: 14.5rem;
 }
 
 .apAgentVStatus.sapMObjStatusInverted {
-    font-size: 0.75rem !important;
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
-    padding: 0.2rem 0.6rem !important;
+    padding: 0.18rem 0.55rem !important;
     border-radius: 999px !important;
 }
 
