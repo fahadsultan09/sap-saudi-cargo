@@ -36,7 +36,7 @@ async def forward(
     request: Request,
     api: Annotated[AgenticAPI, Depends(agentic_api_dependency)],
 ) -> Response:
-    """Route every /api/v1 call unchanged to the agentic API and return its response.
+    """Route every /api/v1 call to the agentic API and return its response.
 
     Successful responses are returned as is; errors are replaced by a business-friendly message.
     """
@@ -49,8 +49,36 @@ async def forward(
         headers["x-user-id"] = "faizan"
     if "x-user-role" not in headers:
         headers["x-user-role"] = "AP_APPROVER"
+
+    target_path = f"/api/v1/{path}"
+    body_bytes = await request.body()
+
+    # Route decision adapter: /cases/{id}/decision -> /cases/{id}/{action}
+    if "/decision" in path and request.method == "POST":
+        try:
+            body_json = json.loads(body_bytes.decode() or "{}")
+            action = str(body_json.get("action", "approve")).strip().lower()
+            comment = str(body_json.get("comment", "")).strip() or f"{action.capitalize()}d via AP Console"
+            parts = path.split("/")
+            case_id = parts[1] if len(parts) > 1 else ""
+            if case_id:
+                target_path = f"/api/v1/cases/{case_id}/{action}"
+                body_bytes = json.dumps({"comment": comment}).encode()
+                headers["x-user-role"] = "AP_APPROVER"
+                headers["content-type"] = "application/json"
+        except Exception as e:
+            logger.warning("Error transforming /decision call: %s", e)
+
+    # Ensure role compatibility for specialized actions
+    if any(path.endswith(f"/{act}") for act in ("approve", "return", "reject")):
+        headers["x-user-role"] = "AP_APPROVER"
+    elif path.endswith("/fields") and request.method == "PATCH":
+        headers["x-user-role"] = "AP_PROCESSOR"
+    elif path.endswith("/upload") and request.method == "POST":
+        headers["x-user-role"] = "AP_PROCESSOR"
+
     upstream = await api.forward(
-        request.method, f"/api/v1/{path}", request.url.query, headers, await request.body()
+        request.method, target_path, request.url.query, headers, body_bytes
     )
     if upstream.is_error:
         logger.warning(
