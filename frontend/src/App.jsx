@@ -51,17 +51,37 @@ export default function App() {
         }
       >
         <Route index element={<Home userId={userId} showToast={showToast} />} />
-        <Route path="process/:caseId" element={<Process showToast={showToast} />} />
+        <Route path="home" element={<Home userId={userId} showToast={showToast} />} />
+        
+        {/* Worklist / Desk */}
+        <Route path="worklist" element={<Desk userId={userId} showToast={showToast} />} />
         <Route path="desk" element={<Desk userId={userId} showToast={showToast} />} />
+        
+        {/* Approvals */}
         <Route path="approvals" element={<Approvals userId={userId} showToast={showToast} />} />
-        {/* Bookmarks / old links: upload lives on Home now */}
-        <Route path="upload" element={<Navigate to="/" replace />} />
+        <Route path="need-review" element={<Approvals userId={userId} showToast={showToast} />} />
+        
+        {/* Case Review Detail */}
+        <Route
+          path="cases/:caseId"
+          element={
+            <Review userId={userId} onUserChange={onUserChange} showToast={showToast} />
+          }
+        />
         <Route
           path="review/:caseId"
           element={
             <Review userId={userId} onUserChange={onUserChange} showToast={showToast} />
           }
         />
+
+        {/* Process / Intake */}
+        <Route path="intake" element={<Process showToast={showToast} />} />
+        <Route path="process/:caseId" element={<Process showToast={showToast} />} />
+        <Route path="process/new" element={<Process showToast={showToast} />} />
+        <Route path="upload" element={<Navigate to="/intake" replace />} />
+
+        {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

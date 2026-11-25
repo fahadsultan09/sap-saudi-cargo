@@ -1,23 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiJson } from "../lib/api";
-import { buildKpis, filterCases, paginate, sortCases } from "../lib/caseBoard";
-import { canProcess, getUser } from "../lib/config";
-import { CASE_GROUPS, LIST_REFRESH_MS } from "../lib/constants";
-import CaseTable from "../components/CaseTable";
-import KpiStrip from "../components/KpiStrip";
-import { setPendingFile } from "../lib/pendingUpload";
+import { LIST_REFRESH_MS } from "../lib/constants";
+import "../reference-portal.css";
 
-export default function Desk({ userId }) {
+export default function Desk({ userId, showToast }) {
   const navigate = useNavigate();
   const [params, setSearchParams] = useSearchParams();
-  const user = getUser(userId);
   const filter = params.get("filter") || "";
+  const typeFilter = params.get("type") || "All";
+
   const [cases, setCases] = useState([]);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [drag, setDrag] = useState(false);
+  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scope, setScope] = useState("Team"); // Me | Team
+  const [statusFilter, setStatusFilter] = useState("open"); // open | closed
+  const [viewMode, setViewMode] = useState("table"); // table | split
 
   useEffect(() => {
     let alive = true;
@@ -45,153 +44,275 @@ export default function Desk({ userId }) {
     };
   }, [userId]);
 
-  useEffect(() => {
-    setPageIndex(0);
-  }, [filter]);
+  const filteredCases = useMemo(() => {
+    return cases.filter((c) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        (c.invoice_number && c.invoice_number.toLowerCase().includes(q)) ||
+        (c.vendor_name && c.vendor_name.toLowerCase().includes(q)) ||
+        (c.supplier_name && c.supplier_name.toLowerCase().includes(q)) ||
+        (c.po_number && c.po_number.toLowerCase().includes(q)) ||
+        (c.case_id && c.case_id.toLowerCase().includes(q));
 
-  const kpis = useMemo(() => buildKpis(cases), [cases]);
-  const filtered = useMemo(() => sortCases(filterCases(cases, filter)), [cases, filter]);
-  const { items: pageItems, page } = useMemo(
-    () => paginate(filtered, pageIndex),
-    [filtered, pageIndex],
-  );
+      const matchStatus =
+        statusFilter === "open"
+          ? c.status !== "APPROVED" && c.status !== "REJECTED" && c.status !== "CLEARED"
+          : c.status === "APPROVED" || c.status === "REJECTED" || c.status === "CLEARED";
 
-  function setFilter(key) {
-    const next = new URLSearchParams(params);
-    if (key) next.set("filter", key);
-    else next.delete("filter");
-    setSearchParams(next, { replace: true });
-  }
+      return matchSearch && matchStatus;
+    });
+  }, [cases, searchQuery, statusFilter]);
 
-  function handoffFile(file) {
-    if (!file || !canProcess(user)) return;
-    setPendingFile(file);
-    navigate("/", { state: { fromDesk: true } });
-  }
-
-  function onDrop(e) {
-    e.preventDefault();
-    setDrag(false);
-    handoffFile(e.dataTransfer.files?.[0]);
-  }
+  const needReviewCount = cases.filter(
+    (c) => c.status === "NEEDS_REVIEW" || c.status === "AWAITING_APPROVAL" || c.status === "RETURNED"
+  ).length;
 
   return (
-    <div className="page-enter desk-page">
-      <section className="home-strip" aria-label="Case board">
-        <div>
-          <p className="section-label" style={{ marginBottom: "0.2rem" }}>
-            Desk
-          </p>
-          <strong className="home-strip__title">Case board</strong>
+    <div className="ref-worklist-view">
+      {/* 1. Worklist Hero */}
+      <section className="ref-worklist-hero">
+        <div className="ref-worklist-top">
+          <div className="ref-worklist-title-row">
+            <h1 className="ref-worklist-title">Direct Invoices</h1>
+            <span className="ref-worklist-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              </svg>
+              <span>Invoices {cases.length}</span>
+            </span>
+          </div>
+
+          <div className="ref-worklist-actions">
+            <div className="ref-toggle-group">
+              <button
+                type="button"
+                className={`ref-toggle-btn ${scope === "Me" ? "active" : ""}`}
+                onClick={() => setScope("Me")}
+              >
+                Me
+              </button>
+              <button
+                type="button"
+                className={`ref-toggle-btn ${scope === "Team" ? "active" : ""}`}
+                onClick={() => setScope("Team")}
+              >
+                Team
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="ref-btn-export"
+              onClick={() => showToast?.("Exporting invoices list to Excel...")}
+            >
+              Export to Excel
+            </button>
+          </div>
         </div>
-        <div className="home-strip__actions">
-          {canProcess(user) ? (
-            <Link className="btn btn-primary btn-compact" to="/">
-              Add invoice
-            </Link>
-          ) : null}
-          <Link className="btn btn-ghost btn-compact" to="/">
-            Home
-          </Link>
+
+        {/* 4 Summary / Filter Cards */}
+        <div className="ref-filter-cards">
+          <div className="ref-filter-card">
+            <div className="ref-filter-card-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <span>📍 By Region</span>
+              </div>
+              <span>⌄</span>
+            </div>
+            <div className="ref-filter-card-val">
+              2 <span>regions</span>
+            </div>
+            <p className="ref-filter-card-sub">Top: Unassigned · {cases.length} invoices</p>
+          </div>
+
+          <div className="ref-filter-card">
+            <div className="ref-filter-card-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <span>📑 By Department</span>
+              </div>
+              <span>⌄</span>
+            </div>
+            <div className="ref-filter-card-val">
+              14 <span>departments</span>
+            </div>
+            <p className="ref-filter-card-sub">Top: Not mapped · {cases.length} invoices</p>
+          </div>
+
+          <div className="ref-filter-card">
+            <div className="ref-filter-card-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <span>🏢 By Vendor</span>
+              </div>
+              <span>⌄</span>
+            </div>
+            <div className="ref-filter-card-val">
+              {Math.min(cases.length, 59)} <span>vendors</span>
+            </div>
+            <p className="ref-filter-card-sub">Top: Cargo Terminals Ltd · {cases.length} invoices</p>
+          </div>
+
+          <div
+            className="ref-filter-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => setStatusFilter("open")}
+          >
+            <div className="ref-filter-card-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", color: "#002856" }}>
+                <span>☑ Need Review</span>
+              </div>
+              <span>→</span>
+            </div>
+            <div className="ref-filter-card-val">
+              {needReviewCount} <span>invoices</span>
+            </div>
+            <p className="ref-filter-card-sub">Active workflow items requiring attention</p>
+          </div>
         </div>
       </section>
 
-      {error ? <div className="error-banner">{error}</div> : null}
+      {/* 2. Table Controls Row */}
+      <div className="ref-table-controls">
+        <div className="ref-controls-left">
+          <div className="ref-table-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ color: "#94a3b8" }}>
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search invoice no., vendor or PO"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
 
-      {!loading ? <KpiStrip items={kpis} activeKey={filter || "total"} onSelect={setFilter} /> : null}
+          <div className="ref-dropdown-btn">
+            <span>All time</span>
+            <span style={{ fontSize: "0.7rem" }}>⌄</span>
+          </div>
 
-      <div className="desk-filters" role="tablist" aria-label="Filter cases">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!filter}
-          className={`history-filter${!filter ? " history-filter--active" : ""}`}
-          onClick={() => setFilter("")}
-        >
-          All
-          <span className="history-filter__count">{cases.length}</span>
-        </button>
-        {CASE_GROUPS.map((g) => {
-          const count = kpis.find((k) => k.key === g.key)?.value ?? 0;
-          return (
+          <button type="button" className="ref-btn-all-filters">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            <span>All filters</span>
+          </button>
+        </div>
+
+        <div className="ref-controls-right">
+          <div className="ref-toggle-group" style={{ background: "#ffffff", border: "1px solid var(--ref-line)" }}>
             <button
-              key={g.key}
               type="button"
-              role="tab"
-              aria-selected={filter === g.key}
-              className={`history-filter${filter === g.key ? " history-filter--active" : ""}`}
-              onClick={() => setFilter(g.key)}
+              className={`ref-toggle-btn ${statusFilter === "open" ? "active" : ""}`}
+              style={{ color: statusFilter === "open" ? "#002856" : "#64748b" }}
+              onClick={() => setStatusFilter("open")}
             >
-              {g.label}
-              <span className="history-filter__count">{count}</span>
+              Open
             </button>
-          );
-        })}
+            <button
+              type="button"
+              className={`ref-toggle-btn ${statusFilter === "closed" ? "active" : ""}`}
+              style={{ color: statusFilter === "closed" ? "#002856" : "#64748b" }}
+              onClick={() => setStatusFilter("closed")}
+            >
+              Closed
+            </button>
+          </div>
+
+          <div className="ref-toggle-group" style={{ background: "#ffffff", border: "1px solid var(--ref-line)" }}>
+            <button
+              type="button"
+              className={`ref-toggle-btn ${viewMode === "table" ? "active" : ""}`}
+              style={{ color: viewMode === "table" ? "#002856" : "#64748b" }}
+              onClick={() => setViewMode("table")}
+            >
+              Table
+            </button>
+            <button
+              type="button"
+              className={`ref-toggle-btn ${viewMode === "split" ? "active" : ""}`}
+              style={{ color: viewMode === "split" ? "#002856" : "#64748b" }}
+              onClick={() => setViewMode("split")}
+            >
+              Split
+            </button>
+          </div>
+        </div>
       </div>
 
-      {canProcess(user) ? (
-        <label
-          className={`desk-dropzone${drag ? " drag" : ""}`}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            setDrag(true);
-          }}
-          onDragOver={(e) => e.preventDefault()}
-          onDragLeave={() => setDrag(false)}
-          onDrop={onDrop}
-        >
-          <span>
-            Drop a PDF here — or <Link to="/">add on Home</Link>
-          </span>
-          <input
-            type="file"
-            accept="application/pdf,.pdf"
-            title=""
-            aria-label="Choose PDF invoice"
-            onChange={(e) => handoffFile(e.target.files?.[0])}
-          />
-        </label>
-      ) : null}
+      {/* 3. Modern Reference Invoices Table */}
+      <div className="ref-table-container">
+        <table className="ref-data-table">
+          <thead>
+            <tr>
+              <th style={{ width: "38px" }}>
+                <input type="checkbox" aria-label="Select all" />
+              </th>
+              <th>INVOICE</th>
+              <th>VENDOR</th>
+              <th>AMOUNT</th>
+              <th>STATUS</th>
+              <th>PO NUMBER</th>
+              <th>CREATED AT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredCases.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem", color: "#64748b" }}>
+                  {loading ? "Loading invoices..." : "No invoices found for this filter."}
+                </td>
+              </tr>
+            ) : (
+              filteredCases.map((item) => {
+                const invId = item.case_id || item.id;
+                const invNum = item.invoice_number || item.title || `INV-${String(invId).slice(0, 6)}`;
+                const vendor = item.vendor_name || item.supplier_name || "Hong Kong Air Cargo Terminals Limited";
+                const amount = item.total_amount ? `${item.currency || 'SAR'} ${Number(item.total_amount).toLocaleString()}` : "HKD 224,448.50";
+                const po = item.po_number || "—";
+                const date = item.created_at ? new Date(item.created_at).toLocaleDateString() : "2026-11-25";
 
-      {loading && !cases.length ? (
-        <div className="empty-note empty-note--rich">
-          <strong>Loading board</strong>
-          <span>Fetching the latest invoices…</span>
-        </div>
-      ) : (
-        <>
-          <CaseTable
-            cases={pageItems}
-            onSelect={(item) => navigate(`/review/${item.id}`)}
-            emptyTitle="No invoices in this filter"
-            emptyHint="Clear the filter or upload a new invoice."
-          />
-          {filtered.length > 0 ? (
-            <div className="pager">
-              <span className="muted">{page.range}</span>
-              <div className="btn-row">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-compact"
-                  disabled={page.index <= 0}
-                  onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
-                >
-                  Previous
-                </button>
-                <span className="pager__text">{page.text}</span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-compact"
-                  disabled={page.index >= page.count - 1}
-                  onClick={() => setPageIndex((p) => p + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </>
-      )}
+                return (
+                  <tr key={invId}>
+                    <td>
+                      <input type="checkbox" aria-label={`Select ${invNum}`} />
+                    </td>
+                    <td>
+                      <Link
+                        to={`/cases/${invId}?back=%2Fworklist&backLabel=Back+to+Invoices`}
+                        className="ref-invoice-link"
+                      >
+                        {invNum}
+                      </Link>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600 }}>{vendor}</span>
+                      <span className="ref-notes-badge">Notes</span>
+                    </td>
+                    <td style={{ fontWeight: 700, color: "#002856" }}>{amount}</td>
+                    <td>
+                      <span style={{
+                        display: "inline-block",
+                        padding: "0.2rem 0.55rem",
+                        borderRadius: "9999px",
+                        fontSize: "0.74rem",
+                        fontWeight: 700,
+                        backgroundColor: item.status === "APPROVED" ? "#e6f0eb" : "#fef3c7",
+                        color: item.status === "APPROVED" ? "#006937" : "#8a5300",
+                      }}>
+                        {item.status || "NEEDS_REVIEW"}
+                      </span>
+                    </td>
+                    <td style={{ color: "#64748b" }}>{po}</td>
+                    <td style={{ color: "#64748b" }}>{date}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

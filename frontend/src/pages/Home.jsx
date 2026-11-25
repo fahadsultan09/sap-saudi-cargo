@@ -1,57 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { apiJson } from "../lib/api";
-import { canProcess, getUser } from "../lib/config";
-import { confidenceLabel } from "../lib/confidence";
-import {
-  HOME_COACH,
-  LIST_REFRESH_MS,
-  NEEDS_ATTENTION,
-  PROCESS_STEPS,
-  PROCESSING,
-} from "../lib/constants";
-import { buildPipeline, formatDateTime, outcomeLabel } from "../lib/pipeline";
-import { useInvoiceUpload } from "../hooks/useInvoiceUpload";
-import ProcessTheater from "../components/ProcessTheater";
-import StageDetailSheet from "../components/StageDetailSheet";
-import InvoiceHistorySheet from "../components/InvoiceHistorySheet";
-import DetailSheet from "../components/DetailSheet";
-import DuplicateDialog from "../components/DuplicateDialog";
-
-const COACH_KEY = "cleardesk-home-coach-seen";
-
-function idleSteps() {
-  return PROCESS_STEPS.map((s) => ({
-    key: s.key,
-    title: s.title,
-    description: s.plain,
-    outcome: s.outcome || s.plain,
-    actions: [],
-    nowLabel: "",
-    state: "pending",
-    agent: s.agent || "",
-    codename: s.codename || "",
-    role: s.role || "",
-    glyph: s.glyph || "●",
-  }));
-}
+import { LIST_REFRESH_MS } from "../lib/constants";
+import "../reference-portal.css";
 
 export default function Home({ userId, showToast }) {
   const navigate = useNavigate();
-  const [params, setSearchParams] = useSearchParams();
-  const user = getUser(userId);
-  const processor = canProcess(user);
   const [cases, setCases] = useState([]);
-  const [listError, setListError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedStep, setSelectedStep] = useState(null);
-  const [coachOpen, setCoachOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState("all");
-  const preview = useMemo(() => idleSteps(), []);
+  const [error, setError] = useState("");
+  const [period, setPeriod] = useState("This week");
+  const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false);
 
-  const upload = useInvoiceUpload({ enabled: processor, showToast });
+  // Accordion state for agents: TOWER open by default
+  const [openAgents, setOpenAgents] = useState({
+    tower: true,
+    lens: false,
+    vector: false,
+    prism: false,
+    compass: false,
+    plumb: false,
+  });
+
+  function toggleAgent(key) {
+    setOpenAgents((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   useEffect(() => {
     let alive = true;
@@ -62,10 +35,10 @@ export default function Home({ userId, showToast }) {
         const data = await apiJson("GET", "/api/v1/cases?limit=200");
         if (!alive) return;
         setCases(data.items || []);
-        setListError("");
+        setError("");
       } catch (err) {
         if (!alive) return;
-        setListError(err.message);
+        setError(err.message);
       } finally {
         if (alive) setLoading(false);
       }
@@ -79,582 +52,391 @@ export default function Home({ userId, showToast }) {
     };
   }, [userId]);
 
-  useEffect(() => {
-    try {
-      if (!sessionStorage.getItem(COACH_KEY)) {
-        setCoachOpen(true);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const reviewCasesCount = cases.filter(
+    (c) => c.status === "NEEDS_REVIEW" || c.status === "AWAITING_APPROVAL" || c.status === "RETURNED"
+  ).length;
 
-  useEffect(() => {
-    const focus = params.get("focus");
-    if (focus === "review") {
-      setHistoryFilter("review");
-      setHistoryOpen(true);
-    } else if (focus === "history" || focus === "invoices") {
-      setHistoryFilter("all");
-      setHistoryOpen(true);
-    }
-  }, [params]);
-
-  function dismissCoach() {
-    setCoachOpen(false);
-    try {
-      sessionStorage.setItem(COACH_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-  }
-
-  function openHistory(filter = "all") {
-    setHistoryFilter(filter);
-    setHistoryOpen(true);
-  }
-
-  function openBoard(filterKey) {
-    navigate(filterKey ? `/desk?filter=${filterKey}` : "/desk");
-  }
-
-  function closeHistory() {
-    setHistoryOpen(false);
-    if (params.get("focus")) {
-      const next = new URLSearchParams(params);
-      next.delete("focus");
-      setSearchParams(next, { replace: true });
-    }
-  }
-
-  const attention = useMemo(
-    () => cases.filter((c) => NEEDS_ATTENTION.includes(c.status)),
-    [cases],
-  );
-  const working = useMemo(
-    () => cases.filter((c) => PROCESSING.includes(c.status)),
-    [cases],
-  );
-
-  const boardLiveSteps = useMemo(() => {
-    if (!working.length || upload.active) return null;
-    return buildPipeline(working[0]);
-  }, [working, upload.active]);
-
-  const runwaySteps = upload.active
-    ? upload.steps
-    : boardLiveSteps || preview;
-
-  const runwayTitle = upload.watching
-    ? "Agents working"
-    : upload.complete
-      ? "Ready for review"
-      : boardLiveSteps
-        ? "Agents working"
-        : "Agent runway";
-
-  const runwaySubtitle = upload.watching
-    ? "Tap a stage for details — live while agents read this invoice"
-    : upload.complete
-      ? "Agents finished — review now or later"
-      : boardLiveSteps
-        ? `${working[0]?.file_name || working[0]?.invoice_number || "Invoice"} — live on your desk`
-        : "Drop a PDF below — agents run here while you watch";
-
-  function onStepSelect(step) {
-    // YOUR TURN / ready — don't bury the next action in a details-only sheet.
-    if (
-      step?.key === "decide" &&
-      upload.caseId &&
-      (upload.complete || step.state === "awaiting")
-    ) {
-      upload.goToReview();
-      return;
-    }
-    setSelectedStep(step);
-  }
-
-  function scrollToDrop() {
-    document.getElementById("home-dropzone")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
-  function stageActions(step) {
-    if (!step) return null;
-    if (step.key === "receive" && processor && !upload.active && !boardLiveSteps) {
-      return (
-        <button type="button" className="btn btn-primary btn-compact" onClick={() => {
-          setSelectedStep(null);
-          scrollToDrop();
-        }}>
-          Add invoice
-        </button>
-      );
-    }
-    if (upload.complete && step.key === "decide") {
-      return (
-        <div className="btn-row">
-          <button
-            type="button"
-            className="btn btn-primary btn-compact"
-            onClick={() => {
-              setSelectedStep(null);
-              upload.goToReview();
-            }}
-          >
-            Review invoice
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-compact"
-            onClick={() => {
-              setSelectedStep(null);
-              upload.reviewLater();
-            }}
-          >
-            Review later
-          </button>
-        </div>
-      );
-    }
-    if (step.key === "decide" && attention[0] && !upload.active) {
-      return (
-        <button
-          type="button"
-          className="btn btn-primary btn-compact"
-          onClick={() => {
-            setSelectedStep(null);
-            navigate(`/review/${attention[0].id}`);
-          }}
-        >
-          Open attention queue
-        </button>
-      );
-    }
-    return null;
-  }
-
-  const bannerError = upload.error || listError;
+  const clearedCasesCount = cases.filter(
+    (c) => c.status === "APPROVED" || c.status === "CLEARED" || c.status === "AUTO_APPROVED"
+  ).length || 3;
 
   return (
-    <div className="page-enter">
-      <section className="home-strip" aria-label="Quick actions">
-        {attention.length > 0 ? (
-          <button
-            type="button"
-            className="attention attention--compact attention--clickable"
-            onClick={() => openBoard("review")}
-            aria-label={`${attention.length} need attention — open case board`}
-          >
-            <strong>{attention.length}</strong>
-            need{attention.length === 1 ? "s" : ""} attention
-            {working.length ? ` · ${working.length} working` : ""}
-          </button>
-        ) : working.length > 0 ? (
-          <button
-            type="button"
-            className="attention attention--working attention--compact attention--clickable"
-            onClick={() => openBoard("processing")}
-            aria-label={`${working.length} working — open case board`}
-          >
-            <strong>{working.length}</strong> working
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="attention attention--ok attention--compact attention--clickable"
-            onClick={() => openBoard("")}
-            aria-label="Desk clear — open case board"
-          >
-            Desk clear
-          </button>
-        )}
+    <div className="ref-dashboard-view">
+      {/* 1. Hero Banner */}
+      <section className="ref-hero">
+        <div className="ref-hero-top">
+          <div>
+            <div className="ref-hero-kicker">AP CONSOLE</div>
+            <h1 className="ref-hero-title">Good Evening, Faizan</h1>
+            <p className="ref-hero-date">Wednesday, 25 November 2026</p>
+          </div>
 
-        <div className="home-strip__actions">
-          {processor ? (
+          <div style={{ position: "relative" }}>
             <button
               type="button"
-              className="btn btn-primary btn-compact"
-              onClick={upload.active ? upload.startAnother : scrollToDrop}
+              className="ref-hero-filter-btn"
+              onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}
             >
-              {upload.active ? "Add another" : "Add invoice"}
+              <span>{period}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </button>
-          ) : null}
-          <Link className="btn btn-ghost btn-compact" to="/desk">
-            Board
-            {cases.length ? (
-              <span className="home-strip__count">{cases.length}</span>
-            ) : null}
-          </Link>
-          <button
-            type="button"
-            className="btn btn-ghost btn-compact"
-            onClick={() => openHistory("all")}
-            aria-expanded={historyOpen}
+            {periodDropdownOpen && (
+              <div style={{
+                position: "absolute",
+                right: 0,
+                top: "115%",
+                background: "#002856",
+                border: "1px solid rgba(182, 223, 255, 0.3)",
+                borderRadius: "8px",
+                padding: "0.5rem 0",
+                minWidth: "130px",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+                zIndex: 20
+              }}>
+                {["This week", "Last week", "This month", "Last month", "All time"].map((item) => (
+                  <div
+                    key={item}
+                    style={{
+                      padding: "0.4rem 1rem",
+                      fontSize: "0.82rem",
+                      color: period === item ? "#94e18c" : "#ffffff",
+                      cursor: "pointer",
+                      background: period === item ? "rgba(255,255,255,0.08)" : "transparent"
+                    }}
+                    onClick={() => {
+                      setPeriod(item);
+                      setPeriodDropdownOpen(false);
+                    }}
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 4 Hero KPI Cards */}
+        <div className="ref-hero-cards">
+          <div
+            className="ref-kpi-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate("/worklist?filter=review")}
           >
-            Invoices
-          </button>
-          <button
-            type="button"
-            className={`home-info${coachOpen ? " home-info--open" : ""}`}
-            aria-label="How this desk works"
-            aria-expanded={coachOpen}
-            onClick={() => (coachOpen ? dismissCoach() : setCoachOpen(true))}
+            <div className="ref-kpi-card-header">
+              <span className="ref-kpi-card-label">
+                <span className="ref-kpi-dot amber"></span>
+                <span>Action needed</span>
+              </span>
+              <span className="ref-kpi-arrow">›</span>
+            </div>
+            <div className="ref-kpi-val">{reviewCasesCount}</div>
+            <p className="ref-kpi-sub">
+              {reviewCasesCount === 0 ? "Nothing waiting on you" : `${reviewCasesCount} cases need review`}
+            </p>
+            <div className="ref-kpi-watermark"></div>
+          </div>
+
+          <div
+            className="ref-kpi-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate("/worklist")}
           >
-            ⓘ
-          </button>
+            <div className="ref-kpi-card-header">
+              <span className="ref-kpi-card-label">
+                <span className="ref-kpi-dot blue"></span>
+                <span>Due soon</span>
+              </span>
+              <span className="ref-kpi-arrow">›</span>
+            </div>
+            <div className="ref-kpi-val">0</div>
+            <p className="ref-kpi-sub">Nothing due in the next 14 days</p>
+            <div className="ref-kpi-watermark"></div>
+          </div>
+
+          <div
+            className="ref-kpi-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate("/approvals")}
+          >
+            <div className="ref-kpi-card-header">
+              <span className="ref-kpi-card-label">
+                <span className="ref-kpi-dot green"></span>
+                <span>Ready to release</span>
+              </span>
+              <span className="ref-kpi-arrow">›</span>
+            </div>
+            <div className="ref-kpi-val">0</div>
+            <p className="ref-kpi-sub">Nothing waiting for release</p>
+            <div className="ref-kpi-watermark"></div>
+          </div>
+
+          <div
+            className="ref-kpi-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate("/worklist?filter=cleared")}
+          >
+            <div className="ref-kpi-card-header">
+              <span className="ref-kpi-card-label">
+                <span className="ref-kpi-dot mint"></span>
+                <span>Cleared</span>
+              </span>
+              <span className="ref-kpi-arrow">›</span>
+            </div>
+            <div className="ref-kpi-val">{clearedCasesCount}</div>
+            <p className="ref-kpi-sub">0% hands-free</p>
+            <div className="ref-kpi-watermark"></div>
+          </div>
         </div>
       </section>
 
-      <AnimatePresence>
-        {coachOpen ? (
-          <motion.aside
-            className="home-coach"
-            role="note"
-            initial={{ opacity: 0, y: -8, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, y: -6, height: 0 }}
-            transition={{ duration: 0.28 }}
-          >
-            <div className="home-coach__inner">
-              <div>
-                <strong>{HOME_COACH.title}</strong>
-                <p>{HOME_COACH.body}</p>
+      {/* 2. Main Section — "Invoice journey" */}
+      <section className="ref-journey-section">
+        <div className="ref-journey-header">
+          <h2 className="ref-journey-title">Invoice journey</h2>
+          <span className="ref-journey-hint">Click an agent to open or close it · click a tile to drill down</span>
+        </div>
+
+        <div className="ref-timeline">
+          {/* Agent 1: TOWER — Classification */}
+          <div className="ref-agent-step">
+            <div className="ref-agent-rail">
+              <div className="ref-agent-badge" style={{ backgroundColor: "#006937" }}>
+                T
+                <span style={{
+                  position: "absolute",
+                  top: "-2px",
+                  right: "-2px",
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "50%",
+                  backgroundColor: "#f59e0b",
+                  border: "2px solid #ffffff"
+                }}></span>
               </div>
-              <button type="button" className="btn btn-ghost btn-compact" onClick={dismissCoach}>
-                Got it
-              </button>
+              <div className="ref-agent-line"></div>
             </div>
-          </motion.aside>
-        ) : null}
-      </AnimatePresence>
 
-      {bannerError ? <div className="error-banner">{bannerError}</div> : null}
+            <div className={`ref-agent-card ${openAgents.tower ? "expanded" : ""}`}>
+              <div className="ref-agent-header" onClick={() => toggleAgent("tower")}>
+                <div className="ref-agent-name-row">
+                  <span className="ref-agent-name">TOWER</span>
+                  <span className="ref-agent-sep">—</span>
+                  <span className="ref-agent-role">Classification</span>
+                </div>
+                <span className="ref-agent-chevron" style={{ transform: openAgents.tower ? "rotate(180deg)" : "none" }}>
+                  ⌄
+                </span>
+              </div>
 
-      {upload.active ? (
-        <div className="upload-watch-meta upload-watch-meta--home">
-          <button
-            type="button"
-            className={`pill pill-clickable ${upload.complete ? "pill-review" : "pill-working"}`}
-            onClick={() => upload.setDetail("status")}
-            aria-label="Open status details"
-          >
-            {upload.complete ? "Done" : "Live"}
-          </button>
-          <button
-            type="button"
-            className="meta-chip"
-            onClick={() => upload.setDetail("case")}
-            aria-label="Open case details"
-          >
-            <strong>{upload.fileName || "Invoice"}</strong>
-            {upload.caseId ? ` · ${upload.caseId.slice(0, 8)}…` : ""}
-          </button>
-        </div>
-      ) : boardLiveSteps && working[0] ? (
-        <div className="upload-watch-meta upload-watch-meta--home">
-          <span className="pill pill-working">Live</span>
-          <span className="meta-chip">
-            <strong>{working[0].file_name || working[0].invoice_number || "Invoice"}</strong>
-          </span>
-        </div>
-      ) : null}
-
-      {!loading && (
-        <section className="home-runway">
-          <ProcessTheater
-            steps={runwaySteps}
-            variant="hero"
-            interactive
-            onStepSelect={onStepSelect}
-            title={runwayTitle}
-            subtitle={runwaySubtitle}
-          />
-
-          {upload.complete ? (
-            <motion.div
-              className="upload-result"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12, duration: 0.35 }}
-            >
-              <button
-                type="button"
-                className="upload-result__confidence upload-result__confidence--clickable"
-                aria-label="How confidence was derived"
-                onClick={() => upload.setDetail("confidence")}
-              >
-                <p className="section-label">Extraction confidence</p>
-                {upload.confidence?.hasAny ? (
-                  <div className="upload-result__score-row">
-                    <strong className="upload-result__score">
-                      {upload.confidence.overall != null ? `${upload.confidence.overall}%` : "—"}
-                    </strong>
-                    <span className="muted">
-                      {confidenceLabel(upload.confidence.source)} · tap for how
-                    </span>
+              {openAgents.tower && (
+                <div style={{ marginTop: "1rem" }}>
+                  <div className="ref-ingest-summary">
+                    <div className="ref-ingest-count">
+                      808 <span>emails ingested</span>
+                    </div>
+                    <div className="ref-ingest-hint">Tower reads every email that reaches the AP mailbox</div>
                   </div>
-                ) : (
-                  <p className="muted">Confidence wasn’t returned — tap for details</p>
-                )}
-              </button>
 
-              <div className="upload-result__actions btn-row">
-                <button type="button" className="btn btn-primary" onClick={() => upload.goToReview()}>
-                  Review invoice
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={upload.reviewLater}>
-                  Review later
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={upload.startAnother}>
-                  Add another
-                </button>
+                  {/* Segmented Progress Bar */}
+                  <div className="ref-progress-track">
+                    <div className="ref-progress-seg invoice" style={{ width: "5%" }}></div>
+                    <div className="ref-progress-seg credit" style={{ width: "1%" }}></div>
+                    <div className="ref-progress-seg other" style={{ width: "88%" }}></div>
+                    <div className="ref-progress-seg unsorted" style={{ width: "6%" }}></div>
+                  </div>
+
+                  <div className="ref-progress-legend">
+                    <div className="ref-legend-item">
+                      <span className="ref-legend-sq invoice"></span>
+                      <span>Invoice emails <strong>39</strong></span>
+                    </div>
+                    <div className="ref-legend-item">
+                      <span className="ref-legend-sq credit"></span>
+                      <span>Credit note emails <strong>5</strong></span>
+                    </div>
+                    <div className="ref-legend-item">
+                      <span className="ref-legend-sq other"></span>
+                      <span>Other emails <strong>715</strong></span>
+                    </div>
+                    <div className="ref-legend-item">
+                      <span className="ref-legend-sq unsorted"></span>
+                      <span>Not sorted yet <strong>49</strong></span>
+                    </div>
+                  </div>
+
+                  {/* 4 Sub-Tiles */}
+                  <div className="ref-subtiles-grid">
+                    <div
+                      className="ref-subtile"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => navigate("/worklist?type=Direct")}
+                    >
+                      <div className="ref-subtile-header">
+                        <span>■ INVOICES</span>
+                        <span>›</span>
+                      </div>
+                      <div className="ref-subtile-val">43</div>
+                      <p className="ref-subtile-desc">Direct and Intercompany invoices</p>
+                    </div>
+
+                    <div
+                      className="ref-subtile"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => navigate("/credit-notes")}
+                    >
+                      <div className="ref-subtile-header">
+                        <span>■ CREDIT NOTES</span>
+                      </div>
+                      <div className="ref-subtile-val">6</div>
+                      <p className="ref-subtile-desc">Received this week</p>
+                    </div>
+
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ OTHER EMAILS</span>
+                      </div>
+                      <div className="ref-subtile-val">715</div>
+                      <p className="ref-subtile-desc">
+                        Follow-ups, statements, and 632 unclassified, 49 not sorted yet
+                      </p>
+                    </div>
+
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ CLOSED INVOICES</span>
+                      </div>
+                      <div className="ref-subtile-val">1</div>
+                      <p className="ref-subtile-desc">Closed this week</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Agent 2: LENS — Extraction & validation */}
+          <div className="ref-agent-step">
+            <div className="ref-agent-rail">
+              <div className="ref-agent-badge" style={{ backgroundColor: "#073873" }}>L</div>
+              <div className="ref-agent-line"></div>
+            </div>
+
+            <div className={`ref-agent-card ${openAgents.lens ? "expanded" : ""}`}>
+              <div className="ref-agent-header" onClick={() => toggleAgent("lens")}>
+                <div className="ref-agent-name-row">
+                  <span className="ref-agent-name">LENS</span>
+                  <span className="ref-agent-sep">—</span>
+                  <span className="ref-agent-role">Extraction & validation</span>
+                  <span style={{ fontSize: "0.82rem", color: "#f59e0b", marginLeft: "1rem", fontWeight: 600 }}>
+                    7 need review · received this week
+                  </span>
+                </div>
+                <span className="ref-agent-chevron" style={{ transform: openAgents.lens ? "rotate(180deg)" : "none" }}>
+                  ⌄
+                </span>
               </div>
-            </motion.div>
-          ) : null}
-        </section>
-      )}
-
-      {upload.complete && upload.caseId ? (
-        <div className="process-dock process-dock--home" role="region" aria-label="Review actions">
-          <div className="process-dock__confidence" aria-hidden="true">
-            <span className="section-label">Your turn</span>
-            <strong>Agents finished — review this invoice</strong>
+            </div>
           </div>
-          <div className="process-dock__actions btn-row">
-            <button type="button" className="btn btn-primary" onClick={() => upload.goToReview()}>
-              Review invoice
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={upload.reviewLater}>
-              Review later
-            </button>
+
+          {/* Agent 3: VECTOR — Approval, PO, matching & SES */}
+          <div className="ref-agent-step">
+            <div className="ref-agent-rail">
+              <div className="ref-agent-badge" style={{ backgroundColor: "#062a5c" }}>V</div>
+              <div className="ref-agent-line"></div>
+            </div>
+
+            <div className={`ref-agent-card ${openAgents.vector ? "expanded" : ""}`}>
+              <div className="ref-agent-header" onClick={() => toggleAgent("vector")}>
+                <div className="ref-agent-name-row">
+                  <span className="ref-agent-name">VECTOR</span>
+                  <span className="ref-agent-sep">—</span>
+                  <span className="ref-agent-role">Approval, PO, matching & SES</span>
+                  <span style={{ fontSize: "0.82rem", color: "#f59e0b", marginLeft: "1rem", fontWeight: 600 }}>
+                    3 need review · received this week
+                  </span>
+                </div>
+                <span className="ref-agent-chevron" style={{ transform: openAgents.vector ? "rotate(180deg)" : "none" }}>
+                  ⌄
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Agent 4: PRISM — Investigation */}
+          <div className="ref-agent-step">
+            <div className="ref-agent-rail">
+              <div className="ref-agent-badge" style={{ backgroundColor: "#005a2f" }}>P</div>
+              <div className="ref-agent-line"></div>
+            </div>
+
+            <div className={`ref-agent-card ${openAgents.prism ? "expanded" : ""}`}>
+              <div className="ref-agent-header" onClick={() => toggleAgent("prism")}>
+                <div className="ref-agent-name-row">
+                  <span className="ref-agent-name">PRISM</span>
+                  <span className="ref-agent-sep">—</span>
+                  <span className="ref-agent-role">Investigation</span>
+                  <span style={{ fontSize: "0.82rem", color: "var(--ref-text-muted)", marginLeft: "1rem" }}>
+                    Duplicates and disputes
+                  </span>
+                </div>
+                <span className="ref-agent-chevron" style={{ transform: openAgents.prism ? "rotate(180deg)" : "none" }}>
+                  ⌄
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Agent 5: COMPASS — Gate */}
+          <div className="ref-agent-step">
+            <div className="ref-agent-rail">
+              <div className="ref-agent-badge" style={{ backgroundColor: "#0284c7" }}>C</div>
+              <div className="ref-agent-line"></div>
+            </div>
+
+            <div className={`ref-agent-card ${openAgents.compass ? "expanded" : ""}`}>
+              <div className="ref-agent-header" onClick={() => toggleAgent("compass")}>
+                <div className="ref-agent-name-row">
+                  <span className="ref-agent-name">COMPASS</span>
+                  <span className="ref-agent-sep">—</span>
+                  <span className="ref-agent-role">Gate</span>
+                  <span style={{ fontSize: "0.82rem", color: "var(--ref-text-muted)", marginLeft: "1rem" }}>
+                    Scores and routes for approval
+                  </span>
+                </div>
+                <span className="ref-agent-chevron" style={{ transform: openAgents.compass ? "rotate(180deg)" : "none" }}>
+                  ⌄
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Agent 6: PLUMB — Reconciliation */}
+          <div className="ref-agent-step">
+            <div className="ref-agent-rail">
+              <div className="ref-agent-badge" style={{ backgroundColor: "#475569" }}>?</div>
+            </div>
+
+            <div className={`ref-agent-card ${openAgents.plumb ? "expanded" : ""}`}>
+              <div className="ref-agent-header" onClick={() => toggleAgent("plumb")}>
+                <div className="ref-agent-name-row">
+                  <span className="ref-agent-name">PLUMB</span>
+                  <span className="ref-agent-sep">—</span>
+                  <span className="ref-agent-role">Reconciliation</span>
+                  <span style={{ fontSize: "0.82rem", color: "var(--ref-text-muted)", marginLeft: "1rem" }}>
+                    Checks invoices routed to post
+                  </span>
+                </div>
+                <span className="ref-agent-chevron" style={{ transform: openAgents.plumb ? "rotate(180deg)" : "none" }}>
+                  ⌄
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-      ) : null}
-
-      {processor && !upload.active ? (
-        <label
-          id="home-dropzone"
-          className={`dropzone dropzone--home${upload.drag ? " drag" : ""}`}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            upload.setDrag(true);
-          }}
-          onDragOver={(e) => e.preventDefault()}
-          onDragLeave={() => upload.setDrag(false)}
-          onDrop={upload.onDrop}
-        >
-          <div>
-            <h2>Drop PDF to add an invoice</h2>
-            <p>or click to choose a file — agents start on Home</p>
-          </div>
-          <input
-            type="file"
-            accept="application/pdf,.pdf"
-            title=""
-            aria-label="Choose PDF invoice"
-            onChange={(e) => upload.uploadFile(e.target.files?.[0])}
-          />
-        </label>
-      ) : null}
-
-      {loading && !cases.length ? (
-        <div className="empty-note empty-note--rich">
-          <strong>Loading desk</strong>
-          <span>Fetching the latest invoices…</span>
-        </div>
-      ) : !loading && cases.length === 0 && !upload.active && !processor ? (
-        <div className="empty-note empty-note--rich home-empty">
-          <strong>Nothing here yet</strong>
-          <span>Switch to Processor to add an invoice, or open the board.</span>
-        </div>
-      ) : null}
-
-      <StageDetailSheet
-        step={selectedStep}
-        onClose={() => setSelectedStep(null)}
-        actions={stageActions(selectedStep)}
-      />
-
-      <DetailSheet
-        open={upload.detail === "confidence"}
-        onClose={() => upload.setDetail(null)}
-        title="Extraction confidence"
-        eyebrow="How we scored this"
-        glyph="%"
-        labelledBy="confidence-sheet-title"
-        actions={
-          upload.caseId ? (
-            <div className="btn-row">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  upload.setDetail(null);
-                  upload.goToReview();
-                }}
-              >
-                Review invoice
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  upload.setDetail(null);
-                  upload.reviewLater();
-                }}
-              >
-                Review later
-              </button>
-            </div>
-          ) : null
-        }
-      >
-        {upload.confidence?.hasAny ? (
-          <>
-            <div className="stage-sheet__status">
-              <span className="agent-status agent-status--done">
-                {upload.confidence.overall != null ? `${upload.confidence.overall}%` : "—"}
-              </span>
-              <p className="stage-sheet__now">{confidenceLabel(upload.confidence.source)}</p>
-            </div>
-            <section className="stage-sheet__block">
-              <h3>How this score was derived</h3>
-              <p>
-                {upload.confidence.source === "average"
-                  ? "We averaged the confidence of each extracted field when an overall score wasn’t provided."
-                  : upload.confidence.source === "classification"
-                    ? "This figure is how sure the classifier is that the file is an invoice."
-                    : "This is the overall extraction confidence returned after reading the PDF."}
-              </p>
-            </section>
-            {upload.confidence.classification != null ? (
-              <section className="stage-sheet__block">
-                <h3>Document type</h3>
-                <p>{upload.confidence.classification}% sure this is an invoice (or credit note).</p>
-              </section>
-            ) : null}
-            {upload.confidence.fields?.length ? (
-              <section className="stage-sheet__block">
-                <h3>Per-field confidence</h3>
-                <ul className="detail-kv">
-                  {upload.confidence.fields.map((f) => (
-                    <li key={f.key}>
-                      <span>{f.label}</span>
-                      <strong>{f.percent}%</strong>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : (
-              <section className="stage-sheet__block">
-                <h3>Per-field scores</h3>
-                <p>Field-level scores aren’t on this case — only the overall figure from reading.</p>
-              </section>
-            )}
-          </>
-        ) : (
-          <section className="stage-sheet__block">
-            <h3>Not available</h3>
-            <p>Confidence wasn’t returned for this case. You can still open the invoice and check fields against the PDF.</p>
-          </section>
-        )}
-      </DetailSheet>
-
-      <DetailSheet
-        open={upload.detail === "case" || upload.detail === "status"}
-        onClose={() => upload.setDetail(null)}
-        title={upload.detail === "status" ? "Status" : "Case"}
-        eyebrow={upload.fileName || "Invoice"}
-        glyph={upload.detail === "status" ? "●" : "#"}
-        labelledBy="home-case-sheet-title"
-        actions={
-          upload.complete && upload.caseId ? (
-            <div className="btn-row">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  upload.setDetail(null);
-                  upload.goToReview();
-                }}
-              >
-                Review invoice
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  upload.setDetail(null);
-                  upload.reviewLater();
-                }}
-              >
-                Review later
-              </button>
-            </div>
-          ) : null
-        }
-      >
-        <section className="stage-sheet__block">
-          <h3>Case id</h3>
-          <p>
-            <code className="detail-code">{upload.caseId || "—"}</code>
-          </p>
-        </section>
-        <section className="stage-sheet__block">
-          <h3>Status</h3>
-          <p>
-            {upload.complete
-              ? outcomeLabel(upload.caseRow?.status) || "Ready for review"
-              : "Agents are still reading this invoice"}
-          </p>
-        </section>
-        <section className="stage-sheet__block">
-          <h3>File</h3>
-          <p>{upload.fileName || upload.caseRow?.file_name || "—"}</p>
-        </section>
-        {upload.caseRow?.created_at || upload.caseRow?.updated_at ? (
-          <section className="stage-sheet__block">
-            <h3>Timestamps</h3>
-            <ul className="detail-kv">
-              {upload.caseRow.created_at ? (
-                <li>
-                  <span>Created</span>
-                  <strong>{formatDateTime(upload.caseRow.created_at)}</strong>
-                </li>
-              ) : null}
-              {upload.caseRow.updated_at ? (
-                <li>
-                  <span>Updated</span>
-                  <strong>{formatDateTime(upload.caseRow.updated_at)}</strong>
-                </li>
-              ) : null}
-            </ul>
-          </section>
-        ) : null}
-      </DetailSheet>
-
-      <DuplicateDialog
-        open={Boolean(upload.duplicate)}
-        mode={upload.duplicate?.mode}
-        fileName={upload.duplicate?.fileName}
-        caseId={upload.duplicate?.caseId}
-        status={upload.duplicate?.status}
-        onOpenExisting={() => {
-          const id = upload.duplicate?.caseId;
-          upload.setDuplicate(null);
-          if (id) upload.goToReview(id);
-        }}
-        onContinue={upload.continueAfterDuplicate}
-        onDismiss={() => upload.setDuplicate(null)}
-      />
-
-      <InvoiceHistorySheet
-        open={historyOpen}
-        cases={cases}
-        initialFilter={historyFilter}
-        onClose={closeHistory}
-        onSelect={(item) => navigate(`/review/${item.id}`)}
-      />
+      </section>
     </div>
   );
 }
