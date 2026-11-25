@@ -75,5 +75,5 @@
     --sapList_SelectionBackgroundColor: var(--ap-brand-soft);
     --sapFontFamily: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --sapFontHeaderFamily: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --sapFontSize: 0.875rem;
+    --sapFontSize: 0.9375rem;
 }

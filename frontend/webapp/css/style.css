@@ -22,7 +22,7 @@
 
 html, body, .sapUiBody {
     font-family: var(--ap-font-body);
-    font-size: 14.5px;
+    font-size: 15px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -74,7 +74,7 @@ html, body, .sapUiBody {
 .apBrandMarkLetter.sapMText {
     color: #fff;
     font-family: var(--ap-font-display);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 700;
     letter-spacing: 0.06em;
 }
@@ -90,7 +90,7 @@ html, body, .sapUiBody {
 .apBrandTitle.sapMTitle,
 .apBrandSubtitle.sapMText,
 .apHeader .sapMText {
-    line-height: 1.2;
+    line-height: 1.25;
 }
 
 .apBrandTitle.sapMTitle {
@@ -98,12 +98,12 @@ html, body, .sapUiBody {
     color: var(--ap-ink);
     font-weight: 700;
     letter-spacing: -0.02em;
-    font-size: 1.15rem !important;
+    font-size: 1.25rem !important;
 }
 
 .apBrandSubtitle.sapMText {
     color: var(--ap-muted);
-    font-size: 0.78rem;
+    font-size: 0.825rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -112,12 +112,12 @@ html, body, .sapUiBody {
 .apHeaderName.sapMText {
     color: var(--ap-text);
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
 }
 
 .apHeaderRole.sapMText {
     color: var(--ap-muted);
-    font-size: 0.8125rem;
+    font-size: 0.85rem;
 }
 
 .apProfileAvatar.sapFAvatar {
@@ -178,17 +178,17 @@ html, body, .sapUiBody {
     font-family: var(--ap-font-display);
     font-weight: 700;
     letter-spacing: -0.02em;
-    font-size: 1.85rem !important;
+    font-size: 2.1rem !important;
 }
 
 .apWelcomeSubtitle.sapMText,
 .apWelcome .sapMText {
     color: rgba(255, 255, 255, 0.92);
-    font-size: 0.925rem !important;
+    font-size: 1.05rem !important;
 }
 
 .apWelcomeBrand.sapMText {
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -205,10 +205,10 @@ html, body, .sapUiBody {
     background: #FFFFFF !important;
     border: 1px solid #FFFFFF !important;
     color: #06532C !important;
-    font-size: 0.875rem !important;
+    font-size: 0.95rem !important;
     font-weight: 600 !important;
     border-radius: 999px !important;
-    padding: 0 1.25rem !important;
+    padding: 0 1.45rem !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     outline: none !important;
@@ -273,7 +273,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.45);
     color: #fff;
-    font-size: 0.875rem !important;
+    font-size: 0.95rem !important;
     font-weight: 600;
     border-radius: 999px;
 }
@@ -310,16 +310,16 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apBreakdownTitle.sapMText {
     font-weight: 600 !important;
-    font-size: 0.925rem !important;
+    font-size: 1.05rem !important;
     color: var(--ap-ink) !important;
 }
 
 .apSegmentBar {
-    height: 8px;
+    height: 9px;
     border-radius: 999px;
     overflow: hidden;
     background: #E2E8F0;
-    margin-top: 0.5rem;
+    margin-top: 0.6rem;
     display: flex;
     width: 100%;
 }
@@ -330,8 +330,8 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apSegment--unsorted { background: #CBD5E1; }
 
 .apLegendDot {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
 }
 .apLegendDot--invoice { background: #10B981; }
@@ -340,7 +340,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apLegendDot--unsorted { background: #CBD5E1; }
 
 .apLegendText.sapMText {
-    font-size: 0.8125rem !important;
+    font-size: 0.875rem !important;
     color: #475569 !important;
     font-weight: 500 !important;
 }
@@ -368,9 +368,9 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apFlowPhaseLabel.sapMText {
-    font-size: 0.75rem !important;
+    font-size: 0.825rem !important;
     font-weight: 700 !important;
-    letter-spacing: 0.12em !important;
+    letter-spacing: 0.14em !important;
     text-transform: uppercase !important;
     color: rgba(255, 255, 255, 0.75) !important;
     white-space: nowrap;
@@ -394,7 +394,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apKpi {
     min-width: 10.5rem;
     flex: 1 1 10.5rem;
-    padding: 1rem 1.1rem;
+    padding: 1rem 1.15rem;
     border-radius: var(--ap-radius);
     background: var(--ap-surface);
     border: 1px solid var(--ap-border);
@@ -427,23 +427,23 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apKpiLabel.sapMText {
     color: var(--ap-muted);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
 
 .apKpiValue.sapMText {
     font-family: var(--ap-font-display);
-    font-size: 1.95rem;
+    font-size: 2.2rem;
     font-weight: 700;
     color: var(--ap-ink);
     letter-spacing: -0.03em;
 }
 
 .apKpiIcon {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.35rem;
+    height: 2.35rem;
     border-radius: 10px;
     background: var(--ap-brand-soft);
     color: var(--ap-brand-dark);
@@ -464,7 +464,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     border: 1px solid var(--ap-border);
     border-radius: var(--ap-radius-lg);
     box-shadow: var(--ap-shadow);
-    padding: 1.1rem 1.25rem 0.75rem;
+    padding: 1.15rem 1.35rem 0.85rem;
 }
 
 .apCaseBoardHeader {
@@ -477,7 +477,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     color: var(--ap-ink);
     font-weight: 700;
     letter-spacing: -0.02em;
-    font-size: 1.25rem !important;
+    font-size: 1.35rem !important;
 }
 
 .apFilter {
@@ -489,9 +489,9 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     border-radius: 999px;
     border: 1px solid var(--ap-border);
     background: var(--ap-surface-2);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    padding: 0 0.85rem;
+    padding: 0.2rem 0.95rem;
 }
 
 .apFilterPill.sapMToggleBtn.sapMToggleBtnPressed .sapMBtnInner,
@@ -502,8 +502,8 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apTable .sapMListTblHeaderCell {
-    padding-top: 0.85rem !important;
-    padding-bottom: 0.85rem !important;
+    padding-top: 0.9rem !important;
+    padding-bottom: 0.9rem !important;
     background: #F8FAFC !important;
     border-bottom: 2px solid #E2E8F0 !important;
     vertical-align: middle;
@@ -512,7 +512,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apTable .sapMListTblHeaderCell .sapMText,
 .apTable .sapMListTblHeaderCell .sapMLabel {
     font-family: var(--ap-font-body) !important;
-    font-size: 0.8125rem !important;
+    font-size: 0.85rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.04em !important;
     color: #475569 !important;
@@ -520,34 +520,42 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apTable .sapMListTblCell {
-    padding-top: 0.85rem !important;
-    padding-bottom: 0.85rem !important;
+    padding-top: 0.9rem !important;
+    padding-bottom: 0.9rem !important;
     vertical-align: middle;
 }
 
 .apTable .sapMListTblCell .sapMText {
-    font-size: 0.875rem !important;
+    font-size: 0.925rem !important;
     color: #1E293B !important;
     font-weight: 500 !important;
+    line-height: 1.45;
 }
 
 .apTable .sapMObjectIdentifierTitle .sapMText {
     font-family: var(--ap-font-display) !important;
-    font-size: 0.925rem !important;
+    font-size: 1rem !important;
     font-weight: 700 !important;
     color: #0F172A !important;
 }
 
 .apAmount.sapMText {
     font-family: var(--ap-font-body) !important;
-    font-size: 0.95rem !important;
+    font-size: 1.05rem !important;
     font-weight: 700 !important;
     color: #0F172A !important;
     font-variant-numeric: tabular-nums;
 }
 
+.apTable .sapMObjStatusInverted {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    border-radius: 999px !important;
+    padding: 0.25rem 0.75rem !important;
+}
+
 .apPager {
-    padding: 0.65rem 0.15rem 0.35rem;
+    padding: 0.75rem 0.15rem 0.35rem;
     border-top: 1px solid var(--ap-border);
     margin-top: 0.35rem;
 }
@@ -555,7 +563,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apPagerText.sapMText,
 .apTimelineMeta.sapMText {
     color: var(--ap-muted);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
 
 .apPipelineBanner {
@@ -567,7 +575,14 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apPipelineHint.sapMText {
     color: var(--ap-muted);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
+}
+
+.apPipeMiniLabel.sapMText {
+    font-size: 0.78rem;
+    color: var(--ap-muted);
+    margin: 0 0.2rem 0 0.3rem;
+    font-weight: 600;
 }
 
 /* Mini pipeline dots in table / banner */
@@ -927,7 +942,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apPipeTrackLabel.sapMLnk {
     color: #fff;
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     text-align: center;
 }
 
@@ -952,8 +967,8 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apPipeTrackService.sapMText {
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.78rem;
 }
 
 /* A line from each step's dot back to the previous one; it turns green once the step is done, fades in
@@ -1318,7 +1333,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apPageSectionTitle.sapMTitle {
     font-family: var(--ap-font-display);
-    font-size: 0.8rem;
+    font-size: 0.925rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1481,7 +1496,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apFactLabel.sapMText {
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1489,9 +1504,9 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apFactValue.sapMText {
-    margin-top: 0.15rem;
-    font-weight: 600;
-    font-size: 0.925rem;
+    margin-top: 0.2rem;
+    font-weight: 700;
+    font-size: 1.05rem;
     color: var(--ap-ink);
 }
 
@@ -1499,17 +1514,18 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apAgentName.sapMText {
     font-weight: 700;
     letter-spacing: 0.02em;
-    font-size: 0.925rem;
+    font-size: 1rem;
     color: var(--ap-ink);
 }
 
 .apAgentTask.sapMText {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     color: var(--ap-muted);
 }
 
 .apAgentResult.sapMText {
     font-weight: 600;
+    font-size: 0.95rem;
     color: var(--ap-ink);
 }
 
@@ -1522,7 +1538,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apAgentDetail.sapMText {
     margin-bottom: 0.35rem;
-    font-size: 0.875rem;
+    font-size: 0.925rem;
     line-height: 1.5;
     color: var(--ap-muted);
 }
@@ -1542,7 +1558,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apAgentPointLabel.sapMText {
-    font-size: 0.75rem;
+    font-size: 0.825rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -1550,7 +1566,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apAgentPointValue.sapMText {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--ap-ink);
 }
@@ -1979,16 +1995,16 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     .apReviewHeader, .apPageSection, .apInfoPane { padding: 0.65rem; }
     .sapMFlexItem { min-width: 0; max-width: 100%; }
     .sapMText, .sapMLnk, .sapMLabel, .sapMObjStatusText, .sapMInputBaseInner {
-        font-size: clamp(0.75rem, 1.8cqi, 0.875rem);
+        font-size: clamp(0.8125rem, 2cqi, 0.925rem);
         overflow-wrap: anywhere;
     }
-    .sapMTitle { font-size: clamp(1rem, 2.7cqi, 1.25rem); white-space: normal; overflow-wrap: anywhere; }
+    .sapMTitle { font-size: clamp(1.05rem, 2.7cqi, 1.3rem); white-space: normal; overflow-wrap: anywhere; }
     .sapMTextNoWrap, .apStepperName.sapMText { white-space: normal; overflow-wrap: anywhere; }
-    .sapMBtnContent, .sapMSegBBtn .sapMSegBBtnInner, .sapMITBText { font-size: 0.75rem; }
+    .sapMBtnContent, .sapMSegBBtn .sapMSegBBtnInner, .sapMITBText { font-size: 0.85rem; }
     .apReviewHeader > .sapMFlexBox, .apAgentPanelHeader, .apFieldTileHead, .apFieldsActions { flex-wrap: wrap; gap: 0.4rem; }
     .apHeaderFacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 0.4rem; }
     .apFact { min-width: 0; padding: 0.4rem; }
-    .apFactLabel.sapMText, .apAgentPointLabel.sapMText { font-size: 0.68rem; letter-spacing: 0.02em; }
+    .apFactLabel.sapMText, .apAgentPointLabel.sapMText { font-size: 0.78rem; letter-spacing: 0.03em; }
     .apFieldGroups { grid-template-columns: minmax(0, 1fr); }
     .apFieldTiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); }
     .apAgentPoints.sapMFlexBox { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
@@ -2050,8 +2066,9 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     flex: 0 1 auto;
     white-space: normal;
     overflow-wrap: normal;
-    font-size: 0.68rem;
-    line-height: 1.3;
+    font-size: 0.825rem;
+    font-weight: 600;
+    line-height: 1.35;
     text-align: center;
 }
 .apPanelFlow .apFlowInfo.sapMBtn {
@@ -2081,15 +2098,15 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 /* Invoice lines sit beneath the header facts, before the review actions and tabs. */
 .apHeaderLineItems {
-    padding: 0.65rem 0.9rem;
-    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
     max-height: 18rem;
     overflow: auto;
     border-bottom: 1px solid var(--ap-border);
 }
-.apHeaderLineItems .sapMTitle { font-size: 0.875rem; }
+.apHeaderLineItems .sapMTitle { font-size: 1.15rem !important; font-weight: 700 !important; }
 
 /* Response findings separate the observed problem from the next action. */
-.apResponseItem { min-width: 0; gap: 0.2rem; padding-bottom: 0.65rem; }
-.apResponseTitle.sapMText { font-weight: 700; color: var(--ap-ink); }
-.apResponseAction.sapMText { color: var(--ap-muted); line-height: 1.5; }
+.apResponseItem { min-width: 0; gap: 0.25rem; padding-bottom: 0.75rem; }
+.apResponseTitle.sapMText { font-weight: 700; font-size: 0.95rem; color: var(--ap-ink); }
+.apResponseAction.sapMText { color: var(--ap-muted); font-size: 0.9rem; line-height: 1.55; }
