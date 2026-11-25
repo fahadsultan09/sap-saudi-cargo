@@ -73,7 +73,8 @@ export default function Process({ showToast }) {
       const res = await apiJson("POST", "/api/v1/cases/upload", form);
       const newId = res.case_id || res.id;
       if (newId) {
-        navigate(`/process/${newId}`, { state: { fromUpload: true, fileName: file.name } });
+        showToast?.(`Ingested ${file.name} — opening review`);
+        navigate(`/cases/${newId}`, { state: { fromUpload: true, fileName: file.name } });
       }
     } catch (err) {
       setError(err.message || "Upload failed");

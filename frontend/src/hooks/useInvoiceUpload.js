@@ -147,10 +147,9 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
         confidence: null,
         phase: "watching",
       });
-      showToast?.("Invoice received — opening process room");
+      showToast?.("Invoice received — opening review");
       runway.cancel();
-      // Process page owns live polling + sticky Review dock.
-      navigate(`/process/${id}`, { state: { fromUpload: true, fileName: file.name } });
+      navigate(`/cases/${id}`, { state: { fromUpload: true, fileName: file.name } });
       setPhase("idle");
       setSteps([]);
     } catch (err) {

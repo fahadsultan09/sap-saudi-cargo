@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import Shell from "./components/Shell";
 import Home from "./pages/Home";
 import Process from "./pages/Process";
@@ -8,6 +8,11 @@ import Desk from "./pages/Desk";
 import Approvals from "./pages/Approvals";
 import { fetchSession } from "./lib/api";
 import { getUser, loadUserId, saveUserId } from "./lib/config";
+
+function CaseRedirect() {
+  const { caseId } = useParams();
+  return <Navigate to={`/cases/${caseId}`} replace />;
+}
 
 export default function App() {
   const [userId, setUserId] = useState(loadUserId);
@@ -77,7 +82,7 @@ export default function App() {
 
         {/* Process / Intake */}
         <Route path="intake" element={<Process showToast={showToast} />} />
-        <Route path="process/:caseId" element={<Process showToast={showToast} />} />
+        <Route path="process/:caseId" element={<CaseRedirect />} />
         <Route path="process/new" element={<Process showToast={showToast} />} />
         <Route path="upload" element={<Navigate to="/intake" replace />} />
 
