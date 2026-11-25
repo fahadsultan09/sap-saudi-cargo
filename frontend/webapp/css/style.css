@@ -1620,105 +1620,271 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     font-size: 0.8125rem;
 }
 
-/* Agent stepper: one chevron per agent, coloured by its status; the selected one is underlined.
-   The list's background shows through a 2px gap between the chevrons as the dividing line. */
-.apStepper.sapMList .sapMListUl {
+/* --------------------------------------------------------------------------
+   Vertical Modern Agents Section
+   -------------------------------------------------------------------------- */
+
+.apAgentsCard {
+    padding: 1.35rem 1.5rem;
+}
+
+.apAgentsSectionHeader {
+    border-bottom: 1px solid var(--ap-border);
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.apAgentsSplitLayout {
+    gap: 1.35rem;
+    align-items: stretch;
+}
+
+@media (max-width: 960px) {
+    .apAgentsSplitLayout {
+        flex-direction: column !important;
+    }
+    .apAgentsVerticalList {
+        width: 100% !important;
+    }
+}
+
+/* Left: Vertical Agent List */
+.apAgentsVerticalList {
+    background: #F8FAFC;
+    border: 1px solid var(--ap-border);
+    border-radius: 14px;
+    padding: 0.65rem;
+    flex-shrink: 0;
+}
+
+.apAgentVList.sapMList .sapMListUl {
     display: flex;
-    padding: 1px;
-    border-radius: var(--ap-radius-sm);
-    background: var(--ap-border-strong);
-    overflow: hidden;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
-.apStepper .apStepperItem.sapMLIB {
-    flex: 1 1 0;
-    min-width: 0;
-    height: auto;
-    margin-left: -12px;
-    padding: 0.3rem 0.9rem 0.3rem 1.35rem;
-    border: 0;
-    background: var(--ap-surface);
-    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
-    cursor: pointer;
+.apAgentVItem.sapMLIB {
+    border-radius: 12px !important;
+    border: 1px solid #E2E8F0 !important;
+    background: #FFFFFF !important;
+    padding: 0.85rem 0.95rem !important;
+    height: auto !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
-.apStepper .apStepperItem.sapMLIB:first-child {
-    margin-left: 0;
-    padding-left: 0.8rem;
-    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+.apAgentVItem.sapMLIB:hover {
+    background: #F0FDF4 !important;
+    border-color: #86EFAC !important;
+    transform: translateX(3px);
+    box-shadow: 0 4px 12px rgba(11, 122, 66, 0.08) !important;
 }
 
-.apStepper .apStepperItem.sapMLIB:last-child {
-    padding-right: 0.8rem;
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 14px 50%);
+/* Active / Selected Agent in vertical list */
+.apAgentVItem.sapMLIB[data-selected="true"] {
+    background: #FFFFFF !important;
+    border-color: var(--ap-brand) !important;
+    border-left: 4px solid var(--ap-brand) !important;
+    box-shadow: 0 4px 14px rgba(11, 122, 66, 0.14) !important;
 }
 
-.apStepper .apStepperItem[data-status="passed"] { background: var(--ap-brand-soft); }
-.apStepper .apStepperItem[data-status="failed"] { background: var(--ap-error-soft); }
-.apStepper .apStepperItem[data-status="running"] { background: #E8F1FB; }
-.apStepper .apStepperItem.sapMLIB[data-selected="true"] {
-    background: var(--ap-bg);
-    box-shadow: inset 0 -3px 0 var(--ap-ink);
-}
-
-.apStepper .apStepperItem.sapMLIB:hover {
-    filter: brightness(0.97);
-}
-
-.apStepperBody {
+.apAgentVRow {
     width: 100%;
 }
 
-/* Smaller status pills on the stepper */
-.apStepper .sapMObjStatus {
-    margin-top: 0.2rem;
+.apAgentVLead {
+    min-width: 0;
 }
 
-.apStepper .sapMObjStatusInverted {
-    padding: 0 0.4rem;
-    min-height: 1.1rem;
+.apAgentVIconBox {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 10px;
+    background: #F1F5F9;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
 }
 
-.apStepper .sapMObjStatusText,
-.apStepper .sapMObjStatusIcon .sapUiIcon {
-    font-size: 0.68rem;
+.apAgentVItem[data-selected="true"] .apAgentVIconBox {
+    background: var(--ap-brand-soft);
 }
 
-.apStepperName.sapMText {
+.apAgentVIcon.sapUiIcon {
+    color: #475569;
+}
+
+.apAgentVItem[data-selected="true"] .apAgentVIcon.sapUiIcon {
+    color: var(--ap-brand);
+}
+
+.apAgentVName.sapMText {
+    font-family: var(--ap-font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0F172A;
+    letter-spacing: -0.01em;
+}
+
+.apAgentVTask.sapMText {
+    font-size: 0.78rem;
+    color: #64748B;
+    max-width: 13rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.apAgentVStatusWrap {
+    flex-shrink: 0;
+    gap: 0.25rem;
+}
+
+.apAgentVStatus.sapMObjStatusInverted {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 0.2rem 0.6rem !important;
+    border-radius: 999px !important;
+}
+
+.apAgentVArrow.sapUiIcon {
+    color: var(--ap-brand);
+    font-size: 0.9rem;
+    margin-left: 0.25rem;
+}
+
+/* Right: Modern Detailed Agent Findings Card */
+.apAgentDetailPanel {
+    background: #FFFFFF;
+    border: 1px solid var(--ap-border);
+    border-radius: 14px;
+    padding: 1.35rem 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.apAgentDetailHeader {
+    padding-bottom: 0.95rem;
+    border-bottom: 1px solid #E2E8F0;
+    margin-bottom: 1.15rem;
+    gap: 0.75rem;
+}
+
+.apAgentHeroIconBox {
+    width: 3.15rem;
+    height: 3.15rem;
+    border-radius: 12px;
+    background: var(--ap-brand-soft);
+    flex-shrink: 0;
+}
+
+.apAgentHeroIcon.sapUiIcon {
+    color: var(--ap-brand);
+}
+
+.apAgentDetailTitle.sapMText {
+    font-family: var(--ap-font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0F172A;
+    letter-spacing: -0.02em;
+}
+
+.apAgentDetailSubtitle.sapMText {
+    font-size: 0.875rem;
+    color: #64748B;
+    margin-top: 0.15rem;
+}
+
+.apAgentDetailStatusBadge.sapMObjStatusInverted {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    padding: 0.25rem 0.85rem !important;
+    border-radius: 999px !important;
+}
+
+.apAgentInfoBtn.sapMBtn {
+    margin-left: 0.25rem;
+}
+
+/* Agent Result Callout Banner */
+.apAgentResultCallout {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-left: 4px solid var(--ap-brand);
+    border-radius: 10px;
+    padding: 0.9rem 1.15rem;
+    margin-bottom: 1.15rem;
+    gap: 0.75rem;
+}
+
+.apAgentResultTextRow {
+    min-width: 0;
+}
+
+.apAgentResultIcon.sapUiIcon {
+    color: var(--ap-brand);
+    flex-shrink: 0;
+}
+
+.apAgentResultText.sapMText {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+/* Extracted Facts & Points Grid */
+.apAgentPointsContainer {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.apAgentDetailLeadText.sapMText {
+    font-size: 0.925rem;
+    color: #475569;
+    line-height: 1.55;
+    margin-bottom: 1rem;
+}
+
+.apAgentPointsGrid.sapMFlexBox {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+    gap: 0.85rem;
+    width: 100%;
+}
+
+.apAgentPointCard {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.apAgentPointCard:hover {
+    border-color: var(--ap-brand-light);
+    transform: translateY(-1px);
+}
+
+.apAgentPointCardLabel.sapMText {
     font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    color: var(--ap-ink);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748B;
 }
 
-.apStepperIcon.sapUiIcon {
-    font-size: 0.9rem;
-    color: var(--ap-ink);
-}
-
-/* The selected agent's details, below the stepper */
-.apAgentPanel {
-    margin-top: 0.85rem;
-    padding: 0.8rem 1rem;
-    border: 1px solid var(--ap-border);
-    border-radius: var(--ap-radius-sm);
-    gap: 0.5rem;
-}
-
-.apAgentPanelHeader {
-    gap: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--ap-border);
-}
-
-.apAgentPanelIcon.sapUiIcon {
-    margin-right: 0.7rem;
-    font-size: 1.5rem;
-    color: var(--ap-ink);
-}
-
-.apAgentHeadline {
-    gap: 0.75rem;
+.apAgentPointCardValue.sapMText {
+    font-family: var(--ap-font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0F172A;
+    margin-top: 0.3rem;
 }
 
 /* "Check comparison": a highlighted action that opens the Fields tab */
@@ -1732,6 +1898,8 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     background: var(--ap-brand-soft);
     color: var(--ap-brand-dark);
     font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0 1rem;
 }
 
 .apCheckComparison .sapMBtnInner .sapMBtnIcon {

@@ -326,7 +326,11 @@ sap.ui.define([
         },
 
         onSelectAgent: function (oEvent) {
-            this.getCaseStore().selectAgent(oEvent.getParameter("listItem").getBindingContext("apData").getProperty("key"));
+            var oItem = oEvent.getParameter("listItem") || oEvent.getSource();
+            var oContext = oItem && oItem.getBindingContext ? oItem.getBindingContext("apData") : null;
+            if (oContext) {
+                this.getCaseStore().selectAgent(oContext.getProperty("key"));
+            }
         },
 
         onEditFields: function () {

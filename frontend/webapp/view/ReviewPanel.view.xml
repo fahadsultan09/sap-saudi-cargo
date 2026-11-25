@@ -138,60 +138,93 @@
 				</VBox>
 				<VBox id="section-agents" class="apPageSection">
 					<Title text="Agents" level="H4" class="apPageSectionTitle"/>
-					<!-- The agents as a process stepper; the selected agent's details below it -->
-					<VBox class="apCard">
-						<Title text="What each agent found" level="H5" class="apSectionTitle"/>
-						<List items="{apData>/selectedInvoice/agents}" showSeparators="None" itemPress="onSelectAgent"
-							class="apStepper">
-							<CustomListItem type="Active" class="apStepperItem">
-								<customData>
-									<core:CustomData key="status" value="{apData>statusKey}" writeToDom="true"/>
-									<core:CustomData key="selected" value="{= ${apData>selected} ? 'true' : 'false' }" writeToDom="true"/>
-								</customData>
-								<VBox alignItems="Center" class="apStepperBody">
-									<HBox alignItems="Center">
-										<core:Icon src="{apData>icon}" visible="{apData>selected}" class="apStepperIcon sapUiTinyMarginEnd"/>
-										<Text text="{apData>agent}" wrapping="false" class="apStepperName"/>
-									</HBox>
-									<ObjectStatus text="{apData>status}" icon="{apData>statusIcon}" state="{apData>state}"
-										inverted="true"/>
-								</VBox>
-							</CustomListItem>
-						</List>
-						<VBox visible="{= !!${apData>/selectedInvoice/agentDetail} }" class="apAgentPanel">
-							<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentPanelHeader">
-								<HBox alignItems="Center">
-									<core:Icon src="{apData>/selectedInvoice/agentDetail/icon}" class="apAgentPanelIcon"/>
-									<VBox>
-										<Text text="{apData>/selectedInvoice/agentDetail/agent}" class="apAgentName"/>
-										<Text text="{apData>/selectedInvoice/agentDetail/task}" class="apAgentTask"/>
-									</VBox>
-								</HBox>
-								<HBox alignItems="Center" renderType="Bare" class="apAgentInfoStatus">
-                                    <Button icon="sap-icon://hint" type="Transparent" press="onAgentInfo"
-                                        tooltip="About {apData>/selectedInvoice/agentDetail/agent} and its findings"/>
-                                    <ObjectStatus text="{apData>/selectedInvoice/agentDetail/status}"
-									icon="{apData>/selectedInvoice/agentDetail/statusIcon}"
-									state="{apData>/selectedInvoice/agentDetail/state}" inverted="true"/>
-                                </HBox>
+					<!-- Vertical redesigned Agent findings layout -->
+					<VBox class="apCard apAgentsCard">
+						<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentsSectionHeader sapUiTinyMarginBottom">
+							<HBox alignItems="Center">
+								<core:Icon src="sap-icon://group" class="sapUiTinyMarginEnd apBrandIcon"/>
+								<Title text="What each agent found" level="H5" class="apSectionTitle"/>
 							</HBox>
-							<HBox alignItems="Center" wrap="Wrap" renderType="Bare" class="apAgentHeadline">
-								<Text text="{apData>/selectedInvoice/agentDetail/result}" class="apAgentResult"/>
-								<Button text="Check comparison" icon="sap-icon://compare" press="onOpenComparison"
-									visible="{= !!${apData>/selectedInvoice/agentDetail/showComparison} }" class="apCheckComparison"/>
-							</HBox>
-							<VBox visible="{= ${apData>/selectedInvoice/agentDetail/points}.length > 0 }" class="apAgentDetails">
-								<Text text="{apData>/selectedInvoice/agentDetail/detail}"
-									visible="{= !!${apData>/selectedInvoice/agentDetail/detail} }" class="apAgentDetail"/>
-								<!-- The facts as a grid (label over value), so even SCANNER's eight fields fit without scrolling -->
-								<HBox items="{apData>/selectedInvoice/agentDetail/points}" renderType="Bare" class="apAgentPoints">
-									<VBox renderType="Bare" class="apAgentPoint">
-										<Text text="{apData>label}" class="apAgentPointLabel"/>
-										<Text text="{apData>value}" class="apAgentPointValue"/>
-									</VBox>
-								</HBox>
+							<Text text="Select an agent to inspect findings &amp; evidence" class="apMutedText"/>
+						</HBox>
+						<HBox alignItems="Stretch" class="apAgentsSplitLayout sapUiSmallMarginTop" wrap="Wrap">
+							<!-- Left: Vertical list of interactive Agent cards -->
+							<VBox class="apAgentsVerticalList" width="24rem">
+								<List items="{apData>/selectedInvoice/agents}" showSeparators="None" itemPress="onSelectAgent"
+									class="apAgentVList">
+									<CustomListItem type="Active" press="onSelectAgent" class="apAgentVItem">
+										<customData>
+											<core:CustomData key="status" value="{apData>statusKey}" writeToDom="true"/>
+											<core:CustomData key="selected" value="{= ${apData>selected} ? 'true' : 'false' }" writeToDom="true"/>
+										</customData>
+										<HBox alignItems="Center" justifyContent="SpaceBetween" class="apAgentVRow">
+											<HBox alignItems="Center" class="apAgentVLead">
+												<VBox class="apAgentVIconBox" alignItems="Center" justifyContent="Center">
+													<core:Icon src="{apData>icon}" size="1.05rem" class="apAgentVIcon"/>
+												</VBox>
+												<VBox class="sapUiSmallMarginBegin">
+													<Text text="{apData>agent}" wrapping="false" class="apAgentVName"/>
+													<Text text="{apData>task}" wrapping="false" class="apAgentVTask"/>
+												</VBox>
+											</HBox>
+											<HBox alignItems="Center" class="apAgentVStatusWrap">
+												<ObjectStatus text="{apData>status}" icon="{apData>statusIcon}" state="{apData>state}"
+													inverted="true" class="apAgentVStatus"/>
+												<core:Icon src="sap-icon://slim-arrow-right" class="apAgentVArrow" visible="{apData>selected}"/>
+											</HBox>
+										</HBox>
+									</CustomListItem>
+								</List>
 							</VBox>
-						</VBox>
+
+							<!-- Right: Modern Detailed Agent Findings Card -->
+							<VBox visible="{= !!${apData>/selectedInvoice/agentDetail} }" class="apAgentDetailPanel">
+								<layoutData>
+									<FlexItemData growFactor="1" baseSize="0" minWidth="20rem"/>
+								</layoutData>
+								<!-- Agent Header -->
+								<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentDetailHeader">
+									<HBox alignItems="Center">
+										<VBox class="apAgentHeroIconBox" alignItems="Center" justifyContent="Center">
+											<core:Icon src="{apData>/selectedInvoice/agentDetail/icon}" size="1.4rem" class="apAgentHeroIcon"/>
+										</VBox>
+										<VBox class="sapUiSmallMarginBegin">
+											<HBox alignItems="Center">
+												<Text text="{apData>/selectedInvoice/agentDetail/agent}" class="apAgentDetailTitle"/>
+												<Button icon="sap-icon://hint" type="Transparent" press="onAgentInfo"
+													tooltip="About {apData>/selectedInvoice/agentDetail/agent} and its findings" class="apAgentInfoBtn"/>
+											</HBox>
+											<Text text="{apData>/selectedInvoice/agentDetail/task}" class="apAgentDetailSubtitle"/>
+										</VBox>
+									</HBox>
+									<ObjectStatus text="{apData>/selectedInvoice/agentDetail/status}"
+										icon="{apData>/selectedInvoice/agentDetail/statusIcon}"
+										state="{apData>/selectedInvoice/agentDetail/state}" inverted="true" class="apAgentDetailStatusBadge"/>
+								</HBox>
+
+								<!-- Agent Result Callout Banner -->
+								<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentResultCallout">
+									<HBox alignItems="Center" class="apAgentResultTextRow">
+										<core:Icon src="sap-icon://message-information" size="1.1rem" class="apAgentResultIcon sapUiTinyMarginEnd"/>
+										<Text text="{apData>/selectedInvoice/agentDetail/result}" class="apAgentResultText"/>
+									</HBox>
+									<Button text="Check comparison" icon="sap-icon://compare" press="onOpenComparison"
+										visible="{= !!${apData>/selectedInvoice/agentDetail/showComparison} }" class="apCheckComparison"/>
+								</HBox>
+
+								<!-- Detail points & facts -->
+								<VBox visible="{= ${apData>/selectedInvoice/agentDetail/points}.length > 0 }" class="apAgentPointsContainer">
+									<Text text="{apData>/selectedInvoice/agentDetail/detail}"
+										visible="{= !!${apData>/selectedInvoice/agentDetail/detail} }" class="apAgentDetailLeadText"/>
+									<HBox items="{apData>/selectedInvoice/agentDetail/points}" renderType="Bare" class="apAgentPointsGrid">
+										<VBox renderType="Bare" class="apAgentPointCard">
+											<Text text="{apData>label}" class="apAgentPointCardLabel"/>
+											<Text text="{apData>value}" class="apAgentPointCardValue"/>
+										</VBox>
+									</HBox>
+								</VBox>
+							</VBox>
+						</HBox>
 					</VBox>
 				</VBox>
 				<VBox id="section-issues" class="apPageSection">
