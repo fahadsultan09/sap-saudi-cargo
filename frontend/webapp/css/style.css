@@ -22,6 +22,28 @@
 
 html, body, .sapUiBody {
     font-family: var(--ap-font-body);
+    font-size: 14.5px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Ensure UI5 controls use the new Inter font */
+.sapMText, .sapMLabel, .sapMBtn, .sapMInputBase,
+.sapMSelect, .sapMListTbl, .sapMListTblCell, .sapMListTblHeaderCell,
+.sapMObjectStatus, .sapMToken, .sapMDialog, .sapMPopover, .sapMMessageStrip {
+    font-family: var(--ap-font-body) !important;
+}
+
+/* Titles and major headings use Plus Jakarta Sans */
+.sapMTitle,
+.apSectionTitle,
+.apWelcomeTitle,
+.apKpiValue,
+.apBrandTitle,
+.apUploadTitle,
+.apPipeHeroTitle {
+    font-family: var(--ap-font-display) !important;
 }
 
 .apPage .sapTntToolPageMain,
@@ -76,12 +98,12 @@ html, body, .sapUiBody {
     color: var(--ap-ink);
     font-weight: 700;
     letter-spacing: -0.02em;
-    font-size: 1.05rem !important;
+    font-size: 1.15rem !important;
 }
 
 .apBrandSubtitle.sapMText {
     color: var(--ap-muted);
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -90,11 +112,12 @@ html, body, .sapUiBody {
 .apHeaderName.sapMText {
     color: var(--ap-text);
     font-weight: 600;
+    font-size: 0.875rem;
 }
 
 .apHeaderRole.sapMText {
     color: var(--ap-muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
 }
 
 .apProfileAvatar.sapFAvatar {
@@ -155,16 +178,17 @@ html, body, .sapUiBody {
     font-family: var(--ap-font-display);
     font-weight: 700;
     letter-spacing: -0.02em;
-    font-size: 1.7rem !important;
+    font-size: 1.85rem !important;
 }
 
 .apWelcomeSubtitle.sapMText,
 .apWelcome .sapMText {
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.925rem !important;
 }
 
 .apWelcomeBrand.sapMText {
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -176,6 +200,7 @@ html, body, .sapUiBody {
     background: #FFFFFF !important;
     border-color: #FFFFFF !important;
     color: #06532C !important;
+    font-size: 0.875rem !important;
     font-weight: 600 !important;
     border-radius: 999px !important;
     padding: 0 1.25rem !important;
@@ -190,6 +215,7 @@ html, body, .sapUiBody {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.45);
     color: #fff;
+    font-size: 0.875rem !important;
     font-weight: 600;
     border-radius: 999px;
 }
@@ -213,7 +239,7 @@ html, body, .sapUiBody {
 
 .apBreakdownTitle.sapMText {
     font-weight: 600 !important;
-    font-size: 0.875rem !important;
+    font-size: 0.925rem !important;
     color: var(--ap-ink) !important;
 }
 
@@ -243,7 +269,7 @@ html, body, .sapUiBody {
 .apLegendDot--unsorted { background: #CBD5E1; }
 
 .apLegendText.sapMText {
-    font-size: 0.75rem !important;
+    font-size: 0.8125rem !important;
     color: #475569 !important;
     font-weight: 500 !important;
 }
@@ -271,11 +297,11 @@ html, body, .sapUiBody {
 }
 
 .apFlowPhaseLabel.sapMText {
-    font-size: 0.68rem !important;
+    font-size: 0.75rem !important;
     font-weight: 700 !important;
     letter-spacing: 0.12em !important;
     text-transform: uppercase !important;
-    color: rgba(255, 255, 255, 0.65) !important;
+    color: rgba(255, 255, 255, 0.75) !important;
     white-space: nowrap;
 }
 
@@ -330,7 +356,7 @@ html, body, .sapUiBody {
 
 .apKpiLabel.sapMText {
     color: var(--ap-muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -338,7 +364,7 @@ html, body, .sapUiBody {
 
 .apKpiValue.sapMText {
     font-family: var(--ap-font-display);
-    font-size: 1.75rem;
+    font-size: 1.95rem;
     font-weight: 700;
     color: var(--ap-ink);
     letter-spacing: -0.03em;
@@ -380,6 +406,7 @@ html, body, .sapUiBody {
     color: var(--ap-ink);
     font-weight: 700;
     letter-spacing: -0.02em;
+    font-size: 1.25rem !important;
 }
 
 .apFilter {
@@ -391,8 +418,9 @@ html, body, .sapUiBody {
     border-radius: 999px;
     border: 1px solid var(--ap-border);
     background: var(--ap-surface-2);
-    font-size: 0.8125rem;
+    font-size: 0.85rem;
     font-weight: 600;
+    padding: 0 0.85rem;
 }
 
 .apFilterPill.sapMToggleBtn.sapMToggleBtnPressed .sapMBtnInner,
@@ -402,14 +430,49 @@ html, body, .sapUiBody {
     color: #fff;
 }
 
-.apTable .sapMListTblHeaderCell,
-.apTable .sapMListTblCell {
+.apTable .sapMListTblHeaderCell {
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
+    background: #F8FAFC !important;
+    border-bottom: 2px solid #E2E8F0 !important;
     vertical-align: middle;
 }
 
+.apTable .sapMListTblHeaderCell .sapMText,
+.apTable .sapMListTblHeaderCell .sapMLabel {
+    font-family: var(--ap-font-body) !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    color: #475569 !important;
+    text-transform: uppercase !important;
+}
+
+.apTable .sapMListTblCell {
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
+    vertical-align: middle;
+}
+
+.apTable .sapMListTblCell .sapMText {
+    font-size: 0.875rem !important;
+    color: #1E293B !important;
+    font-weight: 500 !important;
+}
+
+.apTable .sapMObjectIdentifierTitle .sapMText {
+    font-family: var(--ap-font-display) !important;
+    font-size: 0.925rem !important;
+    font-weight: 700 !important;
+    color: #0F172A !important;
+}
+
 .apAmount.sapMText {
+    font-family: var(--ap-font-body) !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: #0F172A !important;
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
 }
 
 .apPager {
@@ -421,7 +484,7 @@ html, body, .sapUiBody {
 .apPagerText.sapMText,
 .apTimelineMeta.sapMText {
     color: var(--ap-muted);
-    font-size: 0.8125rem;
+    font-size: 0.85rem;
 }
 
 .apPipelineBanner {
@@ -433,7 +496,7 @@ html, body, .sapUiBody {
 
 .apPipelineHint.sapMText {
     color: var(--ap-muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
 }
 
 /* Mini pipeline dots in table / banner */
@@ -793,7 +856,7 @@ html, body, .sapUiBody {
 .apPipeTrackLabel.sapMLnk {
     color: #fff;
     font-weight: 700;
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     text-align: center;
 }
 
@@ -818,8 +881,8 @@ html, body, .sapUiBody {
 }
 
 .apPipeTrackService.sapMText {
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.72rem;
 }
 
 /* A line from each step's dot back to the previous one; it turns green once the step is done, fades in
@@ -1347,7 +1410,7 @@ html, body, .sapUiBody {
 }
 
 .apFactLabel.sapMText {
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1357,18 +1420,20 @@ html, body, .sapUiBody {
 .apFactValue.sapMText {
     margin-top: 0.15rem;
     font-weight: 600;
+    font-size: 0.925rem;
     color: var(--ap-ink);
 }
 
 /* Agent Results table: the agent's name with what it does below */
 .apAgentName.sapMText {
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
+    font-size: 0.925rem;
     color: var(--ap-ink);
 }
 
 .apAgentTask.sapMText {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: var(--ap-muted);
 }
 
@@ -1386,8 +1451,8 @@ html, body, .sapUiBody {
 
 .apAgentDetail.sapMText {
     margin-bottom: 0.35rem;
-    font-size: 0.85rem;
-    line-height: 1.45;
+    font-size: 0.875rem;
+    line-height: 1.5;
     color: var(--ap-muted);
 }
 
@@ -1406,7 +1471,7 @@ html, body, .sapUiBody {
 }
 
 .apAgentPointLabel.sapMText {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -1414,7 +1479,7 @@ html, body, .sapUiBody {
 }
 
 .apAgentPointValue.sapMText {
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--ap-ink);
 }
