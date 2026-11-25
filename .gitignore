@@ -1,5 +1,6 @@
-# =========================
-# Node.js
+# Local scratch scripts & files
+scratch/
+
 # =========================
 node_modules/
 npm-debug.log*

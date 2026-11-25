@@ -56,23 +56,32 @@ html, body, .sapUiBody {
    Shell / header — brand as hero signal
    -------------------------------------------------------------------------- */
 
-.apHeader.sapTntToolHeader {
-    min-height: 3.5rem;
-    background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFA 100%);
-    border-bottom: 1px solid var(--ap-border);
-    box-shadow: 0 1px 0 rgba(11, 122, 66, 0.35), 0 8px 24px rgba(10, 22, 32, 0.04);
+.apHeader.sapTntToolHeader,
+.sapTntToolHeader.apHeader {
+    min-height: 60px !important;
+    height: 60px !important;
+    background: var(--brand-navy, #002856) !important;
+    background-color: var(--brand-navy, #002856) !important;
+    border-bottom: 3px solid var(--brand-green, #006937) !important;
+    box-shadow: 0 2px 10px rgba(0, 40, 86, 0.18) !important;
+    padding: 0 1.5rem !important;
+}
+
+.apPageSection,
+#fieldsCard {
+    scroll-margin-top: 70px;
 }
 
 .apBrandMark {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 12px;
-    background: linear-gradient(145deg, var(--ap-brand) 0%, var(--ap-brand-deep) 100%);
-    box-shadow: 0 4px 14px var(--ap-brand-glow);
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 10px;
+    background: var(--brand-green, #006937);
+    box-shadow: 0 2px 8px rgba(0, 105, 55, 0.35);
 }
 
 .apBrandMarkLetter.sapMText {
-    color: #fff;
+    color: #ffffff;
     font-family: var(--ap-font-display);
     font-size: 0.95rem;
     font-weight: 700;
@@ -82,7 +91,7 @@ html, body, .sapUiBody {
 .apBrandText {
     margin-left: 0.875rem;
     padding-left: 0.875rem;
-    border-left: 1px solid var(--ap-border);
+    border-left: 1px solid rgba(182, 223, 255, 0.3);
 }
 
 .apHeader .sapMFlexBox,
@@ -95,40 +104,47 @@ html, body, .sapUiBody {
 
 .apBrandTitle.sapMTitle {
     font-family: var(--ap-font-display);
-    color: var(--ap-ink);
+    color: #ffffff !important;
     font-weight: 700;
-    letter-spacing: -0.02em;
-    font-size: 1.25rem !important;
+    letter-spacing: -0.01em;
+    font-size: 1.2rem !important;
 }
 
 .apBrandSubtitle.sapMText {
-    color: var(--ap-muted);
-    font-size: 0.825rem;
+    color: var(--arc-blue, #b6dfff) !important;
+    font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
 .apHeaderName.sapMText {
-    color: var(--ap-text);
+    color: #ffffff;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .apHeaderRole.sapMText {
-    color: var(--ap-muted);
-    font-size: 0.85rem;
+    color: var(--brand-green-glow, #94e18c);
+    background: rgba(148, 225, 140, 0.16);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 .apProfileAvatar.sapFAvatar {
     cursor: pointer;
-    box-shadow: 0 0 0 2px var(--ap-brand-light);
+    background-color: #15487c !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 2px rgba(182, 223, 255, 0.35);
     transition: box-shadow var(--ap-fast) var(--ap-ease), transform var(--ap-fast) var(--ap-ease);
 }
 
 .apProfileAvatar.sapFAvatar:hover,
 .apProfileAvatar.sapFAvatar:focus-visible {
-    box-shadow: 0 0 0 3px var(--ap-brand);
+    box-shadow: 0 0 0 3px var(--brand-green-glow, #94e18c);
     transform: scale(1.05);
     outline: none;
 }
@@ -141,11 +157,12 @@ html, body, .sapUiBody {
 
 .apProfileHead {
     padding: 1.25rem 1rem 1rem;
-    background: linear-gradient(125deg, var(--ap-ink) 0%, var(--ap-brand-dark) 100%);
+    background: linear-gradient(125deg, var(--brand-navy, #002856) 0%, var(--brand-navy-2, #073873) 100%);
+    border-bottom: 2px solid var(--brand-green, #006937);
 }
 
 .apProfileHead .sapMTitle { color: #fff; font-family: var(--ap-font-display); }
-.apProfileHead .sapMText { color: var(--ap-brand-light); font-size: 0.8125rem; }
+.apProfileHead .sapMText { color: var(--arc-blue, #b6dfff); font-size: 0.8125rem; }
 .apProfileHead .sapFAvatar { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35); }
 
 .apProfileActions { padding: 0.5rem; }
@@ -155,11 +172,16 @@ html, body, .sapUiBody {
    -------------------------------------------------------------------------- */
 
 .apWelcome {
-    padding: 1.75rem 2rem;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #06532C 0%, #0B7A42 55%, #15803D 100%);
+    padding: 2rem 2.25rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #002856 0%, #073873 100%);
+    background-image: url("../images/arcs.svg"), linear-gradient(135deg, #002856 0%, #073873 100%);
+    background-repeat: no-repeat;
+    background-position: right center, center;
+    background-size: auto 100%, cover;
     color: #FFFFFF;
-    box-shadow: 0 10px 25px -5px rgba(11, 122, 66, 0.25);
+    border-bottom: 3px solid var(--brand-green, #006937);
+    box-shadow: 0 8px 24px rgba(0, 40, 86, 0.14);
     position: relative;
     overflow: hidden;
 }
@@ -168,7 +190,7 @@ html, body, .sapUiBody {
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(600px 250px at 85% 15%, rgba(255, 255, 255, 0.12), transparent 70%);
+    background: radial-gradient(800px 300px at 90% 10%, rgba(182, 223, 255, 0.08), transparent 70%);
     pointer-events: none;
 }
 
@@ -177,45 +199,77 @@ html, body, .sapUiBody {
     color: #FFFFFF !important;
     font-family: var(--ap-font-display);
     font-weight: 700;
-    letter-spacing: -0.02em;
-    font-size: 2.1rem !important;
+    letter-spacing: -0.01em;
+    font-size: 1.85rem !important;
 }
 
 .apWelcomeSubtitle.sapMText,
 .apWelcome .sapMText {
-    color: rgba(255, 255, 255, 0.92);
-    font-size: 1.05rem !important;
+    color: var(--arc-blue, #b6dfff);
+    font-size: 0.95rem !important;
+    line-height: 1.5;
 }
 
 .apWelcomeBrand.sapMText {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #FBBF24 !important;
+    color: var(--brand-green-glow, #94e18c) !important;
     margin-bottom: 0.35rem;
 }
 
 .apLightButton.sapMBtn {
-    border-radius: 999px !important;
+    border-radius: 8px !important;
     outline: none !important;
 }
 
 .apLightButton.sapMBtn .sapMBtnInner {
-    background: #FFFFFF !important;
-    border: 1px solid #FFFFFF !important;
-    color: #06532C !important;
-    font-size: 0.95rem !important;
+    background: var(--brand-green, #006937) !important;
+    border: 1px solid var(--brand-green, #006937) !important;
+    color: #FFFFFF !important;
+    font-size: 0.9rem !important;
     font-weight: 600 !important;
-    border-radius: 999px !important;
-    padding: 0 1.45rem !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+    border-radius: 8px !important;
+    padding: 0 1.25rem !important;
+    box-shadow: 0 2px 6px rgba(0, 105, 55, 0.3) !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     outline: none !important;
 }
 
+.apLightButton.sapMBtn:hover .sapMBtnInner {
+    background: var(--brand-green-cta, #036b3a) !important;
+    border-color: var(--brand-green-cta, #036b3a) !important;
+}
+
 .apLightButton.sapMBtn .sapMBtnIcon {
-    color: #0B7A42 !important;
+    color: #FFFFFF !important;
+}
+
+.apGhostButton.sapMBtn {
+    border-radius: 8px !important;
+    outline: none !important;
+}
+
+.apGhostButton.sapMBtn .sapMBtnInner {
+    background: rgba(182, 223, 255, 0.14) !important;
+    border: 1px solid rgba(182, 223, 255, 0.35) !important;
+    color: #FFFFFF !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 0 1.25rem !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    outline: none !important;
+}
+
+.apGhostButton.sapMBtn:hover .sapMBtnInner {
+    background: rgba(182, 223, 255, 0.24) !important;
+    border-color: rgba(182, 223, 255, 0.5) !important;
+}
+
+.apGhostButton.sapMBtn .sapMBtnIcon {
+    color: #FFFFFF !important;
 }
 
 /* Completely suppress default UI5 Horizon pseudo-element rectangular focus/hover borders */
@@ -364,23 +418,34 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex: 1;
+}
+
+.apFlowPhaseBracket--intake {
+    flex: 3;
+}
+
+.apFlowPhaseBracket--validation {
+    flex: 3;
+}
+
+.apFlowPhaseBracket--matching {
+    flex: 6;
 }
 
 .apFlowPhaseLabel.sapMText {
-    font-size: 0.825rem !important;
+    font-size: 0.72rem !important;
     font-weight: 700 !important;
-    letter-spacing: 0.14em !important;
+    letter-spacing: 0.16em !important;
     text-transform: uppercase !important;
-    color: rgba(255, 255, 255, 0.75) !important;
+    color: var(--brand-green-glow, #94e18c) !important;
     white-space: nowrap;
 }
 
 .apFlowPhaseLine {
     height: 1px;
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(182, 223, 255, 0.28);
     flex: 1;
-    margin-right: 1.5rem;
+    margin-right: 1.25rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -394,17 +459,17 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apKpi {
     min-width: 10.5rem;
     flex: 1 1 10.5rem;
-    padding: 1rem 1.15rem;
-    border-radius: var(--ap-radius);
-    background: var(--ap-surface);
-    border: 1px solid var(--ap-border);
-    box-shadow: var(--ap-shadow);
+    padding: 1.1rem 1.25rem;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid var(--line, #e6eaee);
+    box-shadow: 0 1px 3px rgba(0, 40, 86, 0.04), 0 4px 12px rgba(0, 40, 86, 0.03);
     transition: transform var(--ap-fast) var(--ap-ease), box-shadow var(--ap-fast) var(--ap-ease);
 }
 
 .apKpi:hover {
     transform: translateY(-2px);
-    box-shadow: var(--ap-shadow-lift);
+    box-shadow: 0 6px 18px rgba(0, 40, 86, 0.08);
 }
 
 .apKpiRow .sapMListUl {
@@ -415,45 +480,46 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apKpiRow .apKpi.sapMLIB {
     height: auto;
-    border: 1px solid var(--ap-border);
-    background: var(--ap-surface);
+    border: 1px solid var(--line, #e6eaee);
+    background: #ffffff;
     cursor: pointer;
 }
 
 .apKpiRow .apKpi.sapMLIB[data-active="true"] {
-    border-color: var(--ap-brand);
-    box-shadow: 0 0 0 2px var(--ap-brand-soft), var(--ap-shadow);
+    border-color: var(--brand-navy, #002856);
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px var(--brand-navy, #002856), 0 4px 14px rgba(0, 40, 86, 0.08);
 }
 
 .apKpiLabel.sapMText {
-    color: var(--ap-muted);
-    font-size: 0.875rem;
+    color: var(--text-muted, #335378);
+    font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
 .apKpiValue.sapMText {
     font-family: var(--ap-font-display);
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 700;
-    color: var(--ap-ink);
-    letter-spacing: -0.03em;
+    color: var(--brand-navy, #002856);
+    letter-spacing: -0.02em;
 }
 
 .apKpiIcon {
     width: 2.35rem;
     height: 2.35rem;
     border-radius: 10px;
-    background: var(--ap-brand-soft);
-    color: var(--ap-brand-dark);
+    background: #e6f0eb;
+    color: #006937;
 }
 
-.apKpi[data-tone="info"] .apKpiIcon { background: #E8F1FB; color: var(--ap-info); }
-.apKpi[data-tone="warning"] .apKpiIcon { background: var(--ap-warning-soft); color: var(--ap-warning); }
-.apKpi[data-tone="success"] .apKpiIcon { background: var(--ap-brand-soft); color: var(--ap-success); }
-.apKpi[data-tone="error"] .apKpiIcon { background: var(--ap-error-soft); color: var(--ap-error); }
-.apKpi[data-tone="brand"] .apKpiIcon { background: var(--ap-ink); color: #fff; }
+.apKpi[data-tone="info"] .apKpiIcon { background: #f0f9ff; color: #002856; border: 1px solid #b6dfff; }
+.apKpi[data-tone="warning"] .apKpiIcon { background: #f8f1e3; color: #8a5300; border: 1px solid #e9d4ac; }
+.apKpi[data-tone="success"] .apKpiIcon { background: #e6f0eb; color: #006937; border: 1px solid #caf0c6; }
+.apKpi[data-tone="error"] .apKpiIcon { background: #fdecea; color: #d92d20; border: 1px solid #f5cdc7; }
+.apKpi[data-tone="brand"] .apKpiIcon { background: #002856; color: #ffffff; }
 
 /* --------------------------------------------------------------------------
    Case board
@@ -496,62 +562,67 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apFilterPill.sapMToggleBtn.sapMToggleBtnPressed .sapMBtnInner,
 .apFilterPill.sapMBtn.sapMToggleBtnPressed .sapMBtnInner {
-    background: var(--ap-ink);
-    border-color: var(--ap-ink);
-    color: #fff;
+    background: var(--brand-navy, #002856);
+    border-color: var(--brand-navy, #002856);
+    color: #ffffff;
 }
 
 .apTable .sapMListTblHeaderCell {
-    padding-top: 0.9rem !important;
-    padding-bottom: 0.9rem !important;
-    background: #F8FAFC !important;
-    border-bottom: 2px solid #E2E8F0 !important;
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
+    background: var(--surface-app, #f8fcff) !important;
+    border-bottom: 1px solid var(--line, #e6eaee) !important;
     vertical-align: middle;
 }
 
 .apTable .sapMListTblHeaderCell .sapMText,
 .apTable .sapMListTblHeaderCell .sapMLabel {
     font-family: var(--ap-font-body) !important;
-    font-size: 0.85rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
-    color: #475569 !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+    color: var(--text-strong, #002856) !important;
     text-transform: uppercase !important;
 }
 
 .apTable .sapMListTblCell {
-    padding-top: 0.9rem !important;
-    padding-bottom: 0.9rem !important;
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
     vertical-align: middle;
+    border-bottom: 1px solid var(--line, #e6eaee);
+}
+
+.apTable .sapMLIB:hover {
+    background: var(--surface-hover, #f0f9ff) !important;
 }
 
 .apTable .sapMListTblCell .sapMText {
-    font-size: 0.925rem !important;
-    color: #1E293B !important;
+    font-size: 0.9rem !important;
+    color: var(--text-body, #002856) !important;
     font-weight: 500 !important;
-    line-height: 1.45;
+    line-height: 1.4;
 }
 
 .apTable .sapMObjectIdentifierTitle .sapMText {
     font-family: var(--ap-font-display) !important;
-    font-size: 1rem !important;
+    font-size: 0.95rem !important;
     font-weight: 700 !important;
-    color: #0F172A !important;
+    color: var(--brand-navy, #002856) !important;
 }
 
 .apAmount.sapMText {
     font-family: var(--ap-font-body) !important;
-    font-size: 1.05rem !important;
+    font-size: 1rem !important;
     font-weight: 700 !important;
-    color: #0F172A !important;
+    color: var(--brand-navy, #002856) !important;
     font-variant-numeric: tabular-nums;
 }
 
 .apTable .sapMObjStatusInverted {
-    font-size: 0.85rem !important;
+    font-size: 0.8125rem !important;
     font-weight: 600 !important;
     border-radius: 999px !important;
-    padding: 0.25rem 0.75rem !important;
+    padding: 0.2rem 0.7rem !important;
 }
 
 .apPager {
@@ -1052,7 +1123,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apPdfHint { font-size: 0.75rem; color: var(--ap-text-muted); margin-bottom: 0.5rem; }
 .apExceptionBanner { margin: 0.5rem 0.75rem; }
 .apProcessorActions { position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--ap-border); background: var(--ap-surface); padding: 0.4rem; }
-.apProcessorActions .sapMBtnAccept .sapMBtnInner { background: #176448; border-color: #176448; color: #fff; }
+.apProcessorActions .sapMBtnAccept .sapMBtnInner { background: var(--brand-green, #006937); border-color: var(--brand-green, #006937); color: #fff; }
 @media (min-width: 1280px) {
     .apProcessorWorkspace[data-split="true"] > .apProcessorData { width: 54%; flex: 1 1 54%; margin-right: 0; }
     .apProcessorWorkspace[data-split="true"] > .apProcessorPdf { width: 46%; flex: 1 1 46%; position: sticky; top: 0.5rem; margin-right: 0.75rem; }
@@ -1220,7 +1291,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     border-top: 1px solid var(--ap-border);
 }
 
-/* Fields: one card per group, field tiles in a grid; a tile that differs from SAP is outlined in red */
+/* Fields: one card per group, field tiles in a grid; a tile that differs from SAP is outlined in amber */
 .apFieldGroups {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1236,10 +1307,11 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    padding: 0.85rem 0.9rem;
-    border: 1px solid var(--ap-border);
-    border-radius: var(--ap-radius-sm);
-    background: var(--ap-surface);
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--line, #e6eaee);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 40, 86, 0.03);
 }
 
 /* Invoice group contains 4 core fields: let it span full width so cards render in a balanced 4-column row */
@@ -1249,58 +1321,75 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apFieldGroupHead {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
 .apFieldGroupIcon.sapUiIcon {
-    color: var(--ap-brand-dark);
+    color: var(--brand-green, #006937) !important;
+    font-size: 1rem;
+}
+
+.apFieldGroup .apInfoSubtitle {
+    color: var(--brand-navy, #002856) !important;
+    font-weight: 700;
+    font-size: 0.95rem;
 }
 
 .apFieldTiles {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.75rem;
 }
 
 .apFieldTile {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    padding: 0.65rem 0.8rem;
-    border: 1px solid var(--ap-border);
-    border-radius: var(--ap-radius-sm);
-    background: var(--ap-bg);
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--line, #e6eaee);
+    border-radius: 8px;
+    background: var(--surface-app, #f8fcff);
     min-width: 0;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.apFieldTile:hover {
+    border-color: var(--line-blue, #b6dfff);
+    background: var(--surface-hover, #f0f9ff);
 }
 
 .apFieldTile[data-differs="true"] {
-    border-color: var(--ap-error);
-    background: var(--ap-error-soft);
+    border-color: var(--review-line, #e9d4ac) !important;
+    background: #fffdf8 !important;
 }
 
 .apFieldTileHead {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    min-height: 1.5rem;
+    min-height: 1.6rem;
+    margin-bottom: 0.35rem;
 }
 
 .apFieldTileHead .apFieldName {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.8125rem;
-    color: var(--ap-ink);
-    line-height: 1.35;
+    color: var(--text-strong, #002856);
+    line-height: 1.25;
     flex: 1 1 auto;
-    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .apFieldTileHead .sapMLnk.apFieldName {
-    color: var(--ap-brand-dark);
+    color: var(--brand-navy, #002856);
 }
 
 .apFieldTileHead .sapMLnk.apFieldName:hover {
-    color: var(--ap-brand);
+    color: var(--brand-green, #006937);
     text-decoration: underline;
 }
 
@@ -1311,8 +1400,8 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     align-items: center;
     font-size: 0.6875rem;
     font-weight: 600;
-    padding: 0.15rem 0.45rem;
-    border-radius: 9999px;
+    padding: 2px 8px;
+    border-radius: 999px;
     line-height: 1.2;
     white-space: nowrap;
 }
@@ -1324,48 +1413,67 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apFieldTileStatus.sapMObjStatusNone,
 .apFieldTileStatus .sapMObjStatusNone {
-    background: #F1F5F9;
-    color: #475569;
+    background: #f0f9ff;
+    color: #002856;
+    border: 1px solid #b6dfff;
 }
 
 .apFieldTileStatus.sapMObjStatusSuccess,
 .apFieldTileStatus .sapMObjStatusSuccess {
-    background: #DCFCE7;
-    color: #15803D;
+    background: #e6f0eb;
+    color: #006937;
+    border: 1px solid #caf0c6;
 }
 
 .apFieldTileStatus.sapMObjStatusError,
 .apFieldTileStatus .sapMObjStatusError {
-    background: #FEE2E2;
-    color: #DC2626;
+    background: #fdecea;
+    color: #d92d20;
+    border: 1px solid #f5cdc7;
 }
 
 .apFieldTileStatus.sapMObjStatusWarning,
 .apFieldTileStatus .sapMObjStatusWarning {
-    background: #FEF3C7;
-    color: #D97706;
+    background: #f8f1e3;
+    color: #8a5300;
+    border: 1px solid #e9d4ac;
 }
 
 .apFieldTileRow {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 0.15rem;
+}
+
+.apFieldTileRow .apAgentPointLabel {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted, #335378);
+    margin-bottom: 2px;
+}
+
+.apFieldTileRow .apAgentPointValue {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-strong, #002856);
 }
 
 .apInfoEmptyCard {
     padding: 2.25rem 1.5rem;
     text-align: center;
-    border: 1px solid var(--ap-border);
-    border-radius: var(--ap-radius-md);
-    background: #FFFFFF;
+    border: 1px solid var(--line, #e6eaee);
+    border-radius: var(--ap-radius);
+    background: #ffffff;
 }
 
 /* Fields: Modern Segmented Control track styling — eliminates border cuts and gaps */
 .apFieldsActions .sapMSegB {
     display: inline-flex !important;
     align-items: center !important;
-    background: #F1F5F9 !important;
-    border: 1px solid #E2E8F0 !important;
+    background: #f0f9ff !important;
+    border: 1px solid #b6dfff !important;
     border-radius: 8px !important;
     padding: 3px !important;
     width: auto !important;
@@ -1373,53 +1481,56 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     box-sizing: border-box !important;
 }
 
-.apFieldsActions .sapMSegB .sapMSegBBtn {
+.apFieldsActions .sapMSegB .sapMSegBBtn,
+.apFieldsActions .sapMSegB .sapMSegBBtnInnerWrapper,
+.apFieldsActions .sapMSegB .sapMSegBBtnInner {
     border: none !important;
     background: transparent !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+}
+
+.apFieldsActions .sapMSegB .sapMSegBBtn::before,
+.apFieldsActions .sapMSegB .sapMSegBBtn::after,
+.apFieldsActions .sapMSegB .sapMSegBBtnInner::before,
+.apFieldsActions .sapMSegB .sapMSegBBtnInner::after {
+    display: none !important;
+    border: none !important;
+    content: none !important;
+}
+
+.apFieldsActions .sapMSegB .sapMSegBBtn {
     padding: 0 !important;
     margin: 0 !important;
     height: auto !important;
     line-height: normal !important;
-    border-radius: 6px !important;
     width: auto !important;
 }
 
-.apFieldsActions .sapMSegB .sapMSegBBtnInnerWrapper {
-    border: none !important;
-    background: transparent !important;
-    border-radius: 6px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    height: auto !important;
-}
-
 .apFieldsActions .sapMSegB .sapMSegBBtnInner {
-    border: 1px solid transparent !important;
-    background: transparent !important;
-    border-radius: 6px !important;
     padding: 0.35rem 0.85rem !important;
     height: auto !important;
     min-height: 1.85rem !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: all 0.15s ease !important;
+    transition: background 0.15s ease, color 0.15s ease !important;
 }
 
 .apFieldsActions .sapMSegB .sapMSegBBtnInner .sapMSegBBtnText {
-    color: #475569 !important;
-    font-weight: 500 !important;
+    color: var(--text-muted, #335378) !important;
+    font-weight: 600 !important;
     font-size: 0.8125rem !important;
 }
 
 .apFieldsActions .sapMSegB .sapMSegBBtnSel .sapMSegBBtnInner {
-    background: #FFFFFF !important;
-    border-color: #CBD5E1 !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    background: #ffffff !important;
+    border: 1px solid #ccd4dd !important;
+    box-shadow: 0 1px 3px rgba(0, 40, 86, 0.12) !important;
 }
 
 .apFieldsActions .sapMSegB .sapMSegBBtnSel .sapMSegBBtnInner .sapMSegBBtnText {
-    color: var(--ap-brand-dark, #064E3B) !important;
+    color: var(--brand-navy, #002856) !important;
     font-weight: 700 !important;
 }
 
@@ -2571,44 +2682,89 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apReviewShell .apFlowCard {
     overflow-x: auto;
     overflow-y: hidden;
-    background: linear-gradient(160deg, rgba(10, 22, 32, 0.97), rgba(6, 83, 44, 0.9));
+    background: linear-gradient(135deg, var(--brand-navy, #002856) 0%, var(--brand-navy-2, #073873) 100%);
+    border-bottom: 3px solid var(--brand-green, #006937);
+    border-radius: 12px;
+    padding: 1rem 1.25rem 0.85rem;
+    box-shadow: 0 4px 16px rgba(0, 40, 86, 0.14);
     scrollbar-width: thin;
-    scrollbar-color: var(--ap-brand-light) transparent;
+    scrollbar-color: var(--brand-green-glow, #94e18c) transparent;
 }
 .apReviewShell .apPanelFlow.sapMFlexBox {
-    --ap-dot: 2rem;
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(6.5rem, 1fr);
-    align-items: start;
+    --ap-dot: 2.15rem;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
     background: transparent;
-    gap: 0 var(--ap-col-gap);
+    gap: 0;
     min-width: 100%;
     width: 100%;
     box-sizing: border-box;
+    padding: 0.25rem 0 0.5rem;
 }
-.apPanelFlow .apPipeTrackStep { justify-content: flex-start; }
-.apPanelFlow .apPipeTrackDot .sapUiIcon { color: #fff; line-height: 1; }
-/* Keep labels and the info button in normal layout; neither can overlap the other. */
+.apPanelFlow .apPipeTrackStep {
+    flex: 1 1 0;
+    min-width: 5.6rem;
+    position: relative;
+    padding: 0 0.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.apPanelFlow .apPipeTrackDot {
+    position: relative;
+    z-index: 2;
+    width: var(--ap-dot);
+    height: var(--ap-dot);
+    border-radius: 50%;
+    background: rgba(0, 40, 86, 0.7);
+    border: 1.5px solid rgba(182, 223, 255, 0.35);
+    color: var(--arc-blue, #b6dfff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.apPanelFlow .apPipeTrackDot .sapUiIcon {
+    font-size: 0.95rem;
+    color: inherit;
+    line-height: 1;
+}
+.apPanelFlow .apPipeTrackStep[data-state="done"] .apPipeTrackDot {
+    background: var(--brand-green, #006937) !important;
+    border-color: var(--brand-green-glow, #94e18c) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 105, 55, 0.4);
+}
+.apPanelFlow .apPipeTrackStep[data-state="active"] .apPipeTrackDot,
+.apPanelFlow .apPipeTrackStep[data-state="running"] .apPipeTrackDot {
+    background: var(--brand-green, #006937) !important;
+    border-color: #ffffff !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 4px rgba(148, 225, 140, 0.45);
+}
 .apPanelFlow .apFlowStepLabelRow {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3rem;
     width: 100%;
-    min-height: 2.75rem;
-    margin-top: 0.3rem;
+    min-height: 2.35rem;
+    margin-top: 0.4rem;
     box-sizing: border-box;
 }
 .apPanelFlow .apPipeTrackLabel.sapMLnk {
     min-width: 0;
-    flex: 0 1 auto;
     white-space: normal;
     overflow-wrap: normal;
-    font-size: 0.825rem;
+    font-size: 0.76rem;
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.25;
     text-align: center;
+    color: #ffffff !important;
+}
+.apPanelFlow .apPipeTrackStep[data-state="pending"] .apPipeTrackLabel.sapMLnk {
+    color: rgba(182, 223, 255, 0.7) !important;
 }
 .apPanelFlow .apFlowInfo.sapMBtn {
     position: static;
@@ -2623,15 +2779,16 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apPanelFlow .apPipeTrackStep + .apPipeTrackStep::before {
     content: "";
     position: absolute;
-    top: calc(var(--ap-dot) / 2 - 1px);
-    left: calc(-50% - var(--ap-col-gap) + var(--ap-dot) / 2 + 0.3rem);
-    width: calc(100% + var(--ap-col-gap) - var(--ap-dot) - 0.6rem);
+    top: calc(var(--ap-dot) / 2);
+    right: 50%;
+    width: 100%;
     height: 2px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(182, 223, 255, 0.22);
+    z-index: 1;
 }
-.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="done"]::before { background: var(--ap-brand-light); }
-.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="running"]::before { background: linear-gradient(90deg, var(--ap-brand-light), rgba(255,255,255,.2)); }
-.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="failed"]::before { background: var(--ap-error); }
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="done"]::before { background: var(--brand-green, #006937); }
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="running"]::before { background: linear-gradient(90deg, rgba(182, 223, 255, 0.22), var(--brand-green, #006937)); }
+.apPanelFlow .apPipeTrackStep + .apPipeTrackStep[data-state="failed"]::before { background: var(--late, #d92d20); }
 
 .apAgentInfoStatus { gap: 0.35rem; flex: 0 0 auto; }
 
@@ -2649,3 +2806,38 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 .apResponseItem { min-width: 0; gap: 0.25rem; padding-bottom: 0.75rem; }
 .apResponseTitle.sapMText { font-weight: 700; font-size: 0.95rem; color: var(--ap-ink); }
 .apResponseAction.sapMText { color: var(--ap-muted); font-size: 0.9rem; line-height: 1.55; }
+
+/* Dialogs & Popovers with reference styling */
+.sapMDialog {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    box-shadow: 0 20px 48px -12px rgba(0, 40, 86, 0.25) !important;
+    border: 1px solid var(--ap-border) !important;
+}
+
+.sapMDialog > .sapMDialogTitle,
+.sapMDialog > header.sapMDialogHeader {
+    background: var(--ap-surface) !important;
+    border-bottom: 2px solid var(--ap-border) !important;
+    padding: 0.75rem 1.25rem !important;
+}
+
+.sapMDialog > header.sapMDialogHeader .sapMTitle {
+    color: var(--ap-ink) !important;
+    font-weight: 700 !important;
+    font-size: 1.15rem !important;
+    letter-spacing: -0.01em;
+}
+
+.sapMDialog > footer.sapMDialogFooter {
+    background: var(--ap-surface-soft) !important;
+    border-top: 1px solid var(--ap-border) !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.apProfileMenu.sapMPopover .sapMPopoverCont {
+    border-radius: 12px;
+    box-shadow: 0 16px 36px -8px rgba(0, 40, 86, 0.22);
+    border: 1px solid var(--ap-border);
+}
+

@@ -728,11 +728,14 @@ sap.ui.define([
                         return oField.group === oGroup.key;
                     });
                     return Object.assign({
+                        hasFields: aGroupFields.length > 0,
                         fields: aGroupFields,
                         diffCount: aGroupFields.filter(function (oField) {
                             return oField.differs;
                         }).length
                     }, oGroup);
+                }).filter(function (oGroup) {
+                    return oGroup.fields.length > 0;
                 }),
                 // "Compare fields" on the flow shows only the rows that differ from SAP.
                 fieldsDiffOnly: false,

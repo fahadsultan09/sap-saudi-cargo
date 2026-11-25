@@ -1,69 +1,168 @@
 /* ==========================================================================
-   AP Console v2 — Runway design tokens
-   Cargo ops: ink navy + Saudia signal green + cool slate (not purple / cream)
+   AP Console — Reference Design System Tokens
+   Brand palette: Deep Navy (#002856) + Emerald Green (#006937) + Arc Blue (#B6DFFF)
+   Clean enterprise styling for autonomous invoice processing
    ========================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
-
-:root {
-    /* Brand: these defaults are replaced at start-up by the client profile's branding.colors. */
-    --ap-brand: #0B7A42;
-    --ap-brand-dark: #06532C;
-    --ap-brand-deep: color-mix(in srgb, var(--ap-brand-dark) 65%, black);
-    --ap-brand-light: #9FD4B4;
-    --ap-brand-soft: #E6F5EC;
-    --ap-brand-glow: color-mix(in srgb, var(--ap-brand) 22%, transparent);
-
-    /* Atmosphere — cool cargo slate, not flat Fiori gray */
-    --ap-ink: #0A1620;
-    --ap-ink-soft: #142433;
-    --ap-bg: #EEF2F4;
-    --ap-bg-mesh: radial-gradient(1200px 600px at 8% -10%, color-mix(in srgb, var(--ap-brand) 10%, transparent), transparent 55%),
-        radial-gradient(900px 500px at 92% 0%, rgba(15, 118, 140, 0.08), transparent 50%),
-        linear-gradient(180deg, #F4F7F8 0%, #E8EDF0 100%);
-    --ap-surface: #FFFFFF;
-    --ap-surface-2: #F7FAFB;
-    --ap-border: #D5DEE4;
-    --ap-border-strong: #B8C5CE;
-    --ap-text: #0F1C26;
-    --ap-muted: #5A6B78;
-    --ap-faint: #8A9AA6;
-
-    /* Signal / status */
-    --ap-live: #0E8F8A;
-    --ap-live-soft: #E4F7F6;
-    --ap-info: #1F6FBF;
-    --ap-success: #0B7A42;
-    --ap-warning: #B86A12;
-    --ap-warning-soft: #FFF4E5;
-    --ap-error: #C0352B;
-    --ap-error-soft: #FCECEC;
-    --ap-gold: #C4A35A;
-
-    /* Shape & motion */
-    --ap-radius: 14px;
-    --ap-radius-sm: 9px;
-    --ap-radius-lg: 20px;
-    --ap-shadow: 0 1px 2px rgba(10, 22, 32, 0.05), 0 8px 24px rgba(10, 22, 32, 0.06);
-    --ap-shadow-lift: 0 4px 12px rgba(10, 22, 32, 0.08), 0 18px 40px rgba(10, 22, 32, 0.10);
-    --ap-fast: 160ms;
-    --ap-base: 280ms;
-    --ap-slow: 520ms;
-    --ap-ease: cubic-bezier(0.22, 0.9, 0.24, 1);
-    --ap-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-
-    /* Type */
-    --ap-font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --ap-font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+@font-face {
+    font-family: "App Sans";
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    src: url("../fonts/AppSans-Regular.woff") format("woff");
 }
 
-/* Map UI5 theme accents to the brand tokens, so Emphasized buttons / focus follow the client's colours */
+@font-face {
+    font-family: "App Sans";
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    src: url("../fonts/AppSans-Medium.woff") format("woff");
+}
+
+@font-face {
+    font-family: "App Sans";
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+    src: url("../fonts/AppSans-SemiBold.woff") format("woff");
+}
+
+@font-face {
+    font-family: "App Sans";
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url("../fonts/AppSans-Bold.woff") format("woff");
+}
+
+:root {
+    /* Reference Design System Colors */
+    --brand-navy: #002856;
+    --brand-navy-2: #073873;
+    --brand-navy-3: #0d4a91;
+    --brand-navy-deep: #062a5c;
+    --brand-green: #006937;
+    --brand-green-cta: #036b3a;
+    --brand-green-dark: #005a2f;
+    --brand-green-light: #7ed07b;
+    --brand-green-glow: #94e18c;
+    --arc-blue: #b6dfff;
+    --arc-blue-2: #bfddf7;
+
+    /* Atmosphere & Surfaces */
+    --surface: #ffffff;
+    --surface-app: #f8fcff;
+    --surface-app-2: #f8fcff;
+    --surface-subtle: #f8fcff;
+    --surface-hover: #f0f9ff;
+    --surface-row-hover: #f0f9ff;
+    --surface-tint-blue: #e2f2ff;
+
+    /* Lines & Borders */
+    --line: #e6eaee;
+    --line-2: #e6eaee;
+    --line-input: #ccd4dd;
+    --line-chip: #ccd4dd;
+    --line-blue: #b6dfff;
+
+    /* Text Hierarchy */
+    --text-strong: #002856;
+    --text-ink: #002856;
+    --text-body: #002856;
+    --text-muted: #335378;
+    --text-faint: #5b738f;
+    --text-disabled: #98a2b3;
+    --text-on-dark: #ffffff;
+    --text-on-dark-2: #b6dfff;
+
+    /* Status Badges */
+    --ok: #006937;
+    --ok-bg: #e6f0eb;
+    --ok-line: #caf0c6;
+    --review: #dbb875;
+    --review-ink: #8a5300;
+    --review-bg: #f8f1e3;
+    --review-line: #e9d4ac;
+    --late: #d92d20;
+    --late-bg: #fdecea;
+    --late-line: #f5cdc7;
+    --wait: #002856;
+    --wait-bg: #f0f9ff;
+    --wait-line: #b6dfff;
+
+    /* Shell Header */
+    --shell-bg: var(--brand-navy);
+    --shell-rule: var(--brand-green);
+    --shell-height: 60px;
+    --shell-on-dark-2: var(--arc-blue);
+    --shell-search-bg: rgba(182, 223, 255, 0.12);
+    --shell-search-line: rgba(182, 223, 255, 0.22);
+    --shell-divider: rgba(182, 223, 255, 0.30);
+    --shell-hover: rgba(182, 223, 255, 0.14);
+    --shell-role-bg: rgba(148, 225, 140, 0.16);
+    --shell-role-fg: var(--brand-green-glow);
+    --shell-avatar-bg: #15487c;
+    --shell-avatar-line: rgba(182, 223, 255, 0.35);
+
+    /* Mapped --ap-* variables */
+    --ap-brand: #006937;
+    --ap-brand-dark: #005a2f;
+    --ap-brand-deep: #062a5c;
+    --ap-brand-light: #7ed07b;
+    --ap-brand-soft: #e6f0eb;
+    --ap-brand-glow: #94e18c;
+
+    --ap-navy: #002856;
+    --ap-navy-2: #073873;
+    --ap-ink: #002856;
+    --ap-ink-soft: #073873;
+    --ap-bg: #f8fcff;
+    --ap-bg-mesh: linear-gradient(180deg, #f8fcff 0%, #f0f6fa 100%);
+    --ap-surface: #ffffff;
+    --ap-surface-2: #f8fcff;
+    --ap-border: #e6eaee;
+    --ap-border-strong: #ccd4dd;
+    --ap-text: #002856;
+    --ap-muted: #335378;
+    --ap-faint: #5b738f;
+
+    --ap-live: #006937;
+    --ap-live-soft: #e6f0eb;
+    --ap-info: #002856;
+    --ap-info-soft: #f0f9ff;
+    --ap-success: #006937;
+    --ap-success-soft: #e6f0eb;
+    --ap-warning: #8a5300;
+    --ap-warning-soft: #f8f1e3;
+    --ap-error: #d92d20;
+    --ap-error-soft: #fdecea;
+    --ap-gold: #dbb875;
+
+    /* Shape & Elevation */
+    --ap-radius: 12px;
+    --ap-radius-sm: 8px;
+    --ap-radius-lg: 16px;
+    --ap-shadow: 0 1px 3px rgba(0, 40, 86, 0.05), 0 4px 12px rgba(0, 40, 86, 0.04);
+    --ap-shadow-lift: 0 4px 12px rgba(0, 40, 86, 0.08), 0 14px 28px rgba(0, 40, 86, 0.08);
+    --ap-fast: 140ms;
+    --ap-base: 240ms;
+    --ap-slow: 400ms;
+    --ap-ease: cubic-bezier(0.2, 0, 0, 1);
+    --ap-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Typography */
+    --ap-font-display: "App Sans", Arial, sans-serif;
+    --ap-font-body: "App Sans", Arial, sans-serif;
+}
+
+/* Map UI5 theme accents to reference tokens */
 :root:root {
     --sapBrandColor: var(--ap-brand);
     --sapHighlightColor: var(--ap-brand);
     --sapSelectedColor: var(--ap-brand);
-    --sapLinkColor: var(--ap-brand-dark);
-    --sapContent_FocusColor: var(--ap-brand);
+    --sapLinkColor: var(--ap-navy);
+    --sapContent_FocusColor: var(--ap-navy);
     --sapContent_Selected_TextColor: var(--ap-brand);
     --sapButton_TextColor: var(--ap-brand);
     --sapButton_IconColor: var(--ap-brand);
@@ -73,7 +172,7 @@
     --sapButton_Emphasized_Hover_Background: var(--ap-brand-dark);
     --sapButton_Emphasized_Hover_BorderColor: var(--ap-brand-dark);
     --sapList_SelectionBackgroundColor: var(--ap-brand-soft);
-    --sapFontFamily: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --sapFontHeaderFamily: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --sapFontFamily: "App Sans", Arial, sans-serif;
+    --sapFontHeaderFamily: "App Sans", Arial, sans-serif;
     --sapFontSize: 0.9375rem;
 }

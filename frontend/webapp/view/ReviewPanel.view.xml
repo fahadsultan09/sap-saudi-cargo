@@ -521,7 +521,7 @@
 							<!-- One card per group; each field is a tile with its invoice and SAP value -->
 							<HBox items="{apData>/selectedInvoice/fieldGroups}" renderType="Bare" class="apFieldGroups">
 								<VBox renderType="Bare" class="apFieldGroup"
-									visible="{= (!${apData>/selectedInvoice/fieldsDiffOnly} || ${apData>diffCount} > 0) &amp;&amp; ${apData>fields}.length > 0 }">
+									visible="{= !${apData>/selectedInvoice/fieldsDiffOnly} || ${apData>diffCount} > 0 }">
 									<customData>
 										<core:CustomData key="group" value="{apData>key}" writeToDom="true"/>
 									</customData>

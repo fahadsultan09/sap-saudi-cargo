@@ -7,10 +7,10 @@
         "markText": "AP",
         "logo": "logo.png",
         "colors": {
-            "brand": "#0B7A42",
-            "brandDark": "#06532C",
-            "brandLight": "#9FD4B4",
-            "brandSoft": "#E6F5EC"
+            "brand": "#006937",
+            "brandDark": "#005a2f",
+            "brandLight": "#7ed07b",
+            "brandSoft": "#e6f0eb"
         }
     },
     "identity": {
