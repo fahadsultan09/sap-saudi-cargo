@@ -1,3 +1,5 @@
+import React from "react";
+
 /**
  * Post-decision / post-save exit modal so Review never feels stuck.
  * Intended path: Process → Review → decide/save → Open next | Desk | Home.

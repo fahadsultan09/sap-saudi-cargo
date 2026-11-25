@@ -62,7 +62,7 @@ export const PROCESS_STEPS = [
     title: "Got your file",
     plain: "Opening a case for this invoice",
     detail:
-      "ClearDesk accepts the upload, opens a case, and queues the agent line so the rest of the runway can start.",
+      "AP Console accepts the upload, opens a case, and queues the agent line so the rest of the runway can start.",
     does: ["Accept the PDF", "Create a case", "Queue the next agents"],
     outcome: "File received and queued",
     role: "Intake",

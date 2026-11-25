@@ -1,4 +1,4 @@
-const STORAGE_KEY = "cleardesk-upload-session";
+const STORAGE_KEY = "ap-console-upload-session";
 
 export function saveUploadSession(session) {
   try {

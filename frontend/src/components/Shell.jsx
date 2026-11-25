@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { canApprove, config, saveUserId } from "../lib/config";
 import "../reference-portal.css";

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiJson } from "../lib/api";
 import { LIST_REFRESH_MS } from "../lib/constants";
@@ -252,15 +252,19 @@ export default function Desk({ userId, showToast }) {
               <th>INVOICE</th>
               <th>VENDOR</th>
               <th>AMOUNT</th>
-              <th>STATUS</th>
+              <th>SOURCE</th>
+              <th>STATION · REGION</th>
+              <th>DEPARTMENT</th>
               <th>PO NUMBER</th>
-              <th>CREATED AT</th>
+              <th>STATUS</th>
+              <th>WHOSE COURT</th>
+              <th>ACTION</th>
             </tr>
           </thead>
           <tbody>
             {filteredCases.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem", color: "#64748b" }}>
+                <td colSpan="11" style={{ textAlign: "center", padding: "2.5rem", color: "#64748b" }}>
                   {loading ? "Loading invoices..." : "No invoices found for this filter."}
                 </td>
               </tr>
@@ -269,9 +273,12 @@ export default function Desk({ userId, showToast }) {
                 const invId = item.case_id || item.id;
                 const invNum = item.invoice_number || item.title || `INV-${String(invId).slice(0, 6)}`;
                 const vendor = item.vendor_name || item.supplier_name || "Hong Kong Air Cargo Terminals Limited";
-                const amount = item.total_amount ? `${item.currency || 'SAR'} ${Number(item.total_amount).toLocaleString()}` : "HKD 224,448.50";
-                const po = item.po_number || "—";
-                const date = item.created_at ? new Date(item.created_at).toLocaleDateString() : "2026-11-25";
+                const amount = item.total_amount ? `${item.currency || 'SAR'} ${Number(item.total_amount).toLocaleString()}` : "SAR 7,074.80";
+                const po = item.po_number || "4200011755";
+                const source = item.file_name ? "Upload" : "Email";
+                const station = item.company_code === "1000" ? "JED · Western" : "RUH · Central";
+                const dept = item.department || "Operations";
+                const court = item.status === "APPROVED" ? "Finance" : "AP";
 
                 return (
                   <tr key={invId}>
@@ -292,6 +299,14 @@ export default function Desk({ userId, showToast }) {
                     </td>
                     <td style={{ fontWeight: 700, color: "#002856" }}>{amount}</td>
                     <td>
+                      <span style={{ fontSize: "0.8rem", color: "#475569", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>
+                        {source}
+                      </span>
+                    </td>
+                    <td style={{ color: "#475569", fontSize: "0.82rem" }}>{station}</td>
+                    <td style={{ color: "#475569", fontSize: "0.82rem" }}>{dept}</td>
+                    <td style={{ color: "#002856", fontWeight: 600, fontSize: "0.82rem" }}>{po}</td>
+                    <td>
                       <span style={{
                         display: "inline-block",
                         padding: "0.2rem 0.55rem",
@@ -304,8 +319,19 @@ export default function Desk({ userId, showToast }) {
                         {item.status || "NEEDS_REVIEW"}
                       </span>
                     </td>
-                    <td style={{ color: "#64748b" }}>{po}</td>
-                    <td style={{ color: "#64748b" }}>{date}</td>
+                    <td>
+                      <span style={{ fontSize: "0.8rem", fontWeight: 600, color: court === "AP" ? "#006937" : "#64748b" }}>
+                        {court}
+                      </span>
+                    </td>
+                    <td>
+                      <Link
+                        to={`/cases/${invId}?back=%2Fworklist&backLabel=Back+to+Invoices`}
+                        style={{ color: "var(--ref-navy-light)", fontWeight: 700, fontSize: "0.82rem", textDecoration: "none" }}
+                      >
+                        Open ›
+                      </Link>
+                    </td>
                   </tr>
                 );
               })

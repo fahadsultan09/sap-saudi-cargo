@@ -16,6 +16,10 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8080",
         "http://localhost:8081",
         "http://127.0.0.1:8081",
+        "http://localhost:8085",
+        "http://127.0.0.1:8085",
+        "http://localhost:8086",
+        "http://127.0.0.1:8086",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]

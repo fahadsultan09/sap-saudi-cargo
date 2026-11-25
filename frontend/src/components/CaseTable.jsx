@@ -1,3 +1,4 @@
+import React from "react";
 import { OUTCOME_TONE } from "../lib/constants";
 import { mapCaseRow } from "../lib/caseBoard";
 

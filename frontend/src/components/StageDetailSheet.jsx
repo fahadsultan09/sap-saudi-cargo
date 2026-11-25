@@ -1,3 +1,4 @@
+import React from "react";
 import { PROCESS_STEPS } from "../lib/constants";
 import DetailSheet from "./DetailSheet";
 import StageDetailBody from "./StageDetailBody";

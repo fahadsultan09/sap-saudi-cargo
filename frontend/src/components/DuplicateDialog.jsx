@@ -1,3 +1,4 @@
+import React from "react";
 import { outcomeLabel } from "../lib/pipeline";
 
 export default function DuplicateDialog({

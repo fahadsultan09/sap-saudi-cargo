@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function KpiStrip({ items = [], activeKey = "", onSelect }) {
   return (
     <div className="kpi-strip" role="group" aria-label="Case totals">

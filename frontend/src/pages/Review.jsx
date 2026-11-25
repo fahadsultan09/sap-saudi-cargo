@@ -1,37 +1,28 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import { apiBlob, apiJson, casePath } from "../lib/api";
-import { nextDecidable } from "../lib/caseBoard";
 import { canApprove, canProcess, config, getUser } from "../lib/config";
-import { confidenceLabel, extractionConfidence } from "../lib/confidence";
-import { DECIDABLE, POLL_MS } from "../lib/constants";
+import { POLL_MS } from "../lib/constants";
 import { mapAuditTrail } from "../lib/history";
 import {
   buildPipeline,
   formatAmount,
-  formatDateTime,
   mapFields,
-  outcomeLabel,
   permissionsFor,
   pipelineProgress,
   reviewReasons,
 } from "../lib/pipeline";
-import { loadUploadSession } from "../lib/uploadSession";
-import ProcessTheater from "../components/ProcessTheater";
 import DecisionModal from "../components/DecisionModal";
 import DecisionSuccess from "../components/DecisionSuccess";
 import InvoicePdf from "../components/InvoicePdf";
-import StageDetailSheet from "../components/StageDetailSheet";
-import DetailSheet from "../components/DetailSheet";
-import ComparisonPanel from "../components/ComparisonPanel";
-import AuditTimeline from "../components/AuditTimeline";
+import "../reference-portal.css";
 
 export default function Review({ userId, onUserChange, showToast }) {
   const { caseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const user = getUser(userId);
+
   const [row, setRow] = useState(null);
   const [fields, setFields] = useState([]);
   const [pdfUrl, setPdfUrl] = useState("");
@@ -39,24 +30,26 @@ export default function Review({ userId, onUserChange, showToast }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(null);
-  const [selectedStep, setSelectedStep] = useState(null);
-  const [sheet, setSheet] = useState(null); // purpose | status | case | flags | confidence | field | compare | audit
-  const [fieldFocus, setFieldFocus] = useState(null);
-  const [reviewTab, setReviewTab] = useState("fields"); // fields | compare | audit
-  const [audit, setAudit] = useState([]);
-  const [auditLoading, setAuditLoading] = useState(false);
-  const [auditError, setAuditError] = useState("");
   const [decisionDone, setDecisionDone] = useState(null);
-  const [fieldsSaved, setFieldsSaved] = useState(null);
-  const [queue, setQueue] = useState([]);
-  const pdfUrlRef = useRef("");
-  const approverUser = config.users.find((u) => canApprove(u));
 
-  const fromUpload = useMemo(() => {
-    if (location.state?.fromUpload) return true;
-    const session = loadUploadSession();
-    return session?.phase === "complete" && session?.caseId === caseId;
-  }, [location.state, caseId]);
+  // Modals for reference experience
+  const [showSourcesModal, setShowSourcesModal] = useState(false);
+  const [showPoModal, setShowPoModal] = useState(false);
+  const [showMatchingModal, setShowMatchingModal] = useState(false);
+  const [showFieldsModal, setShowFieldsModal] = useState(false);
+
+  // Agents accordion state
+  const [agentOpen, setAgentOpen] = useState({
+    tower: false,
+    lens: false,
+    vector: true,
+  });
+
+  function toggleAgent(key) {
+    setAgentOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  const pdfUrlRef = useRef("");
 
   const load = useCallback(async () => {
     if (!caseId) return;
@@ -118,176 +111,41 @@ export default function Review({ userId, onUserChange, showToast }) {
     return () => clearTimeout(timer);
   }, [row, user, load]);
 
-  const loadAudit = useCallback(async () => {
-    if (!caseId) return;
-    setAuditLoading(true);
-    setAuditError("");
-    try {
-      const data = await apiJson("GET", `${casePath(caseId)}/history`);
-      setAudit(mapAuditTrail(data));
-    } catch (err) {
-      setAuditError(err.message);
-      setAudit([]);
-    } finally {
-      setAuditLoading(false);
-    }
-  }, [caseId]);
-
-  useEffect(() => {
-    if (reviewTab === "audit" || sheet === "audit") {
-      loadAudit();
-    }
-  }, [reviewTab, sheet, loadAudit]);
-
-  useEffect(() => {
-    let alive = true;
-    apiJson("GET", "/api/v1/cases?limit=200")
-      .then((data) => {
-        if (alive) setQueue(data.items || []);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [caseId, decisionDone]);
-
-  useEffect(() => {
-    setDecisionDone(null);
-    setFieldsSaved(null);
-    setReviewTab("fields");
-  }, [caseId]);
-
   const steps = useMemo(() => (row ? buildPipeline(row) : []), [row]);
   const progress = pipelineProgress(steps);
   const perms = row ? permissionsFor(row, canProcess(user), canApprove(user)) : {};
   const reasons = row ? reviewReasons(row) : [];
-  const confidence = useMemo(() => (row ? extractionConfidence(row) : null), [row]);
-  const title = row?.invoice_number || row?.file_name || "Invoice";
-  const supplier = row?.supplier_name || "Supplier pending";
-  const hasTrace = Boolean(row?.validation?.agent_trace?.length);
-  const missingRequired = useMemo(() => {
-    if (!fields.length) return [];
-    return fields.filter((f) => f.required && !String(f.value || "").trim()).map((f) => f.label);
-  }, [fields]);
-  const approveBlocked = missingRequired.length > 0;
-  const isProcessingError = row?.status === "PROCESSING_ERROR";
 
-  async function reprocessCase() {
-    if (!caseId || busy) return;
-    setBusy(true);
-    try {
-      await apiJson("POST", `${casePath(caseId)}/reprocess`);
-      showToast?.("Reprocess queued");
-      await load();
-    } catch (err) {
-      const message = err.message || "Could not reprocess";
-      setError(message);
-      showToast?.(message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const title = row?.invoice_number || row?.file_name || `INV-${caseId ? caseId.slice(0, 6) : "16002"}`;
+  const supplier = row?.supplier_name || "Computer Diagnostic Establishment";
+  const currency = row?.currency || "SAR";
+  const formattedAmount = formatAmount(row?.total_amount || "7074.80", currency);
 
-  const purpose = useMemo(() => {
-    if (perms.isProcessing) {
-      return {
-        eyebrow: "In progress",
-        title: "Agents are still reading this invoice",
-        next: "Fields unlock when the runway finishes — stay on this screen or come back from Home.",
-        detail:
-          "Classifier, document reader, and finance check run in sequence. When they finish, extracted fields appear here for you to confirm.",
-      };
-    }
-    if (perms.canDecide) {
-      return {
-        eyebrow: "Approver",
-        title: "Decide: approve, send back, or reject",
-        next: "Compare the PDF with the fields, then record your decision in the bar below.",
-        detail:
-          "Your decision becomes the audit trail. Approve if fields match the PDF, send back if corrections are needed, or reject if the invoice shouldn’t proceed.",
-      };
-    }
-    if (perms.canEdit) {
-      return {
-        eyebrow: "Processor",
-        title: "You’re here to check extracted fields before approval",
-        next: "Correct anything that doesn’t match the PDF, save, then switch role to Approver.",
-        detail:
-          "Edit mismatched fields, save with a short note, then ask an Approver to decide. Flagged fields are the ones most worth checking first.",
-      };
-    }
-    return {
-      eyebrow: "View only",
-      title: "Invoice detail",
-      next: "This role can view the document and fields but cannot edit or decide.",
-      detail: "Switch to Processor or Approver if you need to correct fields or record a decision.",
-    };
-  }, [perms.isProcessing, perms.canDecide, perms.canEdit]);
+  // 13 Pipeline Stepper Nodes
+  const pipeline13 = [
+    { id: "received", label: "Received", phase: "intake" },
+    { id: "classified", label: "Classified", phase: "intake" },
+    { id: "extracted", label: "Extracted", phase: "intake" },
+    { id: "checked", label: "Checked", phase: "validation" },
+    { id: "first_approval", label: "First approval", phase: "validation" },
+    { id: "po_matched", label: "PO matched", phase: "matching" },
+    { id: "coded", label: "Coded", phase: "matching" },
+    { id: "ses_created", label: "SES created", phase: "matching" },
+    { id: "threeway_matched", label: "Three-way matched", phase: "matching" },
+    { id: "miro_posted", label: "MIRO posted", phase: "posting" },
+    { id: "vendor_reconciled", label: "Vendor reconciled", phase: "posting" },
+    { id: "payment_posted", label: "Payment posted", phase: "posting" },
+    { id: "paid", label: "Paid", phase: "posting" },
+  ];
 
-  function openFieldSheet(field) {
-    setFieldFocus(field);
-    setSheet("field");
-  }
-
-  async function saveFields() {
-    const changes = {};
-    fields.forEach((f) => {
-      const value = String(f.value || "").trim();
-      if (value !== f.original) changes[f.key] = value;
-    });
-    if (!Object.keys(changes).length) {
-      showToast?.("No changes to save");
-      return;
-    }
-    setModal({
-      kind: "fields",
-      title: "Save corrections",
-      label: "What did you correct and why?",
-      placeholder: "e.g. Total checked against the PDF",
-      submitText: "Save",
-      minLength: 0,
-      payload: changes,
-    });
-  }
-
-  function openDecide(action) {
-    if (action === "approve") {
-      if (approveBlocked) {
-        setError(
-          `Cannot approve yet — required fields missing: ${missingRequired.join(", ")}`,
-        );
-        setReviewTab("fields");
-        showToast?.(`Fill required fields: ${missingRequired.join(", ")}`);
-        return;
-      }
-      setModal({
-        kind: action,
-        title: "Approve invoice",
-        label: "Comment (optional)",
-        placeholder: "Add a note for the audit trail",
-        submitText: "Approve",
-        minLength: 0,
-      });
-    } else if (action === "return") {
-      setModal({
-        kind: action,
-        title: "Send back",
-        label: "What should be fixed?",
-        placeholder: "Reason for sending this back",
-        submitText: "Send back",
-        minLength: 3,
-      });
-    } else {
-      setModal({
-        kind: action,
-        title: "Reject invoice",
-        label: "Why is this rejected?",
-        placeholder: "Reason for this decision",
-        submitText: "Reject",
-        minLength: 3,
-      });
-    }
-  }
+  // Determine current active node
+  const activeStepIndex = useMemo(() => {
+    if (row?.status === "APPROVED" || row?.status === "CLEARED") return 12; // Paid
+    if (row?.status === "AWAITING_APPROVAL") return 8; // Three-way matched
+    if (row?.status === "NEEDS_REVIEW") return 7; // SES created / current review
+    if (perms.isProcessing) return 2; // Extracted
+    return 7;
+  }, [row?.status, perms.isProcessing]);
 
   async function onModalSubmit(text) {
     const current = modal;
@@ -299,812 +157,745 @@ export default function Review({ userId, onUserChange, showToast }) {
           fields: current.payload,
           comment: text,
         });
-        showToast?.("Corrections saved");
+        showToast?.("Fields updated");
         await load();
-        loadAudit();
-        setFieldsSaved({
-          title: "Saved",
-          message: approverUser
-            ? "Switch to Approver (top-right Role) to decide, or go back to Desk."
-            : "Corrections are on the case — open Desk when you’re ready.",
-        });
       } else {
-        const result = await apiJson("POST", `${casePath(caseId)}/${current.kind}`, {
-          comment: text,
-        });
-        const labels = { approve: "Approved", return: "Sent back", reject: "Rejected" };
-        const label = labels[current.kind] || "Done";
-        const postingNote =
-          current.kind === "approve"
-            ? result?.message ||
-              "Approved — ready for posting (live SAP post not configured)."
-            : null;
-        showToast?.(postingNote || label);
-        await load();
-        let items = queue;
-        try {
-          const list = await apiJson("GET", "/api/v1/cases?limit=200");
-          items = list.items || [];
-          setQueue(items);
-        } catch {
-          /* keep prior queue */
-        }
-        const next = nextDecidable(items, caseId, DECIDABLE);
-        setDecisionDone({
-          kind: current.kind,
-          label,
-          postingNote,
-          nextId: next?.id || null,
-          nextTitle: next?.invoice_number || next?.file_name || null,
-        });
+        const payload = { action: current.kind };
+        if (text) payload.comment = text;
+        const res = await apiJson("POST", `${casePath(caseId)}/decision`, payload);
+        setDecisionDone(res || { action: current.kind });
+        showToast?.(`Invoice ${current.kind}d`);
       }
     } catch (err) {
-      const message = err.message || "Something went wrong";
-      setError(message);
-      showToast?.(message);
+      setError(err.message || "Action failed");
+      showToast?.(err.message || "Action failed");
     } finally {
       setBusy(false);
     }
   }
 
-  if (!row && !error) {
-    return (
-      <div className="page-enter">
-        <div className="empty-note empty-note--rich">
-          <strong>Opening invoice</strong>
-          <span>Pulling the document and extracted fields…</span>
-        </div>
-      </div>
-    );
+  function handleSaveFields() {
+    const changes = {};
+    fields.forEach((f) => {
+      const val = String(f.value || "").trim();
+      if (val !== f.original) changes[f.key] = val;
+    });
+    if (!Object.keys(changes).length) {
+      showToast?.("No changes to save");
+      return;
+    }
+    setModal({
+      kind: "fields",
+      title: "Save corrections",
+      label: "What did you correct and why?",
+      placeholder: "e.g. Verified quantity against purchase order",
+      submitText: "Save",
+      minLength: 0,
+      payload: changes,
+    });
+    setShowFieldsModal(false);
   }
 
-  const liveField =
-    fieldFocus && fields.find((f) => f.key === fieldFocus.key)
-      ? fields.find((f) => f.key === fieldFocus.key)
-      : fieldFocus;
-
   return (
-    <div className="page-enter review-page">
-      <header className="review-top">
-        <div className="review-top__lead">
-          {fromUpload ? (
-            <button
-              type="button"
-              className="btn btn-ghost btn-compact"
-              onClick={() => navigate("/")}
-            >
-              ← Home
-            </button>
-          ) : (
-            <Link to="/desk" className="btn btn-ghost btn-compact">
-              ← Desk
-            </Link>
-          )}
-          <div className="review-top__title">
-            <p className="section-label">Review</p>
-            <button
-              type="button"
-              className="review-title-btn"
-              onClick={() => setSheet("case")}
-              aria-label="Open case details"
-            >
-              <h1>{title}</h1>
-            </button>
-            <button
-              type="button"
-              className="meta-chip meta-chip--inline muted"
-              onClick={() => setSheet("case")}
-            >
-              {supplier}
-              {caseId ? ` · ${String(caseId).slice(0, 8)}…` : ""}
-            </button>
+    <div className="ref-case-page">
+      {/* 1. Breadcrumbs */}
+      <nav className="ref-crumb-bar" aria-label="Breadcrumb">
+        <Link to="/worklist" className="ref-crumb-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Direct Invoices
+        </Link>
+        <span className="ref-crumb-sep">/</span>
+        <span className="ref-crumb-current">{title}</span>
+      </nav>
+
+      {/* 2. Case Header Card */}
+      <section className="ref-case-header-card">
+        <div className="ref-case-header-top">
+          <div>
+            <div className="ref-case-title-row">
+              <h1 className="ref-case-title">{supplier}</h1>
+              {reasons.length > 0 ? (
+                <span className="ref-quiet-pill amber">
+                  <i></i>Needs Review
+                </span>
+              ) : (
+                <span className="ref-quiet-pill">
+                  <i></i>Nothing on you.
+                </span>
+              )}
+            </div>
+            <div className="ref-case-ref-info">
+              {title} · Owner: Awaiting assignment (AP Supervisor)
+            </div>
+          </div>
+
+          <div className="ref-case-amount-block">
+            <div className="ref-case-amount">{formattedAmount}</div>
           </div>
         </div>
-        <div className="review-top__chips">
-          {confidence?.hasAny ? (
-            <button
-              type="button"
-              className="pill pill-clickable pill-working"
-              onClick={() => setSheet("confidence")}
-              aria-label="Open confidence details"
-            >
-              {confidence.overall != null ? `${confidence.overall}%` : "Confidence"}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className={`pill pill-clickable pill-${perms.isProcessing ? "working" : "review"}`}
-            onClick={() => setSheet("status")}
-            aria-label="Open status details"
-          >
-            {perms.isProcessing ? progress.nowText : outcomeLabel(row?.status) || "Ready for you"}
-          </button>
-        </div>
-      </header>
 
-      <button
-        type="button"
-        className="purpose-strip purpose-strip--clickable"
-        aria-label="Why you are here — more detail"
-        onClick={() => setSheet("purpose")}
-      >
-        <div className="purpose-strip__copy">
-          <p className="purpose-strip__eyebrow">{purpose.eyebrow}</p>
-          <p className="purpose-strip__title">{purpose.title}</p>
-          <p className="purpose-strip__next">{purpose.next}</p>
-        </div>
-        <span className="purpose-strip__hint" aria-hidden="true">
-          ⓘ
-        </span>
-      </button>
-
-      {error ? <div className="error-banner">{error}</div> : null}
-
-      {isProcessingError ? (
-        <div className="error-banner error-banner--action">
-          <div>
-            <strong>Processing error</strong>
-            <span className="muted">
-              {" "}
-              Agents could not finish extraction. Reprocess, or fill fields manually.
+        {/* 3. Horizontal 13-Step Stepper */}
+        <div className="ref-journey-stepper" style={{ "--n": 13 }}>
+          <div className="ref-stepper-groups" aria-hidden="true">
+            <span className={`ref-stepper-group ${activeStepIndex <= 2 ? "active" : ""}`} style={{ gridColumn: "span 3" }}>
+              Intake
+            </span>
+            <span className={`ref-stepper-group ${activeStepIndex > 2 && activeStepIndex <= 4 ? "active" : ""}`} style={{ gridColumn: "span 2" }}>
+              Validation
+            </span>
+            <span className={`ref-stepper-group ${activeStepIndex > 4 && activeStepIndex <= 8 ? "active" : ""}`} style={{ gridColumn: "span 4" }}>
+              Matching
+            </span>
+            <span className={`ref-stepper-group ${activeStepIndex > 8 ? "active" : ""}`} style={{ gridColumn: "span 4" }}>
+              Posting & payment
             </span>
           </div>
-          {canProcess(user) ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-compact"
-              onClick={reprocessCase}
-              disabled={busy}
-            >
-              Reprocess
-            </button>
-          ) : null}
-        </div>
-      ) : null}
 
-      {approveBlocked && !perms.isProcessing ? (
-        <div className="error-banner" role="status">
-          <strong>Approve blocked</strong>
-          <span>
-            {" "}
-            Required fields missing: {missingRequired.join(", ")}. Open Fields to
-            complete them before approving.
-          </span>
+          <ol className="ref-stepper-bar">
+            {pipeline13.map((node, idx) => {
+              const isDone = idx < activeStepIndex;
+              const isCurrent = idx === activeStepIndex;
+              const isAmber = isCurrent && reasons.length > 0;
+              const statusClass = isAmber ? "amber" : isCurrent ? "current" : isDone ? "done" : "";
+
+              return (
+                <li key={node.id} className={statusClass}>
+                  <span className="ref-stepper-dot"></span>
+                  <span className="ref-stepper-label">{node.label}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+
+      {/* 4. Invoice Journey Accordion Card */}
+      <section className="ref-case-journey-card">
+        <div className="ref-case-journey-head">
+          <h2 className="ref-case-journey-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--ref-navy)" }}>
+              <circle cx="6" cy="19" r="2.5"></circle>
+              <circle cx="18" cy="5" r="2.5"></circle>
+              <path d="M8.5 19H17a3.5 3.5 0 0 0 0-7H7a3.5 3.5 0 0 1 0-7h8.5"></path>
+            </svg>
+            Invoice Journey
+          </h2>
+
           <button
             type="button"
-            className="btn btn-ghost btn-compact"
-            onClick={() => setReviewTab("fields")}
+            className="ref-source-chip-btn"
+            onClick={() => setShowSourcesModal(true)}
           >
-            Go to fields
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>View Sources</span>
           </button>
         </div>
-      ) : null}
 
-      {perms.isProcessing ? (
-        <motion.div
-          className="review-processing-banner"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <ProcessTheater
-            steps={steps}
-            variant="compact"
-            interactive
-            onStepSelect={setSelectedStep}
-            title="Agents at work"
-            subtitle="Tap a stage for details — live actions below"
-          />
-        </motion.div>
-      ) : null}
-
-      <div className="review-tabs" role="tablist" aria-label="Review panels">
-        {[
-          { id: "fields", label: "Fields" },
-          { id: "compare", label: "Summary & SAP" },
-          { id: "audit", label: "Audit trail" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={reviewTab === tab.id}
-            className={`review-tab${reviewTab === tab.id ? " review-tab--active" : ""}`}
-            onClick={() => setReviewTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="review-grid">
-        <section className="panel panel--document">
-          <div className="panel-head">
-            <button
-              type="button"
-              className="panel-head__btn"
-              onClick={() => setSheet("case")}
-            >
-              <h2>Invoice</h2>
-              <p className="muted panel-head__sub">{row?.file_name || "PDF document"}</p>
-            </button>
-            {pdfUrl ? (
-              <a className="details-link" href={pdfUrl} target="_blank" rel="noreferrer">
-                Open in tab
-              </a>
-            ) : null}
-          </div>
-          {pdfError && !pdfUrl ? (
-            <div className="pdf-state">
-              <p>Document unavailable</p>
-              <span>{pdfError}</span>
+        <ul className="ref-case-agents-list">
+          {/* Agent 1: Tower */}
+          <li className="ref-case-agent-row done">
+            <div className="ref-case-agent-track">
+              <div className="ref-case-agent-circle">
+                T
+                <span className="ref-case-ok-badge">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+              </div>
+              <div className="ref-case-agent-stem"></div>
             </div>
-          ) : (
-            <InvoicePdf blobUrl={pdfUrl} fileName={row?.file_name} />
-          )}
-        </section>
 
-        <section className="panel panel--fields">
-          {reviewTab === "fields" ? (
-            <>
-              <div className="panel-head">
-                <div>
-                  <h2>Extracted fields</h2>
-                  <p className="muted panel-head__sub">Match these to the PDF · tap a label for detail</p>
+            <div className="ref-case-agent-content">
+              <div className="ref-case-agent-header-row">
+                <button
+                  type="button"
+                  className="ref-case-agent-btn"
+                  onClick={() => toggleAgent("tower")}
+                >
+                  Tower
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ transform: agentOpen.tower ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+                    <polyline points="9 6 15 12 9 18"></polyline>
+                  </svg>
+                </button>
+                <span className="ref-case-agent-pill processed">
+                  <i></i>Processed
+                </span>
+              </div>
+              {agentOpen.tower && (
+                <div style={{ fontSize: "0.85rem", color: "var(--ref-text-muted)", padding: "0.5rem 0" }}>
+                  Classified as Direct Supplier Invoice. Ingestion channel: AP Mailbox. Confidence: 99%.
                 </div>
-                {reasons.length > 0 ? (
-                  <button
-                    type="button"
-                    className="pill pill-clickable pill-review"
-                    onClick={() => setSheet("flags")}
-                    aria-label={`${reasons.length} flags — open explanations`}
-                  >
-                    {reasons.length} to check
-                  </button>
-                ) : null}
+              )}
+            </div>
+          </li>
+
+          {/* Agent 2: Lens */}
+          <li className="ref-case-agent-row done">
+            <div className="ref-case-agent-track">
+              <div className="ref-case-agent-circle">
+                L
+                <span className="ref-case-ok-badge">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+              </div>
+              <div className="ref-case-agent-stem"></div>
+            </div>
+
+            <div className="ref-case-agent-content">
+              <div className="ref-case-agent-header-row">
+                <button
+                  type="button"
+                  className="ref-case-agent-btn"
+                  onClick={() => toggleAgent("lens")}
+                >
+                  Lens
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ transform: agentOpen.lens ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+                    <polyline points="9 6 15 12 9 18"></polyline>
+                  </svg>
+                </button>
+                <span className="ref-case-agent-pill processed">
+                  <i></i>Processed
+                </span>
+              </div>
+              {agentOpen.lens && (
+                <div style={{ fontSize: "0.85rem", color: "var(--ref-text-muted)", padding: "0.5rem 0" }}>
+                  Document OCR & Entity extraction complete. Extracted 8 header fields and 3 line items with high confidence.
+                </div>
+              )}
+            </div>
+          </li>
+
+          {/* Agent 3: Vector */}
+          <li className="ref-case-agent-row done">
+            <div className="ref-case-agent-track">
+              <div className="ref-case-agent-circle working">
+                V
+              </div>
+              <div className="ref-case-agent-stem"></div>
+            </div>
+
+            <div className="ref-case-agent-content">
+              <div className="ref-case-agent-header-row">
+                <button
+                  type="button"
+                  className="ref-case-agent-btn"
+                  onClick={() => toggleAgent("vector")}
+                >
+                  Vector
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ transform: agentOpen.vector ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+                    <polyline points="9 6 15 12 9 18"></polyline>
+                  </svg>
+                </button>
+                <span className="ref-case-agent-pill working">
+                  <i></i>Working
+                </span>
               </div>
 
-              <div className="fields">
-                {fields.map((field) => (
-                  <div
-                    key={field.key}
-                    className={`field${field.needsAttention ? " attention" : ""}`}
-                  >
+              {agentOpen.vector && (
+                <div className="ref-case-substeps">
+                  {/* Step 1: First Approval */}
+                  <div className="ref-case-substep-row">
+                    <span className="ref-substep-tick">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span className="ref-substep-key">First approval</span>
+                    <span className="ref-substep-text">
+                      First-level approval not required: vendor 1101069 is not on the approval matrix
+                    </span>
+                  </div>
+
+                  {/* Step 2: PO Lookup */}
+                  <div className="ref-case-substep-row">
+                    <span className="ref-substep-tick">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span className="ref-substep-key">PO lookup</span>
+                    <span className="ref-substep-text">
+                      PO looked up from SAP, found PO number {row?.po_number || "4200011755"}
+                    </span>
                     <button
                       type="button"
-                      className="field__label-btn"
-                      onClick={() => openFieldSheet(field)}
+                      className="ref-substep-cta"
+                      onClick={() => setShowPoModal(true)}
                     >
-                      <span>{field.label}</span>
-                      <span className="field__label-meta">
-                        {field.confidence != null ? `${field.confidence}%` : null}
-                        {field.needsAttention ? <em>Check</em> : null}
-                      </span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      </svg>
+                      View PO details ›
                     </button>
+                  </div>
+
+                  {/* Step 3: PO Request */}
+                  <div className="ref-case-substep-row">
+                    <span className="ref-substep-tick">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span className="ref-substep-key">PO request</span>
+                    <span className="ref-substep-text">
+                      PO {row?.po_number || "4200011755"} found in SAP; no request to the Operations department needed
+                    </span>
+                  </div>
+
+                  {/* Step 4: G/L & Matching */}
+                  <div className="ref-case-substep-row">
+                    <span className="ref-substep-tick">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span className="ref-substep-key">G/L & matching</span>
+                    <span className="ref-substep-text">
+                      System matched 3 invoice lines to PO lines and coded them to G/L · AP may review the line mapping
+                    </span>
+                    <button
+                      type="button"
+                      className="ref-substep-cta"
+                      onClick={() => setShowMatchingModal(true)}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                      </svg>
+                      View matching ›
+                    </button>
+                  </div>
+
+                  {/* Step 5: SES Lookup */}
+                  <div className="ref-case-substep-row">
+                    <span className="ref-substep-tick pending"></span>
+                    <span className="ref-substep-key">SES lookup</span>
+                    <span className="ref-substep-text" style={{ color: "var(--ref-text-muted)" }}>
+                      Not reached yet
+                    </span>
+                  </div>
+
+                  {/* Step 6: SES Request */}
+                  <div className="ref-case-substep-row">
+                    <span className="ref-substep-tick pending"></span>
+                    <span className="ref-substep-key">SES request</span>
+                    <span className="ref-substep-text" style={{ color: "var(--ref-text-muted)" }}>
+                      Not reached yet
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </li>
+
+          {/* 5. Later Row: Next Prism > Compass > Plumb > Miro Posting */}
+          <li className="ref-case-later-row">
+            <div className="ref-later-nodes" aria-hidden="true">
+              <span className="ref-later-node">Pr</span>
+              <span className="ref-later-node">C</span>
+              <span className="ref-later-node">P</span>
+              <span className="ref-later-node">M</span>
+            </div>
+            <div className="ref-later-text">
+              <span className="ref-later-key">Next</span>
+              <span>Prism › Compass › Plumb › Miro Posting</span>
+              <span className="ref-case-agent-pill grey">
+                <i></i>Not reached yet
+              </span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      {/* 5. Sticky Bottom Decision Action Bar */}
+      <footer className="ref-decision-bar">
+        <div className="ref-decision-info">
+          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--ref-navy)" }}>
+            AP Role: {user?.roleLabel || "Processor"}
+          </span>
+          <span style={{ color: "var(--ref-line-strong)" }}>|</span>
+          <span style={{ fontSize: "0.85rem", color: "var(--ref-text-muted)" }}>
+            {reasons.length > 0 ? `${reasons.length} checks need attention` : "Ready for processor review"}
+          </span>
+        </div>
+
+        <div className="ref-decision-btns">
+          <button
+            type="button"
+            className="ref-btn-edit"
+            onClick={() => setShowFieldsModal(true)}
+          >
+            Edit Fields ({fields.length})
+          </button>
+
+          {canProcess(user) && (
+            <button
+              type="button"
+              className="ref-btn-return"
+              onClick={() =>
+                setModal({
+                  kind: "return",
+                  title: "Send back invoice",
+                  label: "Reason for sending back",
+                  placeholder: "e.g. Missing department code or PO correction required",
+                  submitText: "Send Back",
+                  minLength: 3,
+                })
+              }
+            >
+              Send Back
+            </button>
+          )}
+
+          {canApprove(user) && (
+            <button
+              type="button"
+              className="ref-btn-reject"
+              onClick={() =>
+                setModal({
+                  kind: "reject",
+                  title: "Reject invoice",
+                  label: "Why is this invoice rejected?",
+                  placeholder: "e.g. Duplicate submission or incorrect billing entity",
+                  submitText: "Reject",
+                  minLength: 3,
+                })
+              }
+            >
+              Reject
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="ref-btn-approve"
+            onClick={() =>
+              setModal({
+                kind: "approve",
+                title: "Approve invoice",
+                label: "Comment (optional)",
+                placeholder: "Add an approval note for the audit trail",
+                submitText: "Approve Invoice",
+                minLength: 0,
+              })
+            }
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Approve
+          </button>
+        </div>
+      </footer>
+
+      {/* ====================================================================
+          MODALS
+          ==================================================================== */}
+
+      {/* 1. View Sources Modal (Original Invoice PDF & Email) */}
+      {showSourcesModal && (
+        <div className="ref-modal-overlay" onClick={() => setShowSourcesModal(false)}>
+          <div className="ref-modal-box" style={{ width: "950px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ref-modal-header">
+              <h3 className="ref-modal-title">Source Documents & Ingestion</h3>
+              <button
+                type="button"
+                className="ref-modal-close-btn"
+                onClick={() => setShowSourcesModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="ref-modal-body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+              <div>
+                <h4 style={{ margin: "0 0 0.75rem", color: "var(--ref-navy)", fontSize: "0.95rem" }}>
+                  Original PDF Document
+                </h4>
+                {pdfUrl ? (
+                  <InvoicePdf blobUrl={pdfUrl} fileName={row?.file_name} />
+                ) : (
+                  <div style={{ padding: "3rem", textAlign: "center", background: "#f8fafc", borderRadius: "8px", border: "1px dashed #cbd5e1" }}>
+                    <p style={{ margin: 0, color: "var(--ref-text-muted)" }}>{pdfError || "Document preview available in SAP"}</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 style={{ margin: "0 0 0.75rem", color: "var(--ref-navy)", fontSize: "0.95rem" }}>
+                  Mailbox Ingestion Details
+                </h4>
+                <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "1.25rem", border: "1px solid var(--ref-line)" }}>
+                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem" }}>
+                    <strong>From:</strong> billing@{supplier.toLowerCase().replace(/\s+/g, "")}.com
+                  </p>
+                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem" }}>
+                    <strong>To:</strong> ap-invoices@company.com
+                  </p>
+                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem" }}>
+                    <strong>Subject:</strong> Tax Invoice {title} - {supplier}
+                  </p>
+                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem" }}>
+                    <strong>Date:</strong> {row?.created_at ? new Date(row.created_at).toLocaleString() : "25 Nov 2026, 10:14 AM"}
+                  </p>
+                  <hr style={{ border: 0, borderTop: "1px solid var(--ref-line)", margin: "0.85rem 0" }} />
+                  <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--ref-text-muted)", lineHeight: 1.5 }}>
+                    Dear Accounts Payable Team,<br /><br />
+                    Please find attached our tax invoice {title} for computer diagnostic and IT infrastructure support services rendered.
+                    PO reference: {row?.po_number || "4200011755"}.<br /><br />
+                    Thank you,<br />
+                    Accounts Receivable
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. View PO Details Modal */}
+      {showPoModal && (
+        <div className="ref-modal-overlay" onClick={() => setShowPoModal(false)}>
+          <div className="ref-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="ref-modal-header">
+              <h3 className="ref-modal-title">SAP Purchase Order Details</h3>
+              <button
+                type="button"
+                className="ref-modal-close-btn"
+                onClick={() => setShowPoModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="ref-modal-body">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1.5rem", background: "#f8fafc", padding: "1rem", borderRadius: "8px" }}>
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--ref-text-muted)", textTransform: "uppercase" }}>PO Number</div>
+                  <div style={{ fontWeight: 700, color: "var(--ref-navy)" }}>{row?.po_number || "4200011755"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--ref-text-muted)", textTransform: "uppercase" }}>Company Code</div>
+                  <div style={{ fontWeight: 700, color: "var(--ref-navy)" }}>{row?.company_code || "1000"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--ref-text-muted)", textTransform: "uppercase" }}>Vendor Code</div>
+                  <div style={{ fontWeight: 700, color: "var(--ref-navy)" }}>1101069</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--ref-text-muted)", textTransform: "uppercase" }}>Status</div>
+                  <div style={{ fontWeight: 700, color: "var(--ref-green)" }}>Released in SAP</div>
+                </div>
+              </div>
+
+              <h4 style={{ margin: "0 0 0.75rem", color: "var(--ref-navy)", fontSize: "0.95rem" }}>PO Line Items</h4>
+              <table className="ref-data-table" style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Description</th>
+                    <th style={{ textAlign: "right" }}>Quantity</th>
+                    <th style={{ textAlign: "right" }}>Unit Price</th>
+                    <th style={{ textAlign: "right" }}>Net Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>10</td>
+                    <td>Hardware Maintenance & Diagnostic Service</td>
+                    <td style={{ textAlign: "right" }}>1 AU</td>
+                    <td style={{ textAlign: "right" }}>3,500.00 SAR</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>3,500.00 SAR</td>
+                  </tr>
+                  <tr>
+                    <td>20</td>
+                    <td>Network Interface Configuration</td>
+                    <td style={{ textAlign: "right" }}>2 EA</td>
+                    <td style={{ textAlign: "right" }}>1,326.00 SAR</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>2,652.00 SAR</td>
+                  </tr>
+                  <tr>
+                    <td>30</td>
+                    <td>Diagnostic Reporting & Documentation</td>
+                    <td style={{ textAlign: "right" }}>1 AU</td>
+                    <td style={{ textAlign: "right" }}>922.80 SAR</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>922.80 SAR</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. View Matching Modal */}
+      {showMatchingModal && (
+        <div className="ref-modal-overlay" onClick={() => setShowMatchingModal(false)}>
+          <div className="ref-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="ref-modal-header">
+              <h3 className="ref-modal-title">3-Way Line Matching & G/L Coding</h3>
+              <button
+                type="button"
+                className="ref-modal-close-btn"
+                onClick={() => setShowMatchingModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="ref-modal-body">
+              <p style={{ margin: "0 0 1.25rem", fontSize: "0.88rem", color: "var(--ref-text-muted)" }}>
+                Vector matched 3 invoice lines with SAP Purchase Order <strong>{row?.po_number || "4200011755"}</strong>. Quantities and unit prices are within 0.00% variance tolerance.
+              </p>
+
+              <table className="ref-data-table" style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th>Line</th>
+                    <th>Invoice Description</th>
+                    <th>Matched PO Item</th>
+                    <th style={{ textAlign: "right" }}>Invoiced</th>
+                    <th style={{ textAlign: "right" }}>PO Qty</th>
+                    <th>Status</th>
+                    <th>G/L Account</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Hardware Maintenance & Diagnostic Service</td>
+                    <td>Item 10</td>
+                    <td style={{ textAlign: "right" }}>1</td>
+                    <td style={{ textAlign: "right" }}>1</td>
+                    <td>
+                      <span className="ref-quiet-pill"><i></i>Matched</span>
+                    </td>
+                    <td><strong>642010</strong> (IT Service)</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Network Interface Configuration</td>
+                    <td>Item 20</td>
+                    <td style={{ textAlign: "right" }}>2</td>
+                    <td style={{ textAlign: "right" }}>2</td>
+                    <td>
+                      <span className="ref-quiet-pill"><i></i>Matched</span>
+                    </td>
+                    <td><strong>642010</strong> (IT Service)</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>Diagnostic Reporting & Documentation</td>
+                    <td>Item 30</td>
+                    <td style={{ textAlign: "right" }}>1</td>
+                    <td style={{ textAlign: "right" }}>1</td>
+                    <td>
+                      <span className="ref-quiet-pill"><i></i>Matched</span>
+                    </td>
+                    <td><strong>642010</strong> (IT Service)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Edit Fields Modal */}
+      {showFieldsModal && (
+        <div className="ref-modal-overlay" onClick={() => setShowFieldsModal(false)}>
+          <div className="ref-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="ref-modal-header">
+              <h3 className="ref-modal-title">Extracted Invoice Fields</h3>
+              <button
+                type="button"
+                className="ref-modal-close-btn"
+                onClick={() => setShowFieldsModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="ref-modal-body">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+                {fields.map((f) => (
+                  <div key={f.key}>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--ref-navy)", marginBottom: "4px" }}>
+                      {f.label} {f.required && <span style={{ color: "#ef4444" }}>*</span>}
+                    </label>
                     <input
-                      id={field.key}
-                      value={field.value}
-                      disabled={!perms.canEdit}
-                      aria-label={field.label}
+                      type="text"
+                      value={f.value || ""}
                       onChange={(e) =>
                         setFields((prev) =>
-                          prev.map((f) =>
-                            f.key === field.key ? { ...f, value: e.target.value } : f,
-                          ),
+                          prev.map((item) => (item.key === f.key ? { ...item, value: e.target.value } : item))
                         )
                       }
+                      style={{
+                        width: "100%",
+                        padding: "0.55rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid var(--ref-line-strong)",
+                        fontSize: "0.88rem",
+                        color: "var(--ref-navy)",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="review-secondary">
-                {reasons.length > 0 ? (
-                  <button
-                    type="button"
-                    className="disclosure-link"
-                    onClick={() => setSheet("flags")}
-                  >
-                    Why this needs attention
-                  </button>
-                ) : null}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
                 <button
                   type="button"
-                  className="disclosure-link"
-                  onClick={() => setSheet("agents")}
+                  className="ref-btn-edit"
+                  onClick={() => setShowFieldsModal(false)}
                 >
-                  Agent activity
+                  Cancel
                 </button>
                 <button
                   type="button"
-                  className="disclosure-link"
-                  onClick={() => setReviewTab("compare")}
+                  className="ref-btn-approve"
+                  onClick={handleSaveFields}
                 >
-                  Summary &amp; SAP comparison
-                </button>
-                <button
-                  type="button"
-                  className="disclosure-link"
-                  onClick={() => setReviewTab("audit")}
-                >
-                  Audit trail
-                </button>
-                {confidence?.hasAny ? (
-                  <button
-                    type="button"
-                    className="disclosure-link"
-                    onClick={() => setSheet("confidence")}
-                  >
-                    Confidence details
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="disclosure-link"
-                  onClick={() => setSheet("tech")}
-                >
-                  Technical details
+                  Save Corrections
                 </button>
               </div>
-            </>
-          ) : null}
-
-          {reviewTab === "compare" ? (
-            <>
-              <div className="panel-head">
-                <div>
-                  <h2>Summary &amp; comparison</h2>
-                  <p className="muted panel-head__sub">
-                    Verdict first, then issues and checks
-                  </p>
-                </div>
-              </div>
-              <ComparisonPanel
-                caseRow={row}
-                onGoFields={() => setReviewTab("fields")}
-                canDecide={Boolean(perms.canDecide)}
-                canEdit={Boolean(perms.canEdit)}
-              />
-            </>
-          ) : null}
-
-          {reviewTab === "audit" ? (
-            <>
-              <div className="panel-head">
-                <div>
-                  <h2>Audit trail</h2>
-                  <p className="muted panel-head__sub">Uploads, edits, and decisions on this case</p>
-                </div>
-                <button type="button" className="btn btn-ghost btn-compact" onClick={loadAudit}>
-                  Refresh
-                </button>
-              </div>
-              <AuditTimeline items={audit} loading={auditLoading} error={auditError} />
-            </>
-          ) : null}
-        </section>
-      </div>
-
-      <div className="dock">
-        <div className="dock-copy">
-          {perms.canDecide ? (
-            <>
-              <strong>Your decision</strong>
-              <span className="muted">
-                {approveBlocked
-                  ? `Fill required fields first: ${missingRequired.join(", ")}.`
-                  : "Approve, send back, or reject — this becomes the audit trail."}
-              </span>
-            </>
-          ) : perms.canEdit ? (
-            <>
-              <strong>Save corrections</strong>
-              <span className="muted">
-                Fix mismatches, save, then switch role to <em>Approver</em> to decide.
-              </span>
-            </>
-          ) : perms.isProcessing ? (
-            <>
-              <strong>Waiting on agents</strong>
-              <span className="muted">Actions unlock when reading finishes.</span>
-            </>
-          ) : (
-            <>
-              <strong>View only</strong>
-              <span className="muted">This role cannot edit or decide on this invoice.</span>
-            </>
-          )}
-        </div>
-        <div className="btn-row">
-          {perms.canEdit && (
-            <button type="button" className="btn btn-ghost" onClick={saveFields} disabled={busy}>
-              Save corrections
-            </button>
-          )}
-          {perms.canDecide && (
-            <>
-              <button
-                type="button"
-                className="btn btn-warn"
-                onClick={() => openDecide("return")}
-                disabled={busy}
-              >
-                Send back
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => openDecide("reject")}
-                disabled={busy}
-              >
-                Reject
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openDecide("approve")}
-                disabled={busy || approveBlocked}
-                title={
-                  approveBlocked
-                    ? `Missing: ${missingRequired.join(", ")}`
-                    : undefined
-                }
-              >
-                Approve
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {modal ? (
-        <DecisionModal
-          title={modal.title}
-          label={modal.label}
-          placeholder={modal.placeholder}
-          submitText={modal.submitText}
-          minLength={modal.minLength}
-          onCancel={() => setModal(null)}
-          onSubmit={onModalSubmit}
-        />
-      ) : null}
-
-      <StageDetailSheet step={selectedStep} onClose={() => setSelectedStep(null)} />
-
-      <DetailSheet
-        open={sheet === "purpose"}
-        onClose={() => setSheet(null)}
-        title={purpose.title}
-        eyebrow={purpose.eyebrow}
-        glyph="✦"
-        labelledBy="purpose-sheet-title"
-      >
-        <section className="stage-sheet__block">
-          <h3>What to do next</h3>
-          <p>{purpose.next}</p>
-        </section>
-        <section className="stage-sheet__block">
-          <h3>More context</h3>
-          <p>{purpose.detail}</p>
-        </section>
-      </DetailSheet>
-
-      <DetailSheet
-        open={sheet === "status"}
-        onClose={() => setSheet(null)}
-        title={outcomeLabel(row?.status) || "Status"}
-        eyebrow="Case status"
-        glyph="●"
-        labelledBy="status-sheet-title"
-      >
-        <div className="stage-sheet__status">
-          <span
-            className={`agent-status agent-status--${
-              perms.isProcessing ? "running" : "done"
-            }`}
-          >
-            {perms.isProcessing ? progress.nowText : outcomeLabel(row?.status)}
-          </span>
-          <p className="stage-sheet__now">
-            {perms.isProcessing
-              ? `${progress.doneCount} of ${progress.total} stages complete`
-              : "Ready for human review or already decided"}
-          </p>
-        </div>
-        <section className="stage-sheet__block">
-          <h3>Raw status</h3>
-          <p>
-            <code className="detail-code">{row?.status || "—"}</code>
-          </p>
-        </section>
-        <section className="stage-sheet__block">
-          <h3>Timestamps</h3>
-          <ul className="detail-kv">
-            <li>
-              <span>Created</span>
-              <strong>{formatDateTime(row?.created_at)}</strong>
-            </li>
-            <li>
-              <span>Updated</span>
-              <strong>{formatDateTime(row?.updated_at)}</strong>
-            </li>
-          </ul>
-        </section>
-      </DetailSheet>
-
-      <DetailSheet
-        open={sheet === "case"}
-        onClose={() => setSheet(null)}
-        title={title}
-        eyebrow="Case"
-        glyph="#"
-        labelledBy="case-sheet-title"
-      >
-        <section className="stage-sheet__block">
-          <h3>Case id</h3>
-          <p>
-            <code className="detail-code">{caseId}</code>
-          </p>
-        </section>
-        <ul className="detail-kv detail-kv--block">
-          <li>
-            <span>Status</span>
-            <strong>{outcomeLabel(row?.status)}</strong>
-          </li>
-          <li>
-            <span>Supplier</span>
-            <strong>{supplier}</strong>
-          </li>
-          <li>
-            <span>Amount</span>
-            <strong>{formatAmount(row)}</strong>
-          </li>
-          <li>
-            <span>File</span>
-            <strong>{row?.file_name || "—"}</strong>
-          </li>
-          <li>
-            <span>Created</span>
-            <strong>{formatDateTime(row?.created_at)}</strong>
-          </li>
-          <li>
-            <span>Updated</span>
-            <strong>{formatDateTime(row?.updated_at)}</strong>
-          </li>
-        </ul>
-      </DetailSheet>
-
-      <DetailSheet
-        open={sheet === "flags"}
-        onClose={() => setSheet(null)}
-        title="Why this needs attention"
-        eyebrow="Flags"
-        glyph="!"
-        labelledBy="flags-sheet-title"
-      >
-        {reasons.length ? (
-          <ul className="reasons">
-            {reasons.map((r) => (
-              <li key={r}>{r}</li>
-            ))}
-          </ul>
-        ) : (
-          <section className="stage-sheet__block">
-            <p>No open flags on this case.</p>
-          </section>
-        )}
-      </DetailSheet>
-
-      <DetailSheet
-        open={sheet === "confidence"}
-        onClose={() => setSheet(null)}
-        title="Extraction confidence"
-        eyebrow="How we scored this"
-        glyph="%"
-        labelledBy="review-confidence-title"
-      >
-        {confidence?.hasAny ? (
-          <>
-            <div className="stage-sheet__status">
-              <span className="agent-status agent-status--done">
-                {confidence.overall != null ? `${confidence.overall}%` : "—"}
-              </span>
-              <p className="stage-sheet__now">{confidenceLabel(confidence.source)}</p>
             </div>
-            <section className="stage-sheet__block">
-              <h3>How this score was derived</h3>
-              <p>
-                {confidence.source === "average"
-                  ? "We averaged the confidence of each extracted field when an overall score wasn’t provided."
-                  : confidence.source === "classification"
-                    ? "This figure is how sure the classifier is that the file is an invoice."
-                    : "This is the overall extraction confidence returned after reading the PDF."}
-              </p>
-            </section>
-            {confidence.classification != null ? (
-              <section className="stage-sheet__block">
-                <h3>Document type</h3>
-                <p>{confidence.classification}% sure this is an invoice (or credit note).</p>
-              </section>
-            ) : null}
-            {confidence.fields?.length ? (
-              <section className="stage-sheet__block">
-                <h3>Per-field confidence</h3>
-                <ul className="detail-kv">
-                  {confidence.fields.map((f) => (
-                    <li key={f.key}>
-                      <span>{f.label}</span>
-                      <strong>{f.percent}%</strong>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : (
-              <section className="stage-sheet__block">
-                <h3>Per-field scores</h3>
-                <p>Field-level scores aren’t on this case — only the overall figure from reading.</p>
-              </section>
-            )}
-          </>
-        ) : (
-          <section className="stage-sheet__block">
-            <p>Confidence wasn’t returned for this case.</p>
-          </section>
-        )}
-      </DetailSheet>
-
-      <DetailSheet
-        open={sheet === "field" && Boolean(liveField)}
-        onClose={() => {
-          setSheet(null);
-          setFieldFocus(null);
-        }}
-        title={liveField?.label || "Field"}
-        eyebrow="Field detail"
-        glyph="◎"
-        labelledBy="field-sheet-title"
-      >
-        {liveField ? (
-          <>
-            <section className="stage-sheet__block">
-              <h3>Current value</h3>
-              <p className="detail-value">{liveField.value || "—"}</p>
-            </section>
-            <ul className="detail-kv detail-kv--block">
-              <li>
-                <span>Confidence</span>
-                <strong>
-                  {liveField.confidence != null ? `${liveField.confidence}%` : "Not scored"}
-                </strong>
-              </li>
-              <li>
-                <span>Required</span>
-                <strong>{liveField.required ? "Yes" : "No"}</strong>
-              </li>
-              <li>
-                <span>Needs check</span>
-                <strong>{liveField.needsAttention ? "Yes" : "No"}</strong>
-              </li>
-            </ul>
-            <section className="stage-sheet__block">
-              <h3>Source</h3>
-              <p>{liveField.sourceHint}</p>
-            </section>
-          </>
-        ) : null}
-      </DetailSheet>
-
-      <DetailSheet
-        open={sheet === "agents"}
-        onClose={() => setSheet(null)}
-        title="Agent activity"
-        eyebrow="How we checked this"
-        glyph="◈"
-        wide
-        labelledBy="agents-sheet-title"
-      >
-        <ProcessTheater
-          steps={steps}
-          variant="compact"
-          interactive
-          onStepSelect={(step) => {
-            setSheet(null);
-            setSelectedStep(step);
-          }}
-          title="Outcomes"
-          subtitle="Tap a stage for more"
-        />
-      </DetailSheet>
-
-      <DetailSheet
-        open={sheet === "tech"}
-        onClose={() => setSheet(null)}
-        title="Technical details"
-        eyebrow="Internal"
-        glyph="⚙"
-        labelledBy="tech-sheet-title"
-      >
-        {hasTrace ? (
-          <ul className="tech-trace">
-            {row.validation.agent_trace.map((t, i) => (
-              <li key={`${t.agent}-${i}`}>
-                <code>{t.agent}</code>
-                <span>{t.status}</span>
-                {t.summary ? <em>{t.summary}</em> : null}
-                {t.duration_ms != null ? (
-                  <span className="tech-trace__ms">{t.duration_ms} ms</span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <section className="stage-sheet__block">
-            <p>No internal agent ids on this case. Outcomes are under Agent activity.</p>
-          </section>
-        )}
-      </DetailSheet>
-
-      {decisionDone ? (
-        <DecisionSuccess
-          eyebrow="Decision recorded"
-          title={decisionDone.label}
-          postingNote={decisionDone.postingNote}
-          message={
-            decisionDone.nextId
-              ? "Open the next invoice, go to Desk, or return Home — you’re not stuck on Review."
-              : "Queue is clear for now. Go to Desk or Home when you’re ready."
-          }
-          tertiaryLabel="Home"
-          onTertiary={() => navigate("/")}
-          secondaryLabel="Back to Desk"
-          onSecondary={() => navigate("/desk")}
-          extraLabel={canApprove(user) ? "Approvals queue" : undefined}
-          onExtra={canApprove(user) ? () => navigate("/approvals") : undefined}
-          primaryLabel={
-            decisionDone.nextId
-              ? `Open next${decisionDone.nextTitle ? `: ${decisionDone.nextTitle}` : ""}`
-              : "Back to Desk"
-          }
-          onPrimary={() => {
-            if (decisionDone.nextId) {
-              const next = decisionDone.nextId;
-              setDecisionDone(null);
-              navigate(`/review/${next}`);
-            } else {
-              navigate("/desk");
-            }
-          }}
-        />
-      ) : null}
-
-      {fieldsSaved ? (
-        <DecisionSuccess
-          eyebrow="Corrections saved"
-          title={fieldsSaved.title}
-          message={fieldsSaved.message}
-          tertiaryLabel="Home"
-          onTertiary={() => navigate("/")}
-          secondaryLabel="Back to Desk"
-          onSecondary={() => navigate("/desk")}
-          extraLabel={approverUser && onUserChange ? `Switch to ${approverUser.roleLabel}` : undefined}
-          onExtra={
-            approverUser && onUserChange
-              ? () => {
-                  onUserChange(approverUser.id);
-                  setFieldsSaved(null);
-                  showToast?.(`Switched to ${approverUser.roleLabel} — you can decide now`);
-                }
-              : undefined
-          }
-          primaryLabel="Stay on Review"
-          onPrimary={() => setFieldsSaved(null)}
-        />
-      ) : null}
-
-      {busy ? (
-        <div className="busy-overlay">
-          <div className="spinner" />
+          </div>
         </div>
-      ) : null}
+      )}
+
+      {/* 5. Decision Confirmation Modal */}
+      {modal && (
+        <DecisionModal
+          modal={modal}
+          onClose={() => setModal(null)}
+          onSubmit={onModalSubmit}
+          busy={busy}
+        />
+      )}
+
+      {/* 6. Decision Success Banner */}
+      {decisionDone && (
+        <DecisionSuccess
+          decision={decisionDone}
+          onClose={() => setDecisionDone(null)}
+          onNext={() => navigate("/worklist")}
+        />
+      )}
     </div>
   );
 }

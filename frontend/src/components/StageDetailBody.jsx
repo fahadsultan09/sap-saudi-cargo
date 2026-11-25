@@ -1,3 +1,4 @@
+import React from "react";
 import { AGENT_ACTIONS, PROCESS_STEPS } from "../lib/constants";
 
 export function statusCopy(state) {

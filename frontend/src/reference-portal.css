@@ -55,7 +55,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--ref-font);
-  background-color: var(--ref-surface-app);
+  background-color: var(--ref-surface-app) !important;
+  background-image: none !important;
   color: var(--ref-text-main);
   -webkit-font-smoothing: antialiased;
 }
@@ -961,3 +962,730 @@ body {
   color: #475569;
   margin-left: 0.5rem;
 }
+
+/* ==========================================================================
+   Case Detail Page & Review Workflow
+   ========================================================================== */
+
+.ref-case-page {
+  padding: 1.5rem 2rem 5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.ref-crumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.85rem;
+}
+
+.ref-crumb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ref-navy-light);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ref-crumb-back:hover {
+  color: var(--ref-navy);
+  text-decoration: underline;
+}
+
+.ref-crumb-sep {
+  color: var(--ref-text-soft);
+  font-size: 0.8rem;
+}
+
+.ref-crumb-current {
+  color: var(--ref-text-muted);
+  font-weight: 500;
+}
+
+/* Case Detail Header Banner */
+.ref-case-header-card {
+  background: var(--ref-surface-card);
+  border: 1px solid var(--ref-line);
+  border-radius: 14px;
+  padding: 1.75rem 2rem 1.5rem;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 2px 10px rgba(0, 40, 86, 0.04);
+}
+
+.ref-case-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.ref-case-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.ref-case-title {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--ref-navy);
+  letter-spacing: -0.02em;
+}
+
+.ref-quiet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.ref-quiet-pill i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.ref-quiet-pill.amber {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.ref-quiet-pill.amber i {
+  background: #f59e0b;
+}
+
+.ref-case-ref-info {
+  font-size: 0.88rem;
+  color: var(--ref-text-muted);
+}
+
+.ref-case-amount-block {
+  text-align: right;
+}
+
+.ref-case-amount {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--ref-navy);
+  letter-spacing: -0.02em;
+}
+
+/* Horizontal 13-Step Pipeline Stepper */
+.ref-journey-stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ref-line);
+}
+
+.ref-stepper-groups {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 13), minmax(0, 1fr));
+  gap: 0 6px;
+  margin-bottom: 4px;
+}
+
+.ref-stepper-group {
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ref-text-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ref-stepper-group::after {
+  content: "";
+  border: 1.5px solid var(--ref-line);
+  border-radius: 4px 4px 0 0;
+  border-bottom: 0;
+  height: 5px;
+}
+
+.ref-stepper-group.active {
+  color: var(--ref-navy);
+}
+.ref-stepper-group.active::after {
+  border-color: var(--ref-navy);
+}
+
+.ref-stepper-bar {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 13), minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ref-stepper-bar li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  position: relative;
+}
+
+.ref-stepper-bar li::before {
+  content: "";
+  background: var(--ref-line);
+  width: 100%;
+  height: 3px;
+  position: absolute;
+  top: 9px;
+  left: -50%;
+  z-index: 0;
+}
+.ref-stepper-bar li:first-child::before {
+  display: none;
+}
+
+.ref-stepper-bar li.done::before,
+.ref-stepper-bar li.current::before {
+  background: var(--ref-green);
+}
+
+.ref-stepper-dot {
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin: 4px 0;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ref-surface-card);
+  border: 1.5px solid var(--ref-line-strong);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.ref-stepper-bar li.done .ref-stepper-dot {
+  background: var(--ref-green);
+  border-color: var(--ref-green);
+}
+
+.ref-stepper-bar li.current .ref-stepper-dot {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  background: var(--ref-surface-card);
+  border: 3px solid var(--ref-green);
+  box-shadow: 0 0 0 4px rgba(0, 105, 55, 0.2);
+}
+
+.ref-stepper-bar li.amber .ref-stepper-dot {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  background: var(--ref-surface-card);
+  border: 3px solid #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+}
+
+.ref-stepper-label {
+  padding: 0 2px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--ref-text-muted);
+  line-height: 14px;
+}
+
+.ref-stepper-bar li.done .ref-stepper-label {
+  color: #335378;
+}
+
+.ref-stepper-bar li.current .ref-stepper-label {
+  color: var(--ref-navy);
+  font-weight: 700;
+}
+
+.ref-stepper-bar li.amber .ref-stepper-label {
+  color: #b45309;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Case Journey Card (Vertical Timeline & Agent Flow)
+   ========================================================================== */
+
+.ref-case-journey-card {
+  background: var(--ref-surface-card);
+  border: 1px solid var(--ref-line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 40, 86, 0.04);
+  margin-bottom: 2rem;
+}
+
+.ref-case-journey-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.15rem 1.75rem;
+  border-bottom: 1px solid var(--ref-line);
+  background: var(--ref-surface-card);
+}
+
+.ref-case-journey-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ref-navy);
+}
+
+.ref-source-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--ref-line-strong);
+  background: var(--ref-surface-card);
+  color: var(--ref-navy);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ref-source-chip-btn:hover {
+  background: var(--ref-surface-hover);
+  border-color: var(--ref-navy-light);
+}
+
+/* Agent Accordion List inside Case Detail */
+.ref-case-agents-list {
+  list-style: none;
+  margin: 0;
+  padding: 1.5rem 1.75rem;
+}
+
+.ref-case-agent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  position: relative;
+  padding-bottom: 1.75rem;
+}
+
+.ref-case-agent-row:last-child {
+  padding-bottom: 0;
+}
+
+/* Vertical track connecting agents */
+.ref-case-agent-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+  width: 32px;
+}
+
+.ref-case-agent-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ref-green);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  position: relative;
+  z-index: 2;
+}
+
+.ref-case-agent-circle.working {
+  background: var(--ref-navy-light);
+}
+
+.ref-case-agent-circle.pending {
+  background: #94a3b8;
+}
+
+.ref-case-ok-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ref-case-agent-stem {
+  width: 2px;
+  flex-grow: 1;
+  background: #cbd5e1;
+  min-height: 24px;
+  margin-top: 4px;
+}
+
+.ref-case-agent-row.done .ref-case-agent-stem {
+  background: var(--ref-green);
+}
+
+/* Agent Content Box */
+.ref-case-agent-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ref-case-agent-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.ref-case-agent-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ref-navy);
+  cursor: pointer;
+}
+
+.ref-case-agent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ref-case-agent-pill.processed {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.ref-case-agent-pill.processed i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.ref-case-agent-pill.working {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+.ref-case-agent-pill.working i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2563eb;
+}
+
+.ref-case-agent-pill.grey {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+.ref-case-agent-pill.grey i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+/* Inner Steps within Vector */
+.ref-case-substeps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid var(--ref-line);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.ref-case-substep-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.88rem;
+}
+
+.ref-substep-tick {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ref-green);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.ref-substep-tick.pending {
+  background: transparent;
+  border: 1.5px dashed #94a3b8;
+  color: transparent;
+}
+
+.ref-substep-key {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--ref-navy);
+  min-width: 130px;
+  flex: none;
+}
+
+.ref-substep-text {
+  color: var(--ref-text-main);
+  flex: 1;
+}
+
+.ref-substep-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--ref-line-strong);
+  background: #ffffff;
+  color: var(--ref-navy-light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ref-substep-cta:hover {
+  background: var(--ref-surface-hover);
+  border-color: var(--ref-navy);
+}
+
+/* Next Later Row (Prism, Compass, Plumb, Miro) */
+.ref-case-later-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem 0 0.5rem;
+}
+
+.ref-later-nodes {
+  display: flex;
+  gap: 4px;
+}
+
+.ref-later-node {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px dashed #94a3b8;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ref-later-text {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.85rem;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.ref-later-key {
+  font-weight: 700;
+  color: var(--ref-navy);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+/* Decision Bottom Floating Bar */
+.ref-decision-bar {
+  position: sticky;
+  bottom: 1.5rem;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--ref-line-strong);
+  border-radius: 14px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 12px 36px rgba(0, 40, 86, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.ref-decision-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ref-decision-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ref-btn-approve {
+  background: var(--ref-green);
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.35rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.15s ease;
+}
+.ref-btn-approve:hover {
+  background: #005a2f;
+  transform: translateY(-1px);
+}
+
+.ref-btn-return {
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.ref-btn-return:hover {
+  background: #d97706;
+}
+
+.ref-btn-reject {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.ref-btn-reject:hover {
+  background: #dc2626;
+}
+
+.ref-btn-edit {
+  background: #ffffff;
+  color: var(--ref-navy);
+  border: 1px solid var(--ref-line-strong);
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.ref-btn-edit:hover {
+  background: var(--ref-surface-hover);
+}
+
+/* Modal Windows */
+.ref-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 20, 40, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.ref-modal-box {
+  background: #ffffff;
+  border-radius: 16px;
+  width: min(850px, 95vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 40, 86, 0.25);
+  border: 1px solid var(--ref-line);
+  overflow: hidden;
+}
+
+.ref-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--ref-line);
+  background: #fafcff;
+}
+
+.ref-modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--ref-navy);
+}
+
+.ref-modal-close-btn {
+  border: none;
+  background: transparent;
+  color: var(--ref-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+.ref-modal-close-btn:hover {
+  background: #e2e8f0;
+  color: var(--ref-navy);
+}
+
+.ref-modal-body {
+  padding: 1.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+

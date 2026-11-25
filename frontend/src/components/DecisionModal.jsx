@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function DecisionModal({ title, label, placeholder, submitText, minLength = 0, onSubmit, onCancel }) {
   const [text, setText] = useState("");

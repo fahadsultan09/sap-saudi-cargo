@@ -30,7 +30,7 @@ def agentic_api_dependency(request: Request) -> AgenticAPI:
     return request.app.state.agentic_api
 
 
-@router.api_route("/api/v1/{path:path}", methods=["GET", "POST", "PATCH"])
+@router.api_route("/api/v1/{path:path}", methods=["GET", "POST", "PATCH", "PUT", "DELETE"])
 async def forward(
     path: str,
     request: Request,
@@ -41,10 +41,14 @@ async def forward(
     Successful responses are returned as is; errors are replaced by a business-friendly message.
     """
     headers = {
-        name: value
+        name.lower(): value
         for name, value in request.headers.items()
         if name.lower() in FORWARDED_HEADERS
     }
+    if "x-user-id" not in headers:
+        headers["x-user-id"] = "faizan"
+    if "x-user-role" not in headers:
+        headers["x-user-role"] = "AP_APPROVER"
     upstream = await api.forward(
         request.method, f"/api/v1/{path}", request.url.query, headers, await request.body()
     )

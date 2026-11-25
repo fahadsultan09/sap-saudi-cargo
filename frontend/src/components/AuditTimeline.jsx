@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function AuditTimeline({ items = [], loading, error }) {
   if (loading) {
     return (

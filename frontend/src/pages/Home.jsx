@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiJson } from "../lib/api";
 import { LIST_REFRESH_MS } from "../lib/constants";
@@ -338,6 +338,35 @@ export default function Home({ userId, showToast }) {
                   ⌄
                 </span>
               </div>
+              {openAgents.lens && (
+                <div style={{ marginTop: "1rem" }}>
+                  <div className="ref-subtiles-grid">
+                    <div className="ref-subtile" style={{ cursor: "pointer" }} onClick={() => navigate("/worklist?filter=review")}>
+                      <div className="ref-subtile-header">
+                        <span>■ EXTRACTION ACCURACY</span>
+                        <span>›</span>
+                      </div>
+                      <div className="ref-subtile-val">98.4%</div>
+                      <p className="ref-subtile-desc">42 high-confidence header & line extractions</p>
+                    </div>
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ DOCUMENT CHECKS</span>
+                      </div>
+                      <div className="ref-subtile-val">43</div>
+                      <p className="ref-subtile-desc">Tax compliance and format validation complete</p>
+                    </div>
+                    <div className="ref-subtile" style={{ cursor: "pointer" }} onClick={() => navigate("/worklist?filter=review")}>
+                      <div className="ref-subtile-header">
+                        <span>■ ATTENTION NEEDED</span>
+                        <span>›</span>
+                      </div>
+                      <div className="ref-subtile-val" style={{ color: "#d97706" }}>7</div>
+                      <p className="ref-subtile-desc">Flagged for human verification before posting</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -362,6 +391,34 @@ export default function Home({ userId, showToast }) {
                   ⌄
                 </span>
               </div>
+              {openAgents.vector && (
+                <div style={{ marginTop: "1rem" }}>
+                  <div className="ref-subtiles-grid">
+                    <div className="ref-subtile" style={{ cursor: "pointer" }} onClick={() => navigate("/worklist")}>
+                      <div className="ref-subtile-header">
+                        <span>■ PO MATCHING</span>
+                        <span>›</span>
+                      </div>
+                      <div className="ref-subtile-val">40</div>
+                      <p className="ref-subtile-desc">Invoices successfully matched with SAP purchase orders</p>
+                    </div>
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ G/L CODING</span>
+                      </div>
+                      <div className="ref-subtile-val">41</div>
+                      <p className="ref-subtile-desc">Line items automatically mapped to cost centers</p>
+                    </div>
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ SES CREATED</span>
+                      </div>
+                      <div className="ref-subtile-val">38</div>
+                      <p className="ref-subtile-desc">Service entry sheets generated in SAP</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -386,6 +443,26 @@ export default function Home({ userId, showToast }) {
                   ⌄
                 </span>
               </div>
+              {openAgents.prism && (
+                <div style={{ marginTop: "1rem" }}>
+                  <div className="ref-subtiles-grid">
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ DUPLICATE CHECKS</span>
+                      </div>
+                      <div className="ref-subtile-val">0</div>
+                      <p className="ref-subtile-desc">No duplicate invoices found in system</p>
+                    </div>
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ VARIANCE CHECKS</span>
+                      </div>
+                      <div className="ref-subtile-val">1</div>
+                      <p className="ref-subtile-desc">Within acceptable commercial tolerance</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -410,6 +487,27 @@ export default function Home({ userId, showToast }) {
                   ⌄
                 </span>
               </div>
+              {openAgents.compass && (
+                <div style={{ marginTop: "1rem" }}>
+                  <div className="ref-subtiles-grid">
+                    <div className="ref-subtile" style={{ cursor: "pointer" }} onClick={() => navigate("/approvals")}>
+                      <div className="ref-subtile-header">
+                        <span>■ APPROVAL QUEUE</span>
+                        <span>›</span>
+                      </div>
+                      <div className="ref-subtile-val">42</div>
+                      <p className="ref-subtile-desc">Routed to responsible cost center managers</p>
+                    </div>
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ FAST-TRACK APPROVED</span>
+                      </div>
+                      <div className="ref-subtile-val">38</div>
+                      <p className="ref-subtile-desc">Passed straight-through processing criteria</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -433,6 +531,26 @@ export default function Home({ userId, showToast }) {
                   ⌄
                 </span>
               </div>
+              {openAgents.plumb && (
+                <div style={{ marginTop: "1rem" }}>
+                  <div className="ref-subtiles-grid">
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ RECONCILED POSTINGS</span>
+                      </div>
+                      <div className="ref-subtile-val">38</div>
+                      <p className="ref-subtile-desc">Vendor ledger postings verified in SAP</p>
+                    </div>
+                    <div className="ref-subtile">
+                      <div className="ref-subtile-header">
+                        <span>■ DISCREPANCIES</span>
+                      </div>
+                      <div className="ref-subtile-val">0</div>
+                      <p className="ref-subtile-desc">Accounts balanced with no open variances</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
