@@ -1707,45 +1707,34 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 /* Continuous Vertical Pipeline Track Column */
 .apPipeTrackCol {
-    width: 2.5rem;
+    width: 2.75rem;
+    position: relative;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    position: relative;
     align-self: stretch;
 }
 
-.apPipeTrackLineTop {
+/* Seamless vertical spine behind the nodes */
+.apPipeTrackCol::before {
+    content: "";
+    position: absolute;
+    top: -0.35rem;
+    bottom: -0.35rem;
+    left: 50%;
+    transform: translateX(-50%);
     width: 2px;
-    flex: 1 1 0;
     background: #CBD5E1;
-    min-height: 0.65rem;
-    transition: background 0.2s ease;
+    z-index: 1;
 }
 
-.apPipeTrackLineBottom {
-    width: 2px;
-    flex: 1 1 0;
-    background: #CBD5E1;
-    min-height: 0.65rem;
-    transition: background 0.2s ease;
+.apPipeStepItem:first-child .apPipeTrackCol::before {
+    top: 50%;
 }
 
-/* Hide top line on first step, hide bottom line on last step */
-.apPipeStepItem:first-child .apPipeTrackLineTop {
-    visibility: hidden;
-}
-
-.apPipeStepItem:last-child .apPipeTrackLineBottom {
-    visibility: hidden;
-}
-
-/* When step is passed, color the pipeline line emerald */
-.apPipeStepItem[data-status="passed"] .apPipeTrackLineTop,
-.apPipeStepItem[data-status="passed"] .apPipeTrackLineBottom {
-    background: #10B981;
+.apPipeStepItem:last-child .apPipeTrackCol::before {
+    bottom: 50%;
 }
 
 /* Pipeline Node */
@@ -1756,6 +1745,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     background: #FFFFFF;
     border: 2px solid #CBD5E1;
     flex-shrink: 0;
+    position: relative;
     z-index: 2;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -1791,15 +1781,35 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     color: #DC2626;
 }
 
-/* Active / Selected Node State */
+/* Active / Selected Node State - Preserves accurate status colors */
 .apPipeStepItem[data-selected="true"] .apPipeNode {
-    border-color: var(--ap-brand) !important;
-    background: var(--ap-brand) !important;
     transform: scale(1.08);
-    box-shadow: 0 0 0 4px rgba(11, 122, 66, 0.22), 0 4px 10px rgba(11, 122, 66, 0.25) !important;
 }
 
-.apPipeStepItem[data-selected="true"] .apPipeNodeIcon.sapUiIcon {
+.apPipeStepItem[data-selected="true"][data-status="passed"] .apPipeNode {
+    border-color: #059669 !important;
+    background: #059669 !important;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25), 0 4px 10px rgba(5, 150, 105, 0.3) !important;
+}
+.apPipeStepItem[data-selected="true"][data-status="passed"] .apPipeNodeIcon.sapUiIcon {
+    color: #FFFFFF !important;
+}
+
+.apPipeStepItem[data-selected="true"][data-status="check"] .apPipeNode {
+    border-color: #D97706 !important;
+    background: #D97706 !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25), 0 4px 10px rgba(217, 119, 6, 0.3) !important;
+}
+.apPipeStepItem[data-selected="true"][data-status="check"] .apPipeNodeIcon.sapUiIcon {
+    color: #FFFFFF !important;
+}
+
+.apPipeStepItem[data-selected="true"][data-status="failed"] .apPipeNode {
+    border-color: #DC2626 !important;
+    background: #DC2626 !important;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.25), 0 4px 10px rgba(220, 38, 38, 0.3) !important;
+}
+.apPipeStepItem[data-selected="true"][data-status="failed"] .apPipeNodeIcon.sapUiIcon {
     color: #FFFFFF !important;
 }
 
@@ -1812,9 +1822,14 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     transition: background 0.2s ease;
 }
 
-.apPipeStepItem[data-selected="true"] .apPipeBridge {
-    background: var(--ap-brand);
-    height: 2px;
+.apPipeStepItem[data-selected="true"][data-status="passed"] .apPipeBridge {
+    background: #059669;
+}
+.apPipeStepItem[data-selected="true"][data-status="check"] .apPipeBridge {
+    background: #D97706;
+}
+.apPipeStepItem[data-selected="true"][data-status="failed"] .apPipeBridge {
+    background: #DC2626;
 }
 
 /* The Step Card */
@@ -1830,22 +1845,48 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apPipeStepItem:hover .apPipeCard {
-    border-color: #86EFAC;
-    background: #F0FDF4;
     transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(11, 122, 66, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.apPipeStepItem:hover .apPipeBridge {
-    background: #86EFAC;
-}
-
-/* Active / Selected Card */
-.apPipeStepItem[data-selected="true"] .apPipeCard {
+/* Active / Selected Card & Indicators */
+.apPipeStepItem[data-selected="true"][data-status="passed"] .apPipeCard {
     background: #FFFFFF !important;
-    border-color: var(--ap-brand) !important;
-    border-left: 4px solid var(--ap-brand) !important;
-    box-shadow: 0 4px 16px rgba(11, 122, 66, 0.12) !important;
+    border-color: #059669 !important;
+    border-left: 4px solid #059669 !important;
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.12) !important;
+}
+.apPipeStepItem[data-selected="true"][data-status="passed"] .apPipeStepNum.sapMText::before {
+    color: #059669;
+}
+.apPipeStepItem[data-selected="true"][data-status="passed"] .apAgentVArrow.sapUiIcon {
+    color: #059669;
+}
+
+.apPipeStepItem[data-selected="true"][data-status="check"] .apPipeCard {
+    background: #FFFFFF !important;
+    border-color: #D97706 !important;
+    border-left: 4px solid #D97706 !important;
+    box-shadow: 0 4px 16px rgba(217, 119, 6, 0.12) !important;
+}
+.apPipeStepItem[data-selected="true"][data-status="check"] .apPipeStepNum.sapMText::before {
+    color: #D97706;
+}
+.apPipeStepItem[data-selected="true"][data-status="check"] .apAgentVArrow.sapUiIcon {
+    color: #D97706;
+}
+
+.apPipeStepItem[data-selected="true"][data-status="failed"] .apPipeCard {
+    background: #FFFFFF !important;
+    border-color: #DC2626 !important;
+    border-left: 4px solid #DC2626 !important;
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.12) !important;
+}
+.apPipeStepItem[data-selected="true"][data-status="failed"] .apPipeStepNum.sapMText::before {
+    color: #DC2626;
+}
+.apPipeStepItem[data-selected="true"][data-status="failed"] .apAgentVArrow.sapUiIcon {
+    color: #DC2626;
 }
 
 /* Step Number Tag */
@@ -1856,10 +1897,6 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #94A3B8;
-}
-
-.apPipeStepItem[data-selected="true"] .apPipeStepNum.sapMText::before {
-    color: var(--ap-brand);
 }
 
 .apPipeStepTop {
@@ -1895,7 +1932,6 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 }
 
 .apAgentVArrow.sapUiIcon {
-    color: var(--ap-brand);
     font-size: 0.9rem;
     margin-left: 0.25rem;
 }
@@ -1920,12 +1956,34 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     width: 3.15rem;
     height: 3.15rem;
     border-radius: 12px;
-    background: var(--ap-brand-soft);
+    background: #F1F5F9;
     flex-shrink: 0;
+    transition: all 0.2s ease;
 }
 
 .apAgentHeroIcon.sapUiIcon {
-    color: var(--ap-brand);
+    color: #475569;
+}
+
+.apAgentHeroIconBox[data-state="Success"] {
+    background: #ECFDF5;
+}
+.apAgentHeroIconBox[data-state="Success"] .apAgentHeroIcon.sapUiIcon {
+    color: #059669;
+}
+
+.apAgentHeroIconBox[data-state="Warning"] {
+    background: #FFFBEB;
+}
+.apAgentHeroIconBox[data-state="Warning"] .apAgentHeroIcon.sapUiIcon {
+    color: #D97706;
+}
+
+.apAgentHeroIconBox[data-state="Error"] {
+    background: #FEF2F2;
+}
+.apAgentHeroIconBox[data-state="Error"] .apAgentHeroIcon.sapUiIcon {
+    color: #DC2626;
 }
 
 .apAgentDetailTitle.sapMText {
@@ -1953,15 +2011,52 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     margin-left: 0.25rem;
 }
 
-/* Agent Result Callout Banner */
+/* Agent Result Callout Banner with Status Feedback */
 .apAgentResultCallout {
     background: #F8FAFC;
     border: 1px solid #E2E8F0;
     border-left: 4px solid var(--ap-brand);
     border-radius: 10px;
-    padding: 0.9rem 1.15rem;
+    padding: 0.95rem 1.25rem;
     margin-bottom: 1.15rem;
     gap: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.apAgentResultCallout[data-state="Success"] {
+    background: #F0FDF4;
+    border-color: #BBF7D0;
+    border-left: 4px solid #10B981;
+}
+.apAgentResultCallout[data-state="Success"] .apAgentResultIcon.sapUiIcon {
+    color: #059669;
+}
+.apAgentResultCallout[data-state="Success"] .apAgentResultText.sapMText {
+    color: #064E3B;
+}
+
+.apAgentResultCallout[data-state="Warning"] {
+    background: #FFFBEB;
+    border-color: #FDE68A;
+    border-left: 4px solid #F59E0B;
+}
+.apAgentResultCallout[data-state="Warning"] .apAgentResultIcon.sapUiIcon {
+    color: #D97706;
+}
+.apAgentResultCallout[data-state="Warning"] .apAgentResultText.sapMText {
+    color: #78350F;
+}
+
+.apAgentResultCallout[data-state="Error"] {
+    background: #FEF2F2;
+    border-color: #FECACA;
+    border-left: 4px solid #EF4444;
+}
+.apAgentResultCallout[data-state="Error"] .apAgentResultIcon.sapUiIcon {
+    color: #DC2626;
+}
+.apAgentResultCallout[data-state="Error"] .apAgentResultText.sapMText {
+    color: #7F1D1D;
 }
 
 .apAgentResultTextRow {
@@ -1996,7 +2091,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apAgentPointsGrid.sapMFlexBox {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
     gap: 0.85rem;
     width: 100%;
 }
@@ -2008,6 +2103,8 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     padding: 0.85rem 1.1rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     transition: transform 0.15s ease, border-color 0.15s ease;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .apAgentPointCard:hover {

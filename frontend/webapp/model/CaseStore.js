@@ -1209,7 +1209,7 @@ sap.ui.define([
             if (sAgent === "SCANNER") {
                 var oFields = oCase.fields || {};
                 // e.g. "Low confidence on required fields: currency, total_amount"
-                var aLowMatch = /low confidence[^:]*:\s*(.+)$/i.exec(oValidation.triage_review_reason || "");
+                var aLowMatch = /low confidence[^:]*:\s*([^;]+)/i.exec(oValidation.triage_review_reason || "");
                 var aLow = aBlocking.indexOf("TRIAGE_REVIEW_REQUIRED") >= 0 && aLowMatch ? aLowMatch[1].split(/\s*,\s*/) : [];
                 var aFieldPoints = C.FIELDS.map(function (oField) {
                     var sValue = String(oFields[oField.key] || "").trim();

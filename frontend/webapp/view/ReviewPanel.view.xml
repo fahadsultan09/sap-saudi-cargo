@@ -167,11 +167,9 @@
 										<HBox alignItems="Center" class="apPipeStepWrapper">
 											<!-- Continuous Pipeline Node Column -->
 											<VBox class="apPipeTrackCol" alignItems="Center" justifyContent="Center">
-												<VBox class="apPipeTrackLineTop"/>
 												<VBox class="apPipeNode" alignItems="Center" justifyContent="Center">
 													<core:Icon src="{apData>icon}" size="0.95rem" class="apPipeNodeIcon"/>
 												</VBox>
-												<VBox class="apPipeTrackLineBottom"/>
 											</VBox>
 											<!-- Horizontal Bridge Connector -->
 											<VBox class="apPipeBridge"/>
@@ -204,6 +202,9 @@
 								<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentDetailHeader">
 									<HBox alignItems="Center">
 										<VBox class="apAgentHeroIconBox" alignItems="Center" justifyContent="Center">
+											<customData>
+												<core:CustomData key="state" value="{apData>/selectedInvoice/agentDetail/state}" writeToDom="true"/>
+											</customData>
 											<core:Icon src="{apData>/selectedInvoice/agentDetail/icon}" size="1.4rem" class="apAgentHeroIcon"/>
 										</VBox>
 										<VBox class="sapUiSmallMarginBegin">
@@ -222,8 +223,11 @@
 
 								<!-- Agent Result Callout Banner -->
 								<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apAgentResultCallout">
+									<customData>
+										<core:CustomData key="state" value="{apData>/selectedInvoice/agentDetail/state}" writeToDom="true"/>
+									</customData>
 									<HBox alignItems="Center" class="apAgentResultTextRow">
-										<core:Icon src="sap-icon://message-information" size="1.1rem" class="apAgentResultIcon sapUiTinyMarginEnd"/>
+										<core:Icon src="{= ${apData>/selectedInvoice/agentDetail/state} === 'Success' ? 'sap-icon://sys-enter-2' : ${apData>/selectedInvoice/agentDetail/state} === 'Warning' ? 'sap-icon://alert' : ${apData>/selectedInvoice/agentDetail/state} === 'Error' ? 'sap-icon://error' : 'sap-icon://message-information' }" size="1.1rem" class="apAgentResultIcon sapUiTinyMarginEnd"/>
 										<Text text="{apData>/selectedInvoice/agentDetail/result}" class="apAgentResultText"/>
 									</HBox>
 									<Button text="Check comparison" icon="sap-icon://compare" press="onOpenComparison"
