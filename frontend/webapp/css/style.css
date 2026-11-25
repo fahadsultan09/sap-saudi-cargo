@@ -1360,14 +1360,67 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     background: #FFFFFF;
 }
 
-/* Fields: "All fields" / "Only differences (n)" fit their labels */
+/* Fields: Modern Segmented Control track styling — eliminates border cuts and gaps */
 .apFieldsActions .sapMSegB {
+    display: inline-flex !important;
+    align-items: center !important;
+    background: #F1F5F9 !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important;
+    padding: 3px !important;
+    width: auto !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+}
+
+.apFieldsActions .sapMSegB .sapMSegBBtn {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    line-height: normal !important;
+    border-radius: 6px !important;
     width: auto !important;
 }
 
-.apFieldsActions .sapMSegBBtn {
-    width: auto !important;
-    padding: 0 0.75rem;
+.apFieldsActions .sapMSegB .sapMSegBBtnInnerWrapper {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+}
+
+.apFieldsActions .sapMSegB .sapMSegBBtnInner {
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    padding: 0.35rem 0.85rem !important;
+    height: auto !important;
+    min-height: 1.85rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.15s ease !important;
+}
+
+.apFieldsActions .sapMSegB .sapMSegBBtnInner .sapMSegBBtnText {
+    color: #475569 !important;
+    font-weight: 500 !important;
+    font-size: 0.8125rem !important;
+}
+
+.apFieldsActions .sapMSegB .sapMSegBBtnSel .sapMSegBBtnInner {
+    background: #FFFFFF !important;
+    border-color: #CBD5E1 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.apFieldsActions .sapMSegB .sapMSegBBtnSel .sapMSegBBtnInner .sapMSegBBtnText {
+    color: var(--ap-brand-dark, #064E3B) !important;
+    font-weight: 700 !important;
 }
 
 .apInfoEmpty.sapMText {
@@ -2501,7 +2554,7 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     .apStepperBody > .sapMFlexBox { flex-wrap: wrap; justify-content: center; }
     .apFieldsHeader { flex-direction: column; align-items: stretch; }
     .apFieldsActions .sapMSegB { max-width: 100%; }
-    .apFieldsActions .sapMSegBBtn { padding: 0 0.35rem; }
+    .apFieldsActions .sapMSegB .sapMSegBBtnInner { padding: 0.3rem 0.5rem !important; }
     .sapMListTblCnt { max-width: 100%; overflow-x: auto; }
     .sapMListTblCell { padding-left: 0.4rem; padding-right: 0.4rem; }
     .apExceptionBanner { margin: 0.4rem; }
