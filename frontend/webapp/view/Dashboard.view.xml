@@ -162,7 +162,7 @@
 							<Column hAlign="End" width="8rem"><Text text="Amount" wrapping="false"/></Column>
 							<Column hAlign="Center" width="9rem"><Text text="Status" wrapping="false"/></Column>
 							<Column minScreenWidth="Tablet" demandPopin="true" importance="Low">
-								<Text text="Created ({apData>/timeZoneLabel})" wrapping="false"/>
+								<Text text="Created at" wrapping="false"/>
 							</Column>
 						</columns>
 						<items>
