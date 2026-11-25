@@ -274,9 +274,10 @@
 				</VBox>
 				<VBox id="section-info" class="apPageSection">
 					<Title text="Info · what SAP holds for this invoice" level="H4" class="apPageSectionTitle"/>
-					<IllustratedMessage visible="{= !${apData>/selectedInvoice/sapInfo/known} }"
-						illustrationType="sapIllus-NoData" illustrationSize="Spot" title="No SAP data yet"
-						description="{apData>/selectedInvoice/sapInfo/message}"/>
+					<VBox class="apCard apInfoEmptyCard" visible="{= !${apData>/selectedInvoice/sapInfo/known} }" alignItems="Center" justifyContent="Center">
+						<IllustratedMessage illustrationType="sapIllus-NoData" illustrationSize="Spot" title="No SAP data yet"
+							description="{apData>/selectedInvoice/sapInfo/message}"/>
+					</VBox>
 					<!-- One sub-tab per SAP record: these switch content (unlike the anchor tabs above) -->
 					<IconTabBar id="infoTabs" visible="{= ${apData>/selectedInvoice/isProcessing} || !!${apData>/selectedInvoice/sapInfo/known} }" headerMode="Inline"
 						expandable="false" applyContentPadding="false" selectedKey="{apData>/infoTabKey}" class="apCard apInfoTabs">
@@ -520,7 +521,10 @@
 							<!-- One card per group; each field is a tile with its invoice and SAP value -->
 							<HBox items="{apData>/selectedInvoice/fieldGroups}" renderType="Bare" class="apFieldGroups">
 								<VBox renderType="Bare" class="apFieldGroup"
-									visible="{= !${apData>/selectedInvoice/fieldsDiffOnly} || ${apData>diffCount} > 0 }">
+									visible="{= (!${apData>/selectedInvoice/fieldsDiffOnly} || ${apData>diffCount} > 0) &amp;&amp; ${apData>fields}.length > 0 }">
+									<customData>
+										<core:CustomData key="group" value="{apData>key}" writeToDom="true"/>
+									</customData>
 									<HBox alignItems="Center" renderType="Bare" class="apFieldGroupHead">
 										<core:Icon src="{apData>icon}" class="apFieldGroupIcon"/>
 										<Text text="{apData>title}" class="apInfoSubtitle"/>
@@ -534,7 +538,7 @@
 											<HBox alignItems="Center" justifyContent="SpaceBetween" renderType="Bare" class="apFieldTileHead">
 												<Link text="{apData>field}" press="onFocusField" class="apFieldName" visible="{apData>/selectedInvoice/processor}" tooltip="Locate this field on the PDF when extraction coordinates are available"/>
                                                 <Text text="{apData>field}" class="apFieldName" visible="{= !${apData>/selectedInvoice/processor} }"/>
-												<ObjectStatus text="{apData>result}" icon="{apData>icon}" state="{apData>state}"/>
+												<ObjectStatus text="{apData>result}" icon="{apData>icon}" state="{apData>state}" visible="{= !!${apData>result} }" class="apFieldTileStatus"/>
 											</HBox>
 											<VBox renderType="Bare" class="apFieldTileRow">
 												<Text text="On the invoice" class="apAgentPointLabel"/>

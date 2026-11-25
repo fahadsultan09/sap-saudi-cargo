@@ -1242,6 +1242,11 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
     background: var(--ap-surface);
 }
 
+/* Invoice group contains 4 core fields: let it span full width so cards render in a balanced 4-column row */
+.apFieldGroup[data-group="invoice"] {
+    grid-column: 1 / -1;
+}
+
 .apFieldGroupHead {
     display: flex;
     gap: 0.5rem;
@@ -1253,18 +1258,19 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apFieldTiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.65rem;
 }
 
 .apFieldTile {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    padding: 0.6rem 0.7rem;
+    padding: 0.65rem 0.8rem;
     border: 1px solid var(--ap-border);
     border-radius: var(--ap-radius-sm);
     background: var(--ap-bg);
+    min-width: 0;
 }
 
 .apFieldTile[data-differs="true"] {
@@ -1274,13 +1280,84 @@ html.sap-desktop .apLightButton.sapMBtn .sapMFocusable:focus::before,
 
 .apFieldTileHead {
     display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 0.5rem;
+    min-height: 1.5rem;
+}
+
+.apFieldTileHead .apFieldName {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--ap-ink);
+    line-height: 1.35;
+    flex: 1 1 auto;
+    word-break: break-word;
+}
+
+.apFieldTileHead .sapMLnk.apFieldName {
+    color: var(--ap-brand-dark);
+}
+
+.apFieldTileHead .sapMLnk.apFieldName:hover {
+    color: var(--ap-brand);
+    text-decoration: underline;
+}
+
+/* Field tile status pill badge */
+.apFieldTileStatus.sapMObjStatus {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.apFieldTileStatus.sapMObjStatus .sapUiIcon {
+    font-size: 0.65rem;
+    margin-right: 0.2rem;
+}
+
+.apFieldTileStatus.sapMObjStatusNone,
+.apFieldTileStatus .sapMObjStatusNone {
+    background: #F1F5F9;
+    color: #475569;
+}
+
+.apFieldTileStatus.sapMObjStatusSuccess,
+.apFieldTileStatus .sapMObjStatusSuccess {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.apFieldTileStatus.sapMObjStatusError,
+.apFieldTileStatus .sapMObjStatusError {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.apFieldTileStatus.sapMObjStatusWarning,
+.apFieldTileStatus .sapMObjStatusWarning {
+    background: #FEF3C7;
+    color: #D97706;
 }
 
 .apFieldTileRow {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
+}
+
+.apInfoEmptyCard {
+    padding: 2.25rem 1.5rem;
+    text-align: center;
+    border: 1px solid var(--ap-border);
+    border-radius: var(--ap-radius-md);
+    background: #FFFFFF;
 }
 
 /* Fields: "All fields" / "Only differences (n)" fit their labels */
