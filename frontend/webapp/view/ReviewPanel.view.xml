@@ -9,6 +9,20 @@
 		busyIndicatorDelay="0" class="apReviewShell apReviewShell--docked">
 		<!-- 1. The flow, in its own card -->
 		<VBox class="apFlowCard">
+			<HBox alignItems="Center" justifyContent="SpaceBetween" class="apFlowPhaseHeaders sapUiTinyMarginBottom">
+				<HBox alignItems="Center" class="apFlowPhaseBracket apFlowPhaseBracket--intake">
+					<Text text="INTAKE" class="apFlowPhaseLabel"/>
+					<VBox class="apFlowPhaseLine"/>
+				</HBox>
+				<HBox alignItems="Center" class="apFlowPhaseBracket apFlowPhaseBracket--validation">
+					<Text text="VALIDATION" class="apFlowPhaseLabel"/>
+					<VBox class="apFlowPhaseLine"/>
+				</HBox>
+				<HBox alignItems="Center" class="apFlowPhaseBracket apFlowPhaseBracket--matching">
+					<Text text="MATCHING" class="apFlowPhaseLabel"/>
+					<VBox class="apFlowPhaseLine"/>
+				</HBox>
+			</HBox>
 			<HBox class="apPipeTrack apPanelFlow" renderType="Bare" items="{apData>/selectedInvoice/pipelineSteps}">
 				<VBox class="apPipeTrackStep" alignItems="Center" tooltip="{apData>tooltip}">
 					<customData>
