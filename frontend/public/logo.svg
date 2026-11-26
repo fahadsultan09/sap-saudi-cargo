@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none" role="img" aria-label="ClearDesk">
+  <rect width="40" height="40" rx="12" fill="#0B3D36"/>
+  <path d="M10 14h20v2.2H10V14zm0 5.5h14v2.2H10v-2.2zm0 5.5h17v2.2H10V25z" fill="#E8F5F1"/>
+  <circle cx="29" cy="27.5" r="5.5" fill="#1EC9A8"/>
+  <path d="M26.8 27.5l1.5 1.5 3-3" stroke="#0B3D36" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

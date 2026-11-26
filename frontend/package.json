@@ -1,16 +1,13 @@
 {
-  "name": "saudi-cargo-ap",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "ap-console",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
     "start": "npx @ui5/cli serve --port 8080",
     "postinstall": "node lib/preparePdfViewer.js",
     "prestart": "node lib/preparePdfViewer.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "devDependencies": {
     "@ui5/cli": "^4.0.70",
     "ui5-middleware-livereload": "^3.4.0"
