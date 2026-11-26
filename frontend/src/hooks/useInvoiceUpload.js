@@ -68,7 +68,7 @@ export function useInvoiceUpload({ enabled, showToast } = {}) {
 
   function goToProcess(id = caseId) {
     if (!id) return;
-    navigate(`/process/${id}`, { state: { fromUpload: true, fileName } });
+    navigate(`/cases/${id}`, { state: { fromUpload: true, fileName } });
   }
 
   async function uploadFile(file) {

@@ -25,7 +25,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
-        title="Saudi Cargo AP Gateway",
+        title="AP Gateway",
         description="Routes the AP Console's /api/v1 calls to the agentic API.",
         version="2.0.0",
         lifespan=lifespan,

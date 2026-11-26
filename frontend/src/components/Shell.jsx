@@ -99,7 +99,7 @@ export default function Shell({ userId, onUserChange, toast, session, localUser 
               </li>
               <li>
                 <NavLink
-                  to="/process/new"
+                  to="/intake"
                   className={({ isActive }) => `ref-nav-item${isActive ? " active" : ""}`}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
