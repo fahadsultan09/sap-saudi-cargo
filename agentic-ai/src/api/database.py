@@ -24,6 +24,91 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+def _approval_request_id_is_not_null(conn: sqlite3.Connection) -> bool:
+    columns = conn.execute("PRAGMA table_info(approval_decisions)").fetchall()
+    if not columns:
+        return False
+    column = next((item for item in columns if item["name"] == "approval_request_id"), None)
+    return bool(column and column["notnull"] == 1)
+
+
+def _ensure_approval_request_id_nullable(conn: sqlite3.Connection) -> None:
+    """Legacy DBs may have approval_request_id NOT NULL; direct decide inserts NULL.
+
+    Retries briefly when another connection holds the lock (e.g. live uvicorn).
+    """
+    import time
+
+    if not _approval_request_id_is_not_null(conn):
+        return
+
+    last_error: Exception | None = None
+    for attempt in range(8):
+        try:
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.execute("BEGIN IMMEDIATE")
+            # Re-check inside the lock — another process may have migrated.
+            if not _approval_request_id_is_not_null(conn):
+                conn.commit()
+                return
+            conn.execute("""
+                CREATE TABLE approval_decisions_new (
+                    id TEXT PRIMARY KEY,
+                    approval_request_id TEXT REFERENCES approval_requests(id),
+                    case_id TEXT NOT NULL REFERENCES ap_cases(id),
+                    decision TEXT NOT NULL,
+                    actor_id TEXT NOT NULL,
+                    actor_role TEXT NOT NULL,
+                    comment TEXT NOT NULL,
+                    policy_version TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            conn.execute("""
+                INSERT INTO approval_decisions_new (
+                    id, approval_request_id, case_id, decision,
+                    actor_id, actor_role, comment, policy_version, created_at
+                )
+                SELECT
+                    id, approval_request_id, case_id, decision,
+                    actor_id, actor_role, comment, policy_version, created_at
+                FROM approval_decisions
+            """)
+            conn.execute("DROP TABLE approval_decisions")
+            conn.execute("ALTER TABLE approval_decisions_new RENAME TO approval_decisions")
+            conn.commit()
+            return
+        except sqlite3.OperationalError as exc:
+            last_error = exc
+            try:
+                conn.rollback()
+            except sqlite3.Error:
+                pass
+            time.sleep(0.15 * (attempt + 1))
+        except Exception:
+            try:
+                conn.rollback()
+            except sqlite3.Error:
+                pass
+            raise
+        finally:
+            try:
+                conn.execute("PRAGMA foreign_keys = ON")
+            except sqlite3.Error:
+                pass
+
+    if last_error is not None:
+        # Non-fatal at boot: _decide always creates an approval_request row so
+        # NOT NULL schemas still accept decisions.
+        import logging
+
+        logging.getLogger("ap_api").warning(
+            "Could not migrate approval_request_id to nullable (%s). "
+            "Approve still works via approval_request rows.",
+            last_error,
+        )
+
+
 def init_db() -> None:
     with connect() as conn:
         conn.executescript("""
@@ -126,6 +211,7 @@ def init_db() -> None:
             updated_at TEXT NOT NULL
         );
         """)
+        _ensure_approval_request_id_nullable(conn)
 
 
 @contextmanager

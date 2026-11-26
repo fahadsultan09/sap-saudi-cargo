@@ -9,6 +9,7 @@ from agents.review_policy import decide_review
 
 from .config import AGENT_MODE, SAP_PROCESSING_ENABLED
 from .database import audit, connect, json_dump, row_to_case, utc_now
+from .sap_compare import attach_comparison
 
 from agents.orchestrator import APAgentOrchestrator
 from agents.source_check import SourceCheckAgent
