@@ -1,8 +1,11 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
-	<HBox items="{apData>/kpiCards}" wrap="Wrap" class="apKpiRow sapUiMediumMarginBottom">
-		<VBox class="apKpi">
+	<!-- A tile is a filter: a click (or Enter) shows only its invoices; the active one is outlined -->
+	<List items="{apData>/kpiCards}" showSeparators="None" itemPress="onKpiPress" class="apKpiRow sapUiMediumMarginBottom">
+		<CustomListItem type="Active" class="apKpi">
 			<customData>
 				<core:CustomData key="tone" value="{apData>tone}" writeToDom="true"/>
+				<core:CustomData key="active" value="{= ${apData>filterKey} === ${apData>/statusFilter} ? 'true' : 'false' }"
+					writeToDom="true"/>
 			</customData>
 			<HBox justifyContent="SpaceBetween" alignItems="Start">
 				<VBox>
@@ -13,6 +16,6 @@
 					<core:Icon src="{apData>icon}" size="1.125rem"/>
 				</VBox>
 			</HBox>
-		</VBox>
-	</HBox>
+		</CustomListItem>
+	</List>
 </core:FragmentDefinition>

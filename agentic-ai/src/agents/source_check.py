@@ -87,6 +87,20 @@ def _same_id(first: Any, second: Any) -> bool:
     return bool(a) and a == b
 
 
+def _english(texts: list[dict[str, Any]], *keys: str) -> str:
+    """The first non-empty text of the given keys, English first (SAP language key E or EN)."""
+    ordered = sorted(texts, key=lambda text: _text(text.get("language")).upper() not in {"E", "EN"})
+    return next(
+        (_text(text.get(key)) for text in ordered for key in keys if _text(text.get(key))), ""
+    )
+
+
+def _masked(account: Any) -> str:
+    """Only the last digits of an account number are shown; the full number stays in SAP."""
+    account = _text(account)
+    return f"···{account[-4:]}" if account else ""
+
+
 def _row(
     check: str, label: str, invoice: Any, sap: Any, table: str, result: str, message: str
 ) -> dict[str, Any]:
@@ -137,7 +151,7 @@ class SourceCheckAgent:
                     "purchase_order", "Purchase order", "", "", "EKKO", "NOT_ON_INVOICE", summary
                 )
             report(row)
-            return self._verdict("NOT_FOUND", [row], po_number, None, summary, [summary])
+            return self._verdict("NOT_FOUND", [row], po_number, None, summary, [summary], None)
 
         # Same order as the UI steps: PO, supplier (incl. bank), fields, receipt, accounts.
         checks = (
@@ -196,7 +210,11 @@ class SourceCheckAgent:
                 "MATCH",
                 ("All invoice fields match the SAP data; the approver can approve right away."),
             )
-        return self._verdict(status, rows, po_number, po, summary, discrepancies)
+        verdict = self._verdict(
+            status, rows, po_number, po, summary, discrepancies, self._supplier_master(po)
+        )
+        verdict["sap_records"] = self._sap_records(po_number, po)
+        return verdict
 
     def _verdict(
         self,
@@ -205,7 +223,8 @@ class SourceCheckAgent:
         po_number: str,
         po: dict[str, Any] | None,
         summary: str,
-        discrepancies: list[str] | None = None,
+        discrepancies: list[str] | None,
+        supplier: dict[str, Any] | None,
     ) -> dict[str, Any]:
         return {
             "agent": self.name,
@@ -217,6 +236,8 @@ class SourceCheckAgent:
             "discrepancies": discrepancies
             if discrepancies is not None
             else ([summary] if status == "NOT_FOUND" else []),
+            # The PO supplier as SAP has it, for the reviewer (account numbers masked).
+            "supplier": supplier,
             "sources": sorted({row["sap_table"] for row in rows} | {"EKKO"}),
             "source": (po or {}).get("source", "LOCAL_SAP_EXCEL_EXPORT"),
             "fetched_at": (po or {}).get("fetched_at"),
@@ -568,18 +589,15 @@ class SourceCheckAgent:
             {_text(record["gl_account"]) for record in records if _text(record.get("gl_account"))}
         )
         if gl_accounts:
-            problems = []
-            for account in gl_accounts:
-                found = self.finance_reader.find_gl_account(account)["records"]
-                if not found:
-                    problems.append(f"GL account {account} is not in the SAP chart of accounts")
-                elif all(
-                    _text(item.get("blocked_for_posting")) or _text(item.get("mark_for_deletion"))
-                    for item in found
-                ):
-                    problems.append(
-                        f"GL account {account} is blocked or marked for deletion in SAP"
+            problems = [
+                problem
+                for account in gl_accounts
+                if (
+                    problem := self._gl_problem(
+                        account, self.finance_reader.find_gl_account(account)["records"]
                     )
+                )
+            ]
             rows.append(
                 _row(
                     "gl_account",
@@ -600,15 +618,15 @@ class SourceCheckAgent:
             }
         )
         if cost_centers:
-            problems = []
-            for area, cost_center in cost_centers:
-                found = self._cost_center(area, cost_center)
-                if not found:
-                    problems.append(f"Cost center {cost_center} is not in SAP")
-                elif all(
-                    (_date(item.get("valid_to")) or date.max) < date.today() for item in found
-                ):
-                    problems.append(f"Cost center {cost_center} is no longer valid in SAP")
+            problems = [
+                problem
+                for area, cost_center in cost_centers
+                if (
+                    problem := self._cost_center_problem(
+                        cost_center, self._cost_center(area, cost_center)
+                    )
+                )
+            ]
             rows.append(
                 _row(
                     "cost_center",
@@ -624,6 +642,25 @@ class SourceCheckAgent:
             )
         return rows
 
+    @staticmethod
+    def _gl_problem(account: str, found: list[dict[str, Any]]) -> str:
+        if not found:
+            return f"GL account {account} is not in the SAP chart of accounts"
+        if all(
+            _text(item.get("blocked_for_posting")) or _text(item.get("mark_for_deletion"))
+            for item in found
+        ):
+            return f"GL account {account} is blocked or marked for deletion in SAP"
+        return ""
+
+    @staticmethod
+    def _cost_center_problem(cost_center: str, found: list[dict[str, Any]]) -> str:
+        if not found:
+            return f"Cost center {cost_center} is not in SAP"
+        if all((_date(item.get("valid_to")) or date.max) < date.today() for item in found):
+            return f"Cost center {cost_center} is no longer valid in SAP"
+        return ""
+
     def _cost_center(self, controlling_area: str, cost_center: str) -> list[dict[str, Any]]:
         for candidate in dict.fromkeys(
             [cost_center, cost_center.zfill(10), cost_center.lstrip("0")]
@@ -634,6 +671,143 @@ class SourceCheckAgent:
             if found:
                 return found
         return []
+
+    def _sap_records(self, po_number: str, po: dict[str, Any]) -> dict[str, Any]:
+        """What SAP holds for the PO, for the reviewer: header and lines (EKKO, EKPO), goods
+        receipts (EKBE), service entry sheets (ESSR), GL accounts (SKA1, SKAT) and cost centers
+        (CSKS, CSKT)."""
+        receipts = [
+            event
+            for event in self.po_reader.get_purchase_order_history(po_number)
+            if _text(event.get("history_category")) == "E"
+        ]
+        received = {_text(event["item"]).lstrip("0") for event in receipts}
+        assignments = [
+            record
+            for record in self.finance_reader.get_po_account_assignments(po_number).get(
+                "records", []
+            )
+            if not _text(record.get("deletion_indicator"))
+        ]
+        gl_accounts = []
+        accounts = {_text(r["gl_account"]) for r in assignments if _text(r.get("gl_account"))}
+        for account in sorted(accounts):
+            found = self.finance_reader.find_gl_account(account)["records"]
+            texts = [text for item in found for text in item.get("descriptions", [])]
+            gl_accounts.append({
+                "account": account,
+                "name": _english(texts, "long_text", "short_text"),
+                "problem": self._gl_problem(account, found),
+            })
+        cost_centers = []
+        for area, cost_center in sorted({
+            (_text(r.get("controlling_area")), _text(r["cost_center"]))
+            for r in assignments
+            if _text(r.get("cost_center"))
+        }):
+            found = self._cost_center(area, cost_center)
+            cost_centers.append({
+                "cost_center": cost_center,
+                "name": _english(
+                    [text for item in found for text in item.get("descriptions", [])], "name"
+                ),
+                # The export keeps an empty department as the text ' '.
+                "department": next(
+                    (_text(item.get("department")).strip("' ") for item in found), ""
+                ),
+                "valid_to": next((_text(item.get("valid_to")) for item in found), ""),
+                "problem": self._cost_center_problem(cost_center, found),
+            })
+        return {
+            "purchase_order": {
+                "po_number": po["po_number"],
+                "document_type": _text(po.get("document_type")),
+                "status": _text(po.get("status")),
+                "deleted": bool(po.get("deletion_indicator")),
+                "company_code": _text(po.get("company_code")),
+                "currency": _text(po.get("currency")),
+                "document_date": _text(po.get("document_date")),
+                "total_amount": _text(po.get("total_amount")),
+                "lines": [
+                    {
+                        "item": _text(line.get("item")),
+                        "description": _text(line.get("description")),
+                        "material": _text(line.get("material")),
+                        "quantity": _text(line.get("order_quantity")),
+                        "unit_price": _text(line.get("net_order_price")),
+                        "net_value": _text(line.get("net_order_value")),
+                        "receipt_expected": bool(_text(line.get("goods_receipt_expected"))),
+                        "received": _text(line.get("item")).lstrip("0") in received,
+                        "active": bool(line.get("is_active")),
+                    }
+                    for line in po.get("lines", [])
+                ],
+            },
+            "goods_receipts": [
+                {
+                    "item": _text(event.get("item")),
+                    "document": _text(event.get("material_document")),
+                    "posting_date": _text(event.get("posting_date")),
+                    "quantity": _text(event.get("quantity")),
+                    "amount": _text(event.get("amount")),
+                    "currency": _text(event.get("currency")),
+                }
+                for event in receipts
+            ],
+            "service_entries": [
+                {
+                    "entry_sheet": _text(sheet.get("entry_sheet")),
+                    "item": _text(sheet.get("item_number")),
+                    "net_value": _text(sheet.get("net_value")),
+                    "currency": _text(sheet.get("currency")),
+                    "accepted": bool(_text(sheet.get("acceptance"))),
+                }
+                for sheet in self.finance_reader.get_service_entry_sheets(po_number).get(
+                    "records", []
+                )
+            ],
+            "gl_accounts": gl_accounts,
+            "cost_centers": cost_centers,
+        }
+
+    def _supplier_master(self, po: dict[str, Any]) -> dict[str, Any] | None:
+        """The PO supplier's master data (LFA1) and bank accounts (LFBK, BNKA)."""
+        supplier = po.get("supplier")
+        if supplier is None:
+            return None
+        banks = self.finance_reader.get_vendor_bank_details(supplier["supplier_id"])
+        return {
+            "supplier_id": supplier["supplier_id"],
+            "name": " ".join(
+                filter(None, [_text(supplier.get("name")), _text(supplier.get("name_2"))])
+            ),
+            **{
+                key: _text(supplier.get(key))
+                for key in (
+                    "street", "postal_code", "city", "region", "country", "vat_number",
+                    "telephone", "account_group", "created_on",
+                )
+            },
+            "posting_block": bool(supplier.get("posting_block")),
+            "purchasing_block": bool(supplier.get("purchasing_block")),
+            "deletion_flag": bool(supplier.get("deletion_flag")),
+            "bank_accounts": [
+                {
+                    "bank_name": next(
+                        (_text(bank.get("bank_name")) for bank in record.get("bank_records", [])),
+                        "",
+                    ),
+                    "swift_bic": next(
+                        (_text(bank.get("swift_bic")) for bank in record.get("bank_records", [])),
+                        "",
+                    ),
+                    "account": _masked(record.get("bank_account")),
+                    "account_holder": _text(record.get("account_holder")),
+                    "country": _text(record.get("bank_country")),
+                }
+                for record in banks.get("records", [])
+            ],
+        }
 
     def _bank(self, po: dict[str, Any]) -> dict[str, Any] | None:
         supplier_id = _text(po.get("supplier_id"))
@@ -659,14 +833,11 @@ class SourceCheckAgent:
             ),
             "",
         )
-        account = _text(record.get("bank_account"))
-        # Only the last digits are shown; the full account number stays in SAP.
-        masked = f"···{account[-4:]}" if account else ""
         return _row(
             "bank",
             "Bank account",
             "",
-            " ".join(filter(None, [bank_name, masked])),
+            " ".join(filter(None, [bank_name, _masked(record.get("bank_account"))])),
             "LFBK · BNKA",
             "MATCH",
             f"SAP has {details['record_count']} bank account(s) on file for this supplier.",

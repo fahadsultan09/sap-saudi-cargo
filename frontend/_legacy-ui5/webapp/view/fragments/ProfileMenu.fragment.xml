@@ -5,22 +5,10 @@
                 backgroundColor="{apData>/currentUser/avatarColor}"/>
             <Title text="{apData>/currentUser/name}" level="H4" class="sapUiSmallMarginTop"/>
             <Text text="{apData>/currentUser/roleLabel}"/>
+            <Text text="{apData>/currentUser/email}" visible="{= !!${apData>/currentUser/email} }"/>
         </VBox>
-        <Text text="Switch profile" class="apProfileSection"/>
-        <List items="{apData>/profiles}" showSeparators="None" itemPress="onProfileSelect" class="apProfileList">
-            <CustomListItem type="{= ${apData>current} ? 'Inactive' : 'Active'}">
-                <HBox alignItems="Center" class="apProfileItem">
-                    <Avatar initials="{apData>initials}" displaySize="XS" backgroundColor="{apData>avatarColor}"/>
-                    <VBox class="sapUiSmallMarginBegin">
-                        <layoutData>
-                            <FlexItemData growFactor="1"/>
-                        </layoutData>
-                        <Text text="{apData>name}" class="apProfileName"/>
-                        <Text text="{apData>roleLabel}" class="apProfileRole"/>
-                    </VBox>
-                    <core:Icon src="sap-icon://accept" visible="{apData>current}" class="apProfileCheck"/>
-                </HBox>
-            </CustomListItem>
-        </List>
+        <VBox class="apProfileActions">
+            <Button text="Sign out" icon="sap-icon://log" type="Transparent" width="100%" press="onSignOut"/>
+        </VBox>
     </Popover>
 </core:FragmentDefinition>

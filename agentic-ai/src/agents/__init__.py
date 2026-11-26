@@ -1,10 +1,13 @@
-"""Minimal agent layer for the SACC AP proof of concept.
-
-Tier 1 deliberately implements TOWER (classification), LENS (SAP Document AI
-extraction), and deterministic triage. VECTOR and PRISM are deferred until
-trusted SAP business-data adapters and exception-investigation requirements exist.
-"""
+"""Agent adapters for the AP Automation workflow."""
 
 from .orchestrator import APAgentOrchestrator
+from .classifier import ClassifierTriageAgent
+from .scanner import ScannerExtractionAgent
+from .verifier import VerifierMatchingAgent
+from .reconciler import ReconcilerInvestigationAgent
+from .plumb import PlumbReconciliationAgent
 
-__all__ = ["APAgentOrchestrator"]
+__all__ = [
+    "APAgentOrchestrator", "ClassifierTriageAgent", "ScannerExtractionAgent",
+    "VerifierMatchingAgent", "ReconcilerInvestigationAgent", "PlumbReconciliationAgent",
+]

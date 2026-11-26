@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invoice document</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font:14px system-ui;background:#e8edf1;color:#233840}
+    header{position:sticky;top:0;z-index:2;display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:8px;background:white;border-bottom:1px solid #cbd5db}
+    button,input{font:inherit;border:1px solid #a9bbc4;border-radius:5px;background:white;padding:6px;color:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #006b52}input{width:52px}
+    #status{padding:8px;font-size:12px}#pages{padding:12px;overflow:auto}.page{position:relative;margin:0 auto 12px;background:white;width:max-content;box-shadow:0 1px 6px #8899a6}canvas{display:block}.focus{position:absolute;border:3px solid #dc8b00;background:#ffc94055;pointer-events:none;z-index:1}
+  </style>
+</head>
+<body>
+  <header aria-label="PDF controls">
+    <button id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button><span id="zoom">Fit width</span><button id="zoomIn" aria-label="Zoom in" title="Zoom in">+</button>
+    <button id="rotate" title="Rotate clockwise">Rotate ↻</button><button id="full" title="Full screen">Full screen</button>
+    <label>Page <input id="pageNumber" type="number" min="1" value="1" aria-label="Page number"></label><span id="pageCount"></span>
+  </header>
+  <div id="status" role="status">Loading invoice…</div><main id="pages" aria-label="PDF pages"></main>
+  <script type="module" src="viewer.mjs"></script>
+</body>
+</html>

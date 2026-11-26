@@ -15,10 +15,6 @@ sap.ui.define([
             return this.getOwnerComponent().getModel("apData");
         },
 
-        getConfig: function () {
-            return this.getOwnerComponent().getModel("config");
-        },
-
         getCaseStore: function () {
             return this.getOwnerComponent().getCaseStore();
         },
@@ -29,6 +25,11 @@ sap.ui.define([
 
         navTo: function (sRoute, oParameters) {
             this.getRouter().navTo(sRoute, oParameters);
+        },
+
+        // The "Back to dashboard" line at the top of each screen.
+        onNavBack: function () {
+            this.navTo("dashboard");
         },
 
         onCasePress: function (oEvent) {

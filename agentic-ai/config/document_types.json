@@ -2,31 +2,58 @@
   "categories": [
     {
       "category": "Invoice",
-      "document_type": ["invoice", "inv"]
+      "document_type": [
+        "invoice",
+        "tax invoice",
+        "supplier invoice"
+      ]
     },
     {
       "category": "Credit Note",
-      "document_type": ["credit note", "credit memo", "credit"]
-    },
-    {
-      "category": "Supporting Document",
-      "document_type": ["supporting document", "delivery note", "packing slip", "proof of delivery"]
-    },
-    {
-      "category": "Reconciliation",
-      "document_type": ["reconciliation", "discrepancy"]
+      "document_type": [
+        "credit note",
+        "credit_note",
+        "credit memo"
+      ]
     },
     {
       "category": "Statement of Account",
-      "document_type": ["statement of account", "account summary", "account statement"]
+      "document_type": [
+        "statement of account",
+        "account statement",
+        "statement"
+      ]
+    },
+    {
+      "category": "Supporting Document",
+      "document_type": [
+        "supporting document",
+        "delivery note",
+        "receipt",
+        "proof of delivery"
+      ]
+    },
+    {
+      "category": "Reconciliation",
+      "document_type": [
+        "reconciliation",
+        "reconciliation statement"
+      ]
     },
     {
       "category": "Purchase Order List",
-      "document_type": ["purchase order", "order list", "po list"]
+      "document_type": [
+        "purchase order list",
+        "purchase orders"
+      ]
     },
     {
       "category": "General Correspondence",
-      "document_type": ["correspondence", "notification", "reminder"]
+      "document_type": [
+        "general correspondence",
+        "letter",
+        "email"
+      ]
     }
   ]
 }

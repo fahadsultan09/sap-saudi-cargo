@@ -5,17 +5,20 @@
 	xmlns:core="sap.ui.core"
 	xmlns:u="sap.ui.unified">
 	<Page showHeader="false" backgroundDesign="Transparent" class="apSection apUploadPage">
+		<Toolbar style="Clear" class="apBackBar">
+			<Button text="Back to dashboard" icon="sap-icon://nav-back" type="Transparent" press="onNavBack"
+				class="apBackLink"/>
+		</Toolbar>
 		<VBox class="sapUiLargeMargin apUploadWrap">
 			<HBox alignItems="Center" class="apUploadKicker sapUiTinyMarginBottom">
-				<core:Icon src="sap-icon://clear-filter" size="0.75rem" class="sapUiTinyMarginEnd"/>
-				<Text text="Clear Desk · One invoice at a time"/>
+				<core:Icon src="sap-icon://flight" size="0.75rem" class="sapUiTinyMarginEnd"/>
+				<Text text="Runway intake · one invoice at a time"/>
 			</HBox>
-			<Title text="Add an invoice to the queue" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
-			<Text text="Drop a file to start the full pipeline: Received → Classify (TOWER) → Extract (LENS) → Finance rules → Needs review / Approve."
+			<Title text="Start the AP pipeline" level="H2" class="apSectionTitle apUploadTitle sapUiTinyMarginBottom"/>
+			<Text text="Drop a file and watch the full cycle light up: Received → Classify (CLASSIFIER) → Extract (SCANNER) → Finance rules → SAP checks → your review."
 				class="apUploadLead sapUiMediumMarginBottom"
 				visible="{= !${apData>/upload/watching} }"/>
 
-			<!-- Idle / receiving: drop zone + pipeline side-by-side -->
 			<HBox class="apUploadGrid" alignItems="Stretch" wrap="Wrap"
 				visible="{= !${apData>/upload/watching} }">
 				<VBox id="dropZone" class="apHeroDrop" alignItems="Center" justifyContent="Center">
@@ -24,15 +27,13 @@
 							<core:Icon src="sap-icon://add-document" size="1.75rem" class="apHeroDropIcon"/>
 						</VBox>
 						<Title text="Drop invoice to start" level="H3" class="apHeroDropTitle"/>
-						<Text text="or browse — PDF, PNG or JPEG, up to 20 MB" class="apHeroDropHint sapUiTinyMarginTop sapUiSmallMarginBottom"/>
-						<u:FileUploader id="fileUploader" fileType="pdf,png,jpg,jpeg" sameFilenameAllowed="true"
-							buttonOnly="true" buttonText="Browse files" tooltip="Choose a PDF, PNG or JPEG invoice"
+						<Text text="or browse — PDF, up to 25 MB" class="apHeroDropHint sapUiTinyMarginTop sapUiSmallMarginBottom"/>
+						<u:FileUploader id="fileUploader" fileType="pdf" sameFilenameAllowed="true"
+							buttonOnly="true" buttonText="Browse files" tooltip="Choose a PDF invoice"
 							style="Emphasized" change="onUploadChange"
 							enabled="{= !${apData>/busy} &amp;&amp; !${apData>/upload/watching} }" class="apHeroDropBrowse"/>
 						<HBox class="apHeroDropFormats sapUiTinyMarginTop" wrap="Wrap" justifyContent="Center">
 							<ObjectStatus text="PDF" inverted="true" class="apFormatChip"/>
-							<ObjectStatus text="PNG" inverted="true" class="apFormatChip"/>
-							<ObjectStatus text="JPEG" inverted="true" class="apFormatChip"/>
 						</HBox>
 					</VBox>
 					<VBox visible="{apData>/busy}" class="apHeroDropBusy" alignItems="Center" justifyContent="Center">
@@ -44,7 +45,7 @@
 
 				<VBox class="apUploadSteps apPipeRail">
 					<Text text="Full pipeline" class="apUploadStepsLabel sapUiTinyMarginBottom"/>
-					<Text text="All five steps stay on screen. After upload you watch them light up live."
+					<Text text="All five steps stay on screen. After upload they light Done / Working / Pending live."
 						class="apUploadStepsHint sapUiTinyMarginBottom"/>
 					<VBox items="{apData>/uploadSteps}" class="apStepList apPipeRailList">
 						<HBox alignItems="Start" class="apStep">
@@ -68,7 +69,6 @@
 				</VBox>
 			</HBox>
 
-			<!-- Live watch: full-cycle pipeline is the hero (not a single status chip) -->
 			<VBox visible="{apData>/upload/watching}" class="apPipeHero apPipeHero--upload">
 				<HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap" class="apPipeHeroHeader sapUiTinyMarginBottom">
 					<VBox>
@@ -79,13 +79,18 @@
 						<Title text="Watch the complete cycle" level="H3" class="apPipeHeroTitle"/>
 						<Text text="{apData>/upload/fileName}" class="apPipeHeroFile sapUiTinyMarginTop"/>
 					</VBox>
-					<Button text="Open Clear Desk now" type="Emphasized" icon="sap-icon://inspect"
-						visible="{= !!${apData>/upload/caseId} }" press="onOpenLiveCase"/>
+					<!-- Once processing ends: Review invoice (or Needs review) and Go to dashboard -->
+					<HBox alignItems="Center" visible="{= !!${apData>/upload/result} }" class="apUploadActions">
+						<Button text="Go to dashboard" icon="sap-icon://home" press="onGoToDashboard"
+							class="apLightButton sapUiTinyMarginEnd"/>
+						<Button text="Review invoice" icon="sap-icon://inspect" type="Emphasized" press="onReviewInvoice"
+							visible="{= ${apData>/upload/result} === 'ready' }"/>
+						<Button text="Needs review" icon="sap-icon://alert" type="Attention" press="onReviewInvoice"
+							visible="{= ${apData>/upload/result} === 'review' }"/>
+					</HBox>
 				</HBox>
 
-				<!-- Horizontal process map: all 5 steps always visible as the hero -->
-				<HBox class="apPipeTrack" wrap="Wrap" justifyContent="SpaceBetween"
-					items="{apData>/uploadSteps}">
+				<HBox class="apPipeTrack" renderType="Bare" items="{apData>/uploadSteps}">
 					<VBox class="apPipeTrackStep" alignItems="Center">
 						<customData>
 							<core:CustomData key="state" value="{apData>state}" writeToDom="true"/>
@@ -97,11 +102,9 @@
 						<Text text="{apData>service}" class="apPipeTrackService" textAlign="Center"
 							visible="{= !!${apData>service} }"/>
 						<ObjectStatus text="{apData>statusLabel}" class="apStepStatus sapUiTinyMarginTop"/>
-						<VBox class="apPipeTrackConnector"/>
 					</VBox>
 				</HBox>
 
-				<!-- “Now” caption UNDER the timeline — progress is secondary -->
 				<HBox visible="{= !!${apData>/upload/nowText} }" alignItems="Center" class="apPipeNow sapUiSmallMarginTop">
 					<VBox class="apPipeNowDot sapUiTinyMarginEnd"/>
 					<Text text="{apData>/upload/nowText}" class="apPipeNowText"/>

@@ -125,10 +125,167 @@ def test_agents_route_describes_minimum_architecture():
         response = client.get("/api/v1/agents", headers=headers("admin-1", "ADMIN"))
         assert response.status_code == 200
         data = response.json()
-        assert data["execution_order"] == ["TOWER", "LENS", "FINANCE_RULES"]
-        assert (
-            next(agent for agent in data["agents"] if agent["name"] == "VECTOR")[
-                "status"
-            ]
-            == "deferred"
+        assert data["execution_order"] == ["EMAIL_INTAKE", "CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER", "PLUMB"]
+        statuses = {agent["name"]: agent["status"] for agent in data["agents"]}
+        assert statuses["VERIFIER"] == "implemented_requires_sap_context"
+        assert statuses["RECONCILER"] == "implemented_requires_evidence"
+        assert statuses["PLUMB"] == "implemented_requires_payment_data"
+
+
+
+def test_exact_duplicate_upload_returns_existing_case_without_new_case():
+    with TestClient(app) as client:
+        pdf = b"%PDF-1.4\\n% identical invoice for duplicate test\\n%%EOF"
+        h = headers("processor-duplicate", "AP_PROCESSOR")
+
+        first = client.post(
+            "/api/v1/cases/upload",
+            headers=h,
+            files={"file": ("invoice.pdf", pdf, "application/pdf")},
         )
+        assert first.status_code == 202, first.text
+        first_case_id = first.json()["case_id"]
+
+        second = client.post(
+            "/api/v1/cases/upload",
+            headers=h,
+            files={"file": ("renamed-invoice.pdf", pdf, "application/pdf")},
+        )
+        assert second.status_code == 200, second.text
+        body = second.json()
+        assert body["duplicate"] is True
+        assert body["duplicate_type"] == "EXACT_FILE"
+        assert body["case_id"] == first_case_id
+
+        cases = client.get(
+            "/api/v1/cases",
+            headers=headers("admin-duplicate", "ADMIN"),
+        )
+        matching = [item for item in cases.json()["items"] if item["id"] == first_case_id]
+        assert len(matching) == 1
+
+        history = client.get(
+            f"/api/v1/cases/{first_case_id}/history",
+            headers=headers("processor-duplicate", "AP_PROCESSOR"),
+        )
+        assert history.status_code == 200, history.text
+        event_types = [event["event_type"] for event in history.json()["events"]]
+        assert "CASE_UPLOADED" in event_types
+        assert "DUPLICATE_UPLOAD_DETECTED" in event_types
+
+
+
+def test_business_duplicate_uses_supplier_invoice_and_company_identity():
+    from api.database import connect
+    from api.workflow import _find_business_duplicate
+    from api.database import utc_now
+
+    existing_id = str(uuid.uuid4())
+    now = utc_now()
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO ap_cases (
+                id, file_name, stored_path, sha256, status, created_by,
+                invoice_number, supplier_name, company_code, currency,
+                total_amount, extracted_fields_json, line_items_json,
+                validation_json, confirmed_checks_json, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '{}', '[]', '{}', '[]', ?, ?)
+            """,
+            (
+                existing_id, "existing.pdf", "/tmp/existing.pdf",
+                "test-business-duplicate-hash-" + existing_id, "NEEDS_REVIEW",
+                "test-supplier", "INV-BUS-001", "Example Supplier", "1000",
+                "SAR", "1250.00", now, now,
+            ),
+        )
+
+    match = _find_business_duplicate(
+        "new-case-not-in-db",
+        {
+            "invoice_number": " inv-bus-001 ",
+            "supplier_name": "example supplier",
+            "company_code": "1000",
+            "currency": "SAR",
+            "total_amount": "1250.00",
+        },
+    )
+    assert match is not None
+    assert match["matched_case_id"] == existing_id
+    assert match["match_basis"] == "supplier_invoice_number_company_code"
+
+
+def test_process_document_runs_po_matching_against_sap_excel_data(monkeypatch):
+    import agents.mock_agents as mock_agents
+
+    class ScannerWithPurchaseOrder(mock_agents.MockScannerAgent):
+        def run(self, file_path, classification):
+            result = super().run(file_path, classification)
+            # PO 4500000002 exists in the EKKO export with supplier 1000001001 (company MAH1, INR).
+            result["converted"]["invoice_source"] = {
+                "po_number": "4500000002", "vendor_number": "9999999999",
+                "company_code": "MAH1", "currency": "INR", "total_amount": "100.00",
+            }
+            return result
+
+    monkeypatch.setattr(mock_agents, "MockScannerAgent", ScannerWithPurchaseOrder)
+    with TestClient(app) as client:
+        before = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
+        response = client.post(
+            "/internal/v1/process-document",
+            data={"file_name": "invoice.pdf"},
+            files={"file": ("invoice.pdf", b"%PDF-1.4\n% mock\n%%EOF", "application/pdf")},
+        )
+        assert response.status_code == 200, response.text
+        validation = response.json()["validation"]
+        agents_run = [step["agent"] for step in validation["agent_trace"]]
+        assert agents_run == [
+            "CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER"
+        ]
+        assert validation["source_verdict"]["status"] == "MISMATCH"
+        assert validation["checks"]["po"] == "FAIL"
+        assert "SUPPLIER_MISMATCH" in validation["matching"]["reason_codes"]
+        assert validation["matching"]["evidence"][0]["source"] == "LOCAL_SAP_EXCEL_EXPORT"
+        assert validation["investigation"]["status"] == "NEEDS_INVESTIGATION"
+        after = client.get("/api/v1/cases", headers=headers("processor-1", "AP_PROCESSOR")).json()["total"]
+        assert after == before
+
+
+def test_process_document_streams_each_step_then_the_same_result(monkeypatch):
+    import json
+
+    import agents.mock_agents as mock_agents
+
+    class ScannerWithPurchaseOrder(mock_agents.MockScannerAgent):
+        def run(self, file_path, classification):
+            result = super().run(file_path, classification)
+            result["converted"]["invoice_source"] = {
+                "po_number": "4500012345", "supplier_name": "Gulf Aviation Supplies Co.",
+                "currency": "SAR", "net_amount": "57500.00", "total_amount": "66125.00",
+                "invoice_date": "2026-10-01",
+            }
+            return result
+
+    monkeypatch.setattr(mock_agents, "MockScannerAgent", ScannerWithPurchaseOrder)
+    pdf = ("invoice.pdf", b"%PDF-1.4\n% mock\n%%EOF", "application/pdf")
+    with TestClient(app) as client:
+        streamed = client.post("/internal/v1/process-document",
+                               data={"file_name": "invoice.pdf", "stream": "true"}, files={"file": pdf})
+        plain = client.post("/internal/v1/process-document", data={"file_name": "invoice.pdf"}, files={"file": pdf})
+    assert streamed.status_code == 200 and plain.status_code == 200
+    events = [json.loads(line) for line in streamed.text.splitlines() if line]
+
+    steps = [event["step"]["agent"] for event in events if event["type"] == "step"]
+    assert steps == [
+        "CLASSIFIER", "SCANNER", "FINANCE_RULES", "VERIFIER", "SOURCE_CHECK", "RECONCILER"
+    ]
+    checks = [event["check"]["check"] for event in events if event["type"] == "check"]
+    assert checks[0] == "purchase_order" and "amount" in checks
+    # Each SAP data check is reported before the SOURCE_CHECK step finishes.
+    assert events.index(next(e for e in events if e["type"] == "check")) < events.index(
+        next(e for e in events if e["type"] == "step" and e["step"]["agent"] == "SOURCE_CHECK"))
+
+    result = events[-1]
+    assert result["type"] == "result"
+    assert result["validation"]["source_verdict"]["status"] == "MATCH"
+    assert result["fields"] == plain.json()["fields"]

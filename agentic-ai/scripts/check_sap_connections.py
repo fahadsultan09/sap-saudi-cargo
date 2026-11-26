@@ -28,7 +28,9 @@ def main() -> int:
         print("  PASS: OAuth token acquired (token not displayed)")
         deployment_url = ai._get_deployment_url()
         print("  PASS: RUNNING foundation-model deployment found")
-        print(f"  Deployment host: {deployment_url.split('/')[2] if '://' in deployment_url else '(configured endpoint)'}")
+        print(
+            f"  Deployment host: {deployment_url.split('/')[2] if '://' in deployment_url else '(configured endpoint)'}"
+        )
     except Exception as exc:
         failed = True
         print(f"  FAIL: {type(exc).__name__}: {exc}")
@@ -38,7 +40,9 @@ def main() -> int:
         dox = DocAIClient()
         dox._get_token()
         print("  PASS: OAuth token acquired (token not displayed)")
-        print(f"  API host: {dox.dox_url.split('/')[2] if '://' in dox.dox_url else '(configured endpoint)'}")
+        print(
+            f"  API host: {dox.dox_url.split('/')[2] if '://' in dox.dox_url else '(configured endpoint)'}"
+        )
     except Exception as exc:
         failed = True
         print(f"  FAIL: {type(exc).__name__}: {exc}")
@@ -54,17 +58,23 @@ def main() -> int:
             if schema_id:
                 print("  PASS: Invoice schema discovered through SAP Document AI")
                 print("  Schema ID: " + schema_id)
-                print("  Tip: set SAP_DOX_SCHEMA_ID in config/.env to use this exact schema.")
+                print(
+                    "  Tip: set SAP_DOX_SCHEMA_ID in config/.env to use this exact schema."
+                )
             else:
                 failed = True
-                print("  FAIL: No invoice schema found. Set SAP_DOX_SCHEMA_ID in config/.env.")
+                print(
+                    "  FAIL: No invoice schema found. Set SAP_DOX_SCHEMA_ID in config/.env."
+                )
         except Exception as exc:
             failed = True
             print(f"  FAIL: Schema discovery failed: {type(exc).__name__}: {exc}")
 
     print("\nConnection check " + ("FAILED" if failed else "PASSED"))
     if not failed:
-        print("Next: start the API with run_api.bat and upload a real invoice PDF in /docs.")
+        print(
+            "Next: start the API with run_api.bat and upload a real invoice PDF in /docs."
+        )
     return 1 if failed else 0
 
 

@@ -52,4 +52,6 @@ def initial_state(
         classification_extraction=classification_extraction or [],
         detailed_extraction=detailed_extraction or [],
         ai_core_classification=ai_core_classification or {},
+        workflow_steps=[],
+        workflow_summary={},
     )
