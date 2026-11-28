@@ -1821,7 +1821,58 @@ body {
 .ref-decision-info {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.85rem;
+}
+
+.ref-decision-role-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.ref-decision-role-badge {
+  background: rgba(99, 102, 241, 0.22);
+  color: #c7d2fe;
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ref-decision-sep {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.9rem;
+}
+
+.ref-decision-status-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ref-decision-status-text.has-attention {
+  color: #fbbf24;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+.ref-decision-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+  animation: ref-pulse-ring 2s infinite ease-in-out;
+  display: inline-block;
 }
 
 .ref-decision-btns {

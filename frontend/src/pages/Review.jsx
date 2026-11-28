@@ -542,13 +542,17 @@ export default function Review({ userId, onUserChange, showToast }) {
       {/* 5. Sticky Bottom Decision Action Bar */}
       <footer className="ref-decision-bar">
         <div className="ref-decision-info">
-          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--ref-navy)" }}>
-            AP Role: {user?.roleLabel || "Processor"}
-          </span>
-          <span style={{ color: "var(--ref-line-strong)" }}>|</span>
-          <span style={{ fontSize: "0.85rem", color: "var(--ref-text-muted)" }}>
-            {reasons.length > 0 ? `${reasons.length} checks need attention` : "Ready for processor review"}
-          </span>
+          <div className="ref-decision-role-wrap">
+            <span>AP Role:</span>
+            <span className="ref-decision-role-badge">{user?.roleLabel || "Processor"}</span>
+          </div>
+          <span className="ref-decision-sep">|</span>
+          <div className={`ref-decision-status-text ${reasons.length > 0 ? "has-attention" : ""}`}>
+            {reasons.length > 0 && <span className="ref-decision-pulse-dot" />}
+            <span>
+              {reasons.length > 0 ? `${reasons.length} checks need attention` : "Ready for processor review"}
+            </span>
+          </div>
         </div>
 
         <div className="ref-decision-btns">
