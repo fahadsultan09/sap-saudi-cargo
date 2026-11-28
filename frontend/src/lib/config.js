@@ -1,5 +1,5 @@
 export const config = {
-  apiBaseUrl: "http://127.0.0.1:8000",
+  apiBaseUrl: typeof window !== "undefined" && window.location.port === "8080" ? "" : "http://127.0.0.1:8000",
   users: [
     { id: "faizan", name: "Processor", role: "AP_PROCESSOR", roleLabel: "Processor" },
     { id: "sara", name: "Approver", role: "FINANCE_MANAGER", roleLabel: "Approver" },

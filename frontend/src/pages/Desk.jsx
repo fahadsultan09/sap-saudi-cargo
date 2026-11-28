@@ -313,21 +313,21 @@ export default function Desk({ userId, showToast }) {
                         borderRadius: "9999px",
                         fontSize: "0.74rem",
                         fontWeight: 700,
-                        backgroundColor: item.status === "APPROVED" ? "#e6f0eb" : "#fef3c7",
-                        color: item.status === "APPROVED" ? "#006937" : "#8a5300",
+                        backgroundColor: item.status === "APPROVED" ? "rgba(16, 185, 129, 0.12)" : "#fef3c7",
+                        color: item.status === "APPROVED" ? "var(--apex-emerald, #10b981)" : "#8a5300",
                       }}>
                         {item.status || "NEEDS_REVIEW"}
                       </span>
                     </td>
                     <td>
-                      <span style={{ fontSize: "0.8rem", fontWeight: 600, color: court === "AP" ? "#006937" : "#64748b" }}>
+                      <span style={{ fontSize: "0.8rem", fontWeight: 600, color: court === "AP" ? "var(--apex-emerald, #10b981)" : "#64748b" }}>
                         {court}
                       </span>
                     </td>
                     <td>
                       <Link
                         to={`/cases/${invId}?back=%2Fworklist&backLabel=Back+to+Invoices`}
-                        style={{ color: "var(--ref-navy-light)", fontWeight: 700, fontSize: "0.82rem", textDecoration: "none" }}
+                        style={{ color: "var(--apex-brand, #6366f1)", fontWeight: 700, fontSize: "0.82rem", textDecoration: "none" }}
                       >
                         Open ›
                       </Link>

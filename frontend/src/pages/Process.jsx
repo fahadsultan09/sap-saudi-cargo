@@ -297,7 +297,7 @@ export default function Process({ showToast }) {
           <div
             style={{
               background: isDragOver ? "#f0fdf4" : "#ffffff",
-              border: `2px dashed ${isDragOver ? "#006937" : "#cbd5e1"}`,
+              border: `2px dashed ${isDragOver ? "var(--apex-brand, #6366f1)" : "#cbd5e1"}`,
               borderRadius: "16px",
               padding: "4rem 2rem",
               textAlign: "center",
@@ -334,27 +334,29 @@ export default function Process({ showToast }) {
             />
             <div
               style={{
-                width: "64px",
-                height: "64px",
-                borderRadius: "50%",
-                background: "rgba(0, 105, 55, 0.1)",
-                color: "var(--ref-green)",
+                width: "72px",
+                height: "72px",
+                borderRadius: "20px",
+                background: "linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(59, 130, 246, 0.1) 100%)",
+                border: "1px solid rgba(99, 102, 241, 0.25)",
+                color: "var(--apex-brand)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                boxShadow: "0 8px 24px rgba(99, 102, 241, 0.18)",
               }}
             >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
             </div>
             <div>
-              <h3 style={{ margin: "0 0 0.5rem", color: "var(--ref-navy)", fontSize: "1.35rem", fontWeight: 700 }}>
+              <h3 style={{ margin: "0 0 0.5rem", color: "var(--apex-text-main)", fontSize: "1.45rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
                 {uploading ? "Ingesting invoice into agent runway…" : "Upload Invoices for Automated Processing"}
               </h3>
-              <p style={{ margin: "0 0 0.5rem", color: "var(--ref-text-muted)", fontSize: "0.95rem" }}>
+              <p style={{ margin: "0 0 0.5rem", color: "var(--apex-text-secondary)", fontSize: "0.95rem" }}>
                 Drag & drop single or multi-page invoice PDF or image here, or click to browse files
               </p>
               <span style={{ fontSize: "0.82rem", color: "#94a3b8" }}>
@@ -363,45 +365,45 @@ export default function Process({ showToast }) {
             </div>
             <button
               type="button"
-              className="ref-btn-approve"
-              style={{ marginTop: "0.5rem", padding: "0.6rem 1.75rem", fontSize: "0.9rem" }}
+              className="ref-btn-select-file"
+              style={{ marginTop: "0.5rem" }}
               onClick={(e) => {
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
             >
-              Select File
+              Select Invoice File
             </button>
           </div>
 
           {/* 3 Channel Info Cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem", marginTop: "2rem" }}>
-            <div style={{ background: "#ffffff", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--ref-line)" }}>
+            <div style={{ background: "#ffffff", padding: "1.6rem", borderRadius: "14px", border: "1px solid var(--apex-border)", boxShadow: "var(--apex-shadow-sm)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--ref-green)" }}></span>
-                <strong style={{ fontSize: "0.95rem", color: "var(--ref-navy)" }}>Automated Mailbox</strong>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--apex-emerald)", boxShadow: "0 0 8px var(--apex-emerald)" }}></span>
+                <strong style={{ fontSize: "0.95rem", color: "var(--apex-text-main)" }}>Automated Mailbox</strong>
               </div>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--ref-text-muted)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--apex-text-secondary)", lineHeight: 1.5 }}>
                 Connected to AP mailbox. 808 total emails ingested this week across Direct & Intercompany.
               </p>
             </div>
 
-            <div style={{ background: "#ffffff", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--ref-line)" }}>
+            <div style={{ background: "#ffffff", padding: "1.6rem", borderRadius: "14px", border: "1px solid var(--apex-border)", boxShadow: "var(--apex-shadow-sm)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--ref-green)" }}></span>
-                <strong style={{ fontSize: "0.95rem", color: "var(--ref-navy)" }}>SAP PO Integration</strong>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--apex-brand)", boxShadow: "0 0 8px var(--apex-brand)" }}></span>
+                <strong style={{ fontSize: "0.95rem", color: "var(--apex-text-main)" }}>SAP PO Integration</strong>
               </div>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--ref-text-muted)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--apex-text-secondary)", lineHeight: 1.5 }}>
                 Real-time 2-way and 3-way line item matching with SAP PO 4200011755 and SES creation.
               </p>
             </div>
 
-            <div style={{ background: "#ffffff", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--ref-line)" }}>
+            <div style={{ background: "#ffffff", padding: "1.6rem", borderRadius: "14px", border: "1px solid var(--apex-border)", boxShadow: "var(--apex-shadow-sm)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#0284c7" }}></span>
-                <strong style={{ fontSize: "0.95rem", color: "var(--ref-navy)" }}>Agent Orchestration</strong>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--apex-cyan)", boxShadow: "0 0 8px var(--apex-cyan)" }}></span>
+                <strong style={{ fontSize: "0.95rem", color: "var(--apex-text-main)" }}>Agent Orchestration</strong>
               </div>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--ref-text-muted)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--apex-text-secondary)", lineHeight: 1.5 }}>
                 6 specialized agents: TOWER → LENS → VECTOR → PRISM → COMPASS → PLUMB.
               </p>
             </div>

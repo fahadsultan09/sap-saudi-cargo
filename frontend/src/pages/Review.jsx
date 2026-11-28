@@ -295,7 +295,7 @@ export default function Review({ userId, onUserChange, showToast }) {
       <section className="ref-case-journey-card">
         <div className="ref-case-journey-head">
           <h2 className="ref-case-journey-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--ref-navy)" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--apex-brand)" }}>
               <circle cx="6" cy="19" r="2.5"></circle>
               <circle cx="18" cy="5" r="2.5"></circle>
               <path d="M8.5 19H17a3.5 3.5 0 0 0 0-7H7a3.5 3.5 0 0 1 0-7h8.5"></path>
@@ -542,13 +542,17 @@ export default function Review({ userId, onUserChange, showToast }) {
       {/* 5. Sticky Bottom Decision Action Bar */}
       <footer className="ref-decision-bar">
         <div className="ref-decision-info">
-          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--ref-navy)" }}>
-            AP Role: {user?.roleLabel || "Processor"}
-          </span>
-          <span style={{ color: "var(--ref-line-strong)" }}>|</span>
-          <span style={{ fontSize: "0.85rem", color: "var(--ref-text-muted)" }}>
-            {reasons.length > 0 ? `${reasons.length} checks need attention` : "Ready for processor review"}
-          </span>
+          <div className="ref-decision-role-wrap">
+            <span>AP Role:</span>
+            <span className="ref-decision-role-badge">{user?.roleLabel || "Processor"}</span>
+          </div>
+          <span className="ref-decision-sep">|</span>
+          <div className={`ref-decision-status-text ${reasons.length > 0 ? "has-attention" : ""}`}>
+            {reasons.length > 0 && <span className="ref-decision-pulse-dot" />}
+            <span>
+              {reasons.length > 0 ? `${reasons.length} checks need attention` : "Ready for processor review"}
+            </span>
+          </div>
         </div>
 
         <div className="ref-decision-btns">
