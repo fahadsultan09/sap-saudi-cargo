@@ -5,6 +5,7 @@ import "../reference-portal.css";
 
 export default function Shell({ userId, onUserChange, toast, session, localUser }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const location = useLocation();
 
   const user = localUser;
@@ -14,7 +15,7 @@ export default function Shell({ userId, onUserChange, toast, session, localUser 
       config.users.find((u) => u.role === session.role)?.roleLabel) ||
     user?.roleLabel ||
     session?.role ||
-    "AP Processor";
+    "Processor";
 
   return (
     <div className="ref-shell">
@@ -35,43 +36,98 @@ export default function Shell({ userId, onUserChange, toast, session, localUser 
           </button>
           
           <NavLink to="/" className="ref-brand">
-            <div className="ref-brand-mark">AP</div>
+            <div className="ref-brand-mark">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </div>
             <div className="ref-brand-text">
-              <span className="ref-brand-title">AP Console</span>
-              <span className="ref-brand-sub">AP AUTOMATION · INVOICE PROCESSING</span>
+              <span className="ref-brand-title">
+                APEX AP
+                <span style={{ fontSize: "0.65rem", padding: "1px 6px", borderRadius: "4px", background: "rgba(99, 102, 241, 0.2)", color: "#818cf8", fontWeight: 700, border: "1px solid rgba(99, 102, 241, 0.4)" }}>
+                  AI 2.0
+                </span>
+              </span>
+              <span className="ref-brand-sub">AUTONOMOUS INVOICE INTELLIGENCE</span>
             </div>
           </NavLink>
         </div>
 
         <div className="ref-header-center">
           <div className="ref-search-capsule">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input
               type="text"
               className="ref-search-input"
-              placeholder="Search case, vendor, invoice number or PO"
+              placeholder="Search invoices, PO numbers, suppliers, or ledger accounts..."
             />
+            <span style={{
+              position: "absolute",
+              right: "0.85rem",
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.14)",
+              borderRadius: "6px",
+              padding: "1px 6px",
+              fontSize: "0.68rem",
+              fontWeight: 600,
+              color: "#94a3b8",
+              pointerEvents: "none"
+            }}>
+              ⌘K
+            </span>
           </div>
         </div>
 
         <div className="ref-header-right">
-          <button type="button" className="ref-notify-btn" aria-label="Notifications">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <button type="button" className="ref-notify-btn" aria-label="Notifications" title="Live Agent Alerts">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
+            <span className="ref-notify-dot"></span>
           </button>
 
-          <div className="ref-role-pill">
-            <span className="ref-role-dot"></span>
-            <span>{roleLabel}</span>
+          <div className="ref-user-menu" style={{ position: "relative" }}>
+            <div
+              className="ref-role-pill"
+              onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+              title="Click to switch role"
+            >
+              <span className="ref-role-dot"></span>
+              <span>{roleLabel}</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.7 }}>
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+
+            {roleDropdownOpen && (
+              <div className="ref-role-popover">
+                <div className="ref-role-popover-header">Simulated Active Role</div>
+                {config.users.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    className={`ref-role-option ${u.id === user?.id ? "active" : ""}`}
+                    onClick={() => {
+                      onUserChange(u.id);
+                      setRoleDropdownOpen(false);
+                    }}
+                  >
+                    <span>{u.roleLabel} ({u.name})</span>
+                    {u.id === user?.id && <span>✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="ref-avatar" title={`Account: ${displayName}`}>
-            FS
+          <div className="ref-avatar" title={`Signed in as: ${displayName}`}>
+            {displayName.slice(0, 2).toUpperCase()}
           </div>
         </div>
       </header>

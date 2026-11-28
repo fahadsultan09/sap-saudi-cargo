@@ -295,7 +295,7 @@ export default function Review({ userId, onUserChange, showToast }) {
       <section className="ref-case-journey-card">
         <div className="ref-case-journey-head">
           <h2 className="ref-case-journey-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--ref-navy)" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--apex-brand)" }}>
               <circle cx="6" cy="19" r="2.5"></circle>
               <circle cx="18" cy="5" r="2.5"></circle>
               <path d="M8.5 19H17a3.5 3.5 0 0 0 0-7H7a3.5 3.5 0 0 1 0-7h8.5"></path>

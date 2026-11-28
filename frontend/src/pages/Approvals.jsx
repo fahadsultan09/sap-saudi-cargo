@@ -152,7 +152,7 @@ export default function Approvals({ userId, showToast }) {
                     <td>
                       <span style={{ fontWeight: 600 }}>{vendor}</span>
                     </td>
-                    <td style={{ fontWeight: 700, color: "#002856" }}>{amount}</td>
+                    <td style={{ fontWeight: 700, color: "var(--apex-text-main, #0f172a)" }}>{amount}</td>
                     <td>
                       <span style={{ fontSize: "0.82rem", color: "#b45309", background: "#fef3c7", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
                         {reason}

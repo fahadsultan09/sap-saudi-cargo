@@ -66,9 +66,14 @@ export default function Home({ userId, showToast }) {
       <section className="ref-hero">
         <div className="ref-hero-top">
           <div>
-            <div className="ref-hero-kicker">AP CONSOLE</div>
-            <h1 className="ref-hero-title">Good Evening, Faizan</h1>
-            <p className="ref-hero-date">Wednesday, 25 November 2026</p>
+            <div className="ref-hero-kicker" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }}></span>
+              <span>AUTONOMOUS AGENT RUNWAY · REAL-TIME OPERATIONS</span>
+            </div>
+            <h1 className="ref-hero-title">Welcome back, Faizan</h1>
+            <p className="ref-hero-date">
+              {new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
+            </p>
           </div>
 
           <div style={{ position: "relative" }}>
@@ -87,23 +92,25 @@ export default function Home({ userId, showToast }) {
                 position: "absolute",
                 right: 0,
                 top: "115%",
-                background: "#002856",
-                border: "1px solid rgba(182, 223, 255, 0.3)",
-                borderRadius: "8px",
+                background: "#0f172a",
+                border: "1px solid rgba(255, 255, 255, 0.14)",
+                borderRadius: "12px",
                 padding: "0.5rem 0",
-                minWidth: "130px",
-                boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
-                zIndex: 20
+                minWidth: "150px",
+                boxShadow: "0 14px 35px rgba(0,0,0,0.5)",
+                zIndex: 20,
+                backdropFilter: "blur(16px)"
               }}>
                 {["This week", "Last week", "This month", "Last month", "All time"].map((item) => (
                   <div
                     key={item}
                     style={{
-                      padding: "0.4rem 1rem",
+                      padding: "0.5rem 1rem",
                       fontSize: "0.82rem",
-                      color: period === item ? "#94e18c" : "#ffffff",
+                      fontWeight: period === item ? 600 : 400,
+                      color: period === item ? "#818cf8" : "#cbd5e1",
                       cursor: "pointer",
-                      background: period === item ? "rgba(255,255,255,0.08)" : "transparent"
+                      background: period === item ? "rgba(99, 102, 241, 0.15)" : "transparent"
                     }}
                     onClick={() => {
                       setPeriod(item);
@@ -203,7 +210,7 @@ export default function Home({ userId, showToast }) {
           {/* Agent 1: TOWER — Classification */}
           <div className="ref-agent-step">
             <div className="ref-agent-rail">
-              <div className="ref-agent-badge" style={{ backgroundColor: "#006937" }}>
+              <div className="ref-agent-badge">
                 T
                 <span style={{
                   position: "absolute",
