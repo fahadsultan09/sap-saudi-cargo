@@ -20,9 +20,13 @@ class MockClassifierAgent:
             kind = "supporting_document"
         else:
             kind = "invoice"
-        return {"document_type": kind, "confidence": 0.35,
-                "reason": "MOCK MODE: filename heuristic only; verify the document manually.",
-                "ai_parse_status": "mock", "mode": "mock"}
+        return {
+            "document_type": kind,
+            "confidence": 0.35,
+            "reason": "MOCK MODE: filename heuristic only; verify the document manually.",
+            "ai_parse_status": "mock",
+            "mode": "mock",
+        }
 
 
 class MockScannerAgent:
@@ -33,8 +37,28 @@ class MockScannerAgent:
     def run(self, file_path: str | Path, classification: dict[str, Any]) -> dict[str, Any]:
         kind = str(classification.get("document_type", "other")).lower()
         if kind not in self.EXTRACTABLE:
-            return {"status": "skipped", "reason": f"MOCK MODE: extraction skipped for {kind}.",
-                    "raw_job": {}, "converted": {"classification_extraction": [], "detailed_extraction": [], "line_items": []}}
-        return {"status": "completed", "reason": "MOCK MODE: extraction adapter exercised, no values fabricated.",
-                "raw_job": {"id": None, "status": "MOCK"},
-                "converted": {"classification_extraction": [], "detailed_extraction": [], "line_items": []}}
+            return {
+                "status": "skipped",
+                "reason": f"MOCK MODE: extraction skipped for {kind}.",
+                "raw_job": {},
+                "converted": {
+                    "classification_extraction": [],
+                    "detailed_extraction": [],
+                    "line_items": [],
+                },
+            }
+        return {
+            "status": "completed",
+            "reason": "MOCK MODE: extraction adapter exercised, no values fabricated.",
+            "raw_job": {"id": None, "status": "MOCK"},
+            "converted": {
+                "classification_extraction": [],
+                "detailed_extraction": [],
+                "line_items": [],
+            },
+        }
+
+
+# Aliases for compatibility
+MockTowerAgent = MockClassifierAgent
+MockLensAgent = MockScannerAgent

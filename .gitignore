@@ -2,6 +2,7 @@
 # Node.js
 # =========================
 node_modules/
+scratch/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -131,9 +132,10 @@ __pycache__/
 
 
 node_modules/
+scratch/
+
 # Fahad's archive of ap-core-service, not source
 ap-core-service/*.rar
-
 
 # SAP / AI credentials
 sap_credentials.json

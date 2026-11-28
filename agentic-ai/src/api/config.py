@@ -7,8 +7,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 try:
     from dotenv import load_dotenv
-    # override=True so config/.env wins over stale shell AGENT_MODE/SAP_* after restart/reload
-    load_dotenv(PROJECT_ROOT / "config" / ".env", override=True)
+    # override=False so explicit process env (tests, restart scripts) wins over .env
+    load_dotenv(PROJECT_ROOT / "config" / ".env", override=False)
 except ImportError:
     pass
 

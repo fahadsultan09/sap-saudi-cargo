@@ -78,17 +78,40 @@ def decide(
         now = utc_now()
         new_status = NEW_STATUS[decision]
 
-        # Record the decision directly, without an approval request.
+        # Record an approval_request row so legacy DBs with NOT NULL accept it,
+        # and queue queries / audit history track the request ID.
+        approval_request_id = str(uuid.uuid4())
+        request_status = new_status
+        conn.execute(
+            """
+            INSERT INTO approval_requests (
+                id, case_id, stage, assigned_approver_id, status,
+                policy_version, created_at, completed_at
+            )
+            VALUES (?, ?, 1, ?, ?, ?, ?, ?)
+            """,
+            (
+                approval_request_id,
+                case_id,
+                actor.user_id,
+                request_status,
+                POLICY_VERSION,
+                now,
+                now,
+            ),
+        )
+
         conn.execute(
             """
             INSERT INTO approval_decisions (
                 id, approval_request_id, case_id, decision,
                 actor_id, actor_role, comment, policy_version, created_at
             )
-            VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(uuid.uuid4()),
+                approval_request_id,
                 case_id,
                 decision,
                 actor.user_id,
@@ -99,6 +122,9 @@ def decide(
             ),
         )
 
+        review_reason = (
+            "Approved — ready for posting." if decision == "APPROVE" else body.comment
+        )
         conn.execute(
             """
             UPDATE ap_cases
@@ -107,7 +133,7 @@ def decide(
             """,
             (
                 new_status,
-                body.comment if decision != "APPROVE" else None,
+                review_reason,
                 now,
                 case_id,
             ),
@@ -122,24 +148,39 @@ def decide(
             before=before,
             after={"case_status": new_status, "decision": decision},
             metadata={
-                "approval_request_id": None,
+                "approval_request_id": approval_request_id,
                 "policy_version": POLICY_VERSION,
                 "decision_mode": "direct",
             },
             correlation_id=x_correlation_id,
         )
 
+        posting_status = None
         if decision == "APPROVE":
+            posting_status = "READY_FOR_POSTING"
             _record_posting_placeholder(
                 conn, case_id, row["company_code"], actor, now, x_correlation_id
+            )
+            audit_event(
+                conn,
+                case_id,
+                "POSTING_READY",
+                actor,
+                reason="Direct approval by AP approver",
+                before={"posting_status": None},
+                after={"posting_status": "READY_FOR_POSTING"},
+                metadata={"idempotency_key": f"ap-case:{case_id}:posting:v1"},
+                correlation_id=x_correlation_id,
             )
 
         return {
             "case_id": case_id,
             "status": new_status,
             "decision": decision,
+            "approval_request_id": approval_request_id,
+            "posting_status": posting_status,
             "message": (
-                "Approval recorded. SAP posting is not enabled by this POC."
+                "Approved — ready for posting. SAP posting is not enabled by this POC."
                 if decision == "APPROVE"
                 else "Decision recorded."
             ),
